@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { HBar, LineChart, StripLegend, UptimeStrip } from "./charts";
+import { PageSpeedCard } from "./vitals";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
   fetcher, send, type AnalyticsResponse, type AuditResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
@@ -43,6 +44,8 @@ export function OverviewTab({ site }: { site: SiteDetail }) {
         <Tile label="Audit score" value={site.audit_score ?? "—"} note={site.top_issues.length ? `${site.top_issues.length} high issues` : "No high issues"} />
         <Tile label="Visitors, 30 days" value={fmtNum(site.visitors30)} note={`${fmtNum(site.pageviews30)} page views`} />
       </section>
+
+      <PageSpeedCard ps={site.pagespeed} auditRan={site.audit_ts != null} />
 
       <Card className="flex flex-col gap-3.5 p-5">
         <CardTitle aside={`${fmtPct(site.uptime_stats.uptime)} · ${site.uptime_stats.downtime_minutes} min downtime`}>Uptime, last 30 days</CardTitle>
@@ -161,6 +164,7 @@ export function AuditTab({ id }: { id: string }) {
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
   return (
     <div className="flex flex-col gap-5">
+      <PageSpeedCard ps={data.audit.pagespeed} auditRan />
       <section className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
         {["Overall", ...data.categories].map((k) => (
           <div key={k} className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-[18px]">

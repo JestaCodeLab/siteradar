@@ -147,6 +147,8 @@ def blueprint(cfg):
             "incidents": [{"started": i["started"], "ended": i["ended"], "cause": i["cause"]}
                           for i in incidents[::-1][:10]],
             "top_issues": [i for i in (au["issues"] if au else []) if i["severity"] == "high"][:5],
+            "audit_ts": au["ts"] if au else None,
+            "pagespeed": au["pagespeed"] if au else None,
             "tracking_live": bool(db.q1("SELECT 1 FROM hits WHERE site_id=? AND ts>? LIMIT 1", (site_id, now - 86400))),
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',

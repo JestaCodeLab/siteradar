@@ -52,7 +52,13 @@ export interface Issue {
   rule: string; category: string; severity: "high" | "medium" | "low"; title: string; fix: string; count: number;
 }
 
+export interface PageSpeed {
+  scores: Record<string, number>; lcp_ms: number | null; cls: number | null; inp_ms: number | null;
+  field_data: boolean; opportunities: string[];
+}
+
 export interface SiteDetail extends SiteCard {
+  audit_ts: number | null; pagespeed: PageSpeed | null;
   uptime_stats: { uptime: number | null; avg_ms: number | null; p95_ms: number | null; downtime_minutes: number; incident_count: number };
   response_series: { day: string; ms: number }[];
   incidents: { started: number; ended: number | null; cause: string | null }[];
@@ -72,7 +78,7 @@ export interface AnalyticsResponse {
 }
 
 export interface AuditResponse {
-  audit: { ts: number; pages: number; scores: Record<string, number>; issues: Issue[] } | null;
+  audit: { ts: number; pages: number; scores: Record<string, number>; issues: Issue[]; pagespeed: PageSpeed | null } | null;
   running: boolean; categories: string[];
 }
 
