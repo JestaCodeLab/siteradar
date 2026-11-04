@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SiteWatch</title><meta http-equiv="refresh" content="120">
+{% include "_style.html" %}
+</head><body><div class="wrap">
+<header style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
+  <div><h1>SiteWatch</h1><div class="muted">{{ sites|length }} website{{ 's' if sites|length != 1 }} monitored · checks every {{ cfg.check_interval_minutes }} min</div></div>
+  <div class="small muted">Updated {{ now }}</div>
+</header>
+
+<div class="grid g2" style="margin-top:22px">
+{% for s in sites %}
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+      <div style="min-width:0">
+        <h3 style="margin:0;font-size:17px"><span class="dot-status" style="background:var(--{{ 'ok' if s.status == 'up' else ('bad' if s.status == 'down' else 'nodata') }})"></span><a href="/site/{{ s.id }}" style="color:inherit;text-decoration:none">{{ s.name }}</a></h3>
+        <div class="muted small trunc"><a href="{{ s.url }}">{{ s.url }}</a>{% if s.owner %} · {{ s.owner }}{% endif %}</div>
+      </div>
+      {% if s.score is not none %}<div class="score {{ 's-good' if s.score >= 85 else ('s-mid' if s.score >= 60 else 's-bad') }}" style="width:52px;height:52px;font-size:18px;border-width:4px;flex:none">{{ s.score }}</div>{% endif %}
+    </div>
+    {% if s.status == 'down' %}<div class="banner" style="background:var(--bad-soft);border-color:#f0c2b9;color:var(--bad)"><b>Down</b> since {{ s.down_since }} — {{ s.error }}</div>{% endif %}
+    <div style="margin-top:12px">{{ s.strip }}</div>
+    <div class="muted small" style="display:flex;justify-content:space-between"><span>30 days ago</span><span>today</span></div>
+    <table style="margin-top:8px"><tr>
+      <td><div class="muted small">Uptime 24h</div><b>{{ s.up24 }}</b></td>
+      <td><div class="muted small">Uptime 30d</div><b>{{ s.up30 }}</b></td>
+      <td><div class="muted small">Response</div><b>{{ s.ms }}</b></td>
+      <td><div class="muted small">Visitors 30d</div><b>{{ s.visitors }}</b></td>
+    </tr></table>
+    <div class="muted small" style="margin-top:6px">Last check {{ s.last_check }}{% if s.ssl is not none %} · SSL {{ s.ssl }} days{% endif %}{% if s.issues is not none %} · {{ s.issues }} high-priority issue{{ 's' if s.issues != 1 }}{% endif %}</div>
+    <div class="noprint" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <a class="btn" href="/site/{{ s.id }}">Open</a>
+      <form method="post" action="/api/check/{{ s.id }}"><button class="btn ghost">Check now</button></form>
+      <form method="post" action="/api/audit/{{ s.id }}"><button class="btn ghost">Run audit</button></form>
+      <a class="btn ghost" href="/reports/{{ s.id }}">Reports</a>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% if flash %}<div class="banner" style="margin-top:18px">{{ flash }}</div>{% endif %}
+</div></body></html>

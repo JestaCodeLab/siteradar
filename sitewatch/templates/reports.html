@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports – {{ site.name }}</title>
+{% include "_style.html" %}
+</head><body><div class="wrap">
+<p class="small"><a href="/">← All sites</a></p>
+<h1>Reports · {{ site.name }}</h1>
+<div class="card" style="margin-top:18px"><table>
+  <tr><th>Month</th><th></th><th></th></tr>
+  {% for m in months %}<tr><td>{{ m.label }}</td>
+    <td><a href="/report/{{ site.id }}/{{ m.key }}">View</a></td>
+    <td><a href="/report/{{ site.id }}/{{ m.key }}.pdf">Download PDF</a></td></tr>{% endfor %}
+</table></div>
+<div class="card" style="margin-top:14px">
+  <h3>Tracking snippet</h3>
+  <p class="small muted">Paste before <code>&lt;/head&gt;</code> on every page of {{ site.url }}. No cookies, no consent banner needed for this script.</p>
+  <code>&lt;script defer src="{{ cfg.public_url }}/t.js" data-site="{{ site.id }}"&gt;&lt;/script&gt;</code>
+</div>
+</div></body></html>

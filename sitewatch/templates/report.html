@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ site.name }} – Website report {{ period }}</title>
+{% include "_style.html" %}
+</head><body><div class="wrap">
+{% if nav %}<div class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
+  <a href="/" class="small" style="margin-right:auto">← All sites</a>
+  <form method="post" action="/api/check/{{ site.id }}"><button class="btn ghost">Check now</button></form>
+  <form method="post" action="/api/audit/{{ site.id }}"><button class="btn ghost">Run audit</button></form>
+  <a class="btn ghost" href="/reports/{{ site.id }}">Monthly reports</a>
+</div>{% if flash %}<div class="banner" style="margin:0 0 16px">{{ flash }}</div>{% endif %}{% endif %}
+
+{% macro delta(v, invert=False) -%}
+  {%- if v is none -%}<span class="flat">no previous data</span>
+  {%- else -%}{% set good = (v < 0) if invert else (v > 0) %}
+  <span class="{{ 'flat' if v == 0 else ('up' if good else 'down') }}">{{ '▲' if v > 0 else ('▼' if v < 0 else '•') }} {{ v|abs }}% vs last month</span>
+  {%- endif -%}
+{%- endmacro %}
+{% macro sclass(s) %}{{ 's-good' if s >= 85 else ('s-mid' if s >= 60 else 's-bad') }}{% endmacro %}
+{% macro bclass(s) %}{{ 'bg-good' if s >= 85 else ('bg-mid' if s >= 60 else 'bg-bad') }}{% endmacro %}
+
+<header style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap">
+  <div>
+    <div class="muted small" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600">Monthly website report · {{ period }}</div>
+    <h1>{{ site.name }}</h1>
+    <div class="muted"><a href="{{ site.url }}">{{ site.url }}</a>{% if site.owner %} · {{ site.owner }}{% endif %}</div>
+    <div class="muted small">Generated {{ generated }}</div>
+  </div>
+  {% if audit %}<div style="text-align:center">
+    <div class="score {{ sclass(audit.scores.Overall) }}">{{ audit.scores.Overall }}</div>
+    <div class="muted small" style="margin-top:4px">Site health score</div>
+  </div>{% endif %}
+</header>
+{% if partial %}<div class="banner">This month is still in progress — figures cover the period up to today and are compared with the same days of last month.</div>{% endif %}
+
+<h2><span class="n">01</span>At a glance</h2>
+<div class="kpis">
+  <div class="kpi"><div class="l">Uptime</div>
+    <div class="v {{ 'up' if (up.uptime or 0) >= 99.9 else 'down' }}">{{ '%.2f'|format(up.uptime) ~ '%' if up.uptime is not none else '—' }}</div>
+    <div class="d muted">{{ up.incidents|length }} incident{{ '' if up.incidents|length == 1 else 's' }} · {{ '%.0f'|format(up.downtime_minutes) }} min down</div></div>
+  <div class="kpi"><div class="l">Avg response</div>
+    <div class="v">{{ up.avg_ms ~ ' ms' if up.avg_ms else '—' }}</div>
+    <div class="d">{{ delta(deltas.avg_ms, invert=True) }}</div></div>
+  <div class="kpi"><div class="l">Visitors</div>
+    <div class="v">{{ '{:,}'.format(a.visitors) }}</div><div class="d">{{ delta(deltas.visitors) }}</div></div>
+  <div class="kpi"><div class="l">Page views</div>
+    <div class="v">{{ '{:,}'.format(a.pageviews) }}</div><div class="d">{{ delta(deltas.pageviews) }}</div></div>
+  {% if a.pageviews %}<div class="kpi"><div class="l">Bounce rate</div>
+    <div class="v">{{ a.bounce_rate }}%</div><div class="d muted">{{ a.pages_per_visit }} pages / visit</div></div>{% endif %}
+  <div class="kpi"><div class="l">SSL certificate</div>
+    <div class="v {{ 'down' if ssl_days is not none and ssl_days < 21 else '' }}">{{ ssl_days ~ ' d' if ssl_days is not none else 'n/a' }}</div>
+    <div class="d muted">until expiry</div></div>
+</div>
+
+<h2><span class="n">02</span>What to do next</h2>
+<div class="card">
+  {% for r in recs[:10] %}
+  <div class="rec">
+    <div class="num p-{{ r.priority }}">{{ loop.index }}</div>
+    <div>
+      <div><span class="t">{{ r.title }}</span><span class="meta">{{ r.area }} · {{ ['','High','Medium','Low'][r.priority] }} priority</span></div>
+      {% if r.why %}<div class="why">{{ r.why }}</div>{% endif %}
+      <div class="act"><b>Action:</b> {{ r.action }}</div>
+    </div>
+  </div>
+  {% else %}<p>Nothing urgent — the site is in good shape this month. 🎉</p>{% endfor %}
+</div>
+
+<h2><span class="n">03</span>Availability &amp; speed</h2>
+<div class="card">
+  <h3>Daily uptime</h3>
+  {{ charts.uptime }}
+  <div class="legend"><span style="--c:var(--ok)">100%</span><span style="--c:var(--warn)">Degraded</span><span style="--c:var(--bad)">Outage</span><span style="--c:var(--nodata)">No data</span></div>
+  <h3 style="margin-top:22px">Average response time per day</h3>
+  {{ charts.response }}
+  <p class="muted small">95% of checks completed within {{ up.p95_ms or '—' }} ms. {{ up.checks }} checks were run this month.</p>
+</div>
+{% if up.incidents %}
+<div class="card" style="margin-top:14px">
+  <h3>Incidents</h3>
+  <table><tr><th>Started</th><th>Resolved</th><th class="num">Duration</th><th>Cause</th></tr>
+  {% for i in up.incidents %}
+    <tr><td>{{ fmt_ts(i.started) }}</td><td>{{ fmt_ts(i.ended) }}</td>
+    <td class="num">{% if not i.ended %}ongoing{% elif i.ended - i.started < 60 %}&lt;1 min{% else %}{{ '%.0f'|format((i.ended - i.started) / 60) }} min{% endif %}</td><td>{{ i.cause }}</td></tr>
+  {% endfor %}</table>
+</div>
+{% endif %}
+
+<h2><span class="n">04</span>Visitors</h2>
+{% if a.pageviews %}
+<div class="card"><h3>Visitors per day</h3>{{ charts.visitors }}</div>
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h3>Most viewed pages</h3><table>
+    {% for p, n in a.top_pages %}<tr><td class="trunc">{{ p }}</td><td class="num">{{ '{:,}'.format(n) }}</td></tr>{% endfor %}</table></div>
+  <div class="card"><h3>Where visitors come from</h3>
+    {% for r, n, pct in a.referrers %}<div class="bar-row"><span class="trunc">{{ r }}</span><span class="track"><i class="bg-good" style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}</div>
+  <div class="card"><h3>Devices</h3>
+    {% for r, n, pct in a.devices %}<div class="bar-row"><span>{{ r }}</span><span class="track"><i style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}
+    <h3 style="margin-top:16px">Browsers</h3>
+    {% for r, n, pct in a.browsers[:5] %}<div class="bar-row"><span>{{ r }}</span><span class="track"><i style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}</div>
+  <div class="card"><h3>Engagement</h3><table>
+    <tr><td>Visits</td><td class="num">{{ '{:,}'.format(a.visits) }}</td></tr>
+    <tr><td>Pages per visit</td><td class="num">{{ a.pages_per_visit }}</td></tr>
+    <tr><td>Bounce rate</td><td class="num">{{ a.bounce_rate }}%</td></tr>
+    <tr><td>Avg. visit length (multi-page)</td><td class="num">{{ (a.avg_visit_seconds // 60) }}m {{ a.avg_visit_seconds % 60 }}s</td></tr>
+    <tr><td>Median page load (real visitors)</td><td class="num">{{ ('%.1f'|format(a.median_load_ms / 1000)) ~ ' s' if a.median_load_ms else '—' }}</td></tr>
+    </table>
+    <h3 style="margin-top:16px">Top landing pages</h3><table>
+    {% for p, n in a.entry_pages %}<tr><td class="trunc">{{ p }}</td><td class="num">{{ n }}</td></tr>{% endfor %}</table>
+    {% if a.campaigns %}<h3 style="margin-top:16px">Campaigns (UTM)</h3><table>
+    {% for c, n in a.campaigns %}<tr><td class="trunc">{{ c }}</td><td class="num">{{ n }}</td></tr>{% endfor %}</table>{% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card"><p>No visitor data for this period. Add this snippet just before <code>&lt;/head&gt;</code> on every page:</p>
+<p><code>&lt;script defer src="{{ cfg.public_url }}/t.js" data-site="{{ site.id }}"&gt;&lt;/script&gt;</code></p></div>
+{% endif %}
+
+<h2><span class="n">05</span>Site health audit</h2>
+{% if audit %}
+<div class="grid g2">
+  <div class="card"><h3>Scores by area</h3>
+    {% for cat, s in audit.scores.items() if cat != 'Overall' %}
+    <div class="bar-row"><span>{{ cat }}</span><span class="track"><i class="{{ bclass(s) }}" style="width:{{ s }}%"></i></span><span class="num small">{{ s }}</span></div>
+    {% endfor %}
+    <p class="muted small">{{ audit.pages }} pages crawled{% if prev_audit %} · previous score {{ prev_audit.scores.Overall }}{% endif %}.</p>
+  </div>
+  <div class="card"><h3>Changes since last audit</h3>
+    {% if prev_audit %}
+      {% if fixed_issues %}<p class="small"><span class="pill p-ok">Fixed</span></p><ul class="small">{% for i in fixed_issues %}<li>{{ i.title }}</li>{% endfor %}</ul>{% endif %}
+      {% if new_issues %}<p class="small"><span class="pill p-high">New</span></p><ul class="small">{% for i in new_issues %}<li>{{ i.title }}</li>{% endfor %}</ul>{% endif %}
+      {% if not fixed_issues and not new_issues %}<p class="muted small">No change in issue types since the previous audit.</p>{% endif %}
+    {% else %}<p class="muted small">This is the first audit — next month's report will show what was fixed.</p>{% endif %}
+    {% if audit.pagespeed %}<h3 style="margin-top:14px">Google PageSpeed (mobile)</h3><table>
+      {% for k, v in audit.pagespeed.scores.items() %}<tr><td>{{ k|replace('-', ' ')|title }}</td><td class="num">{{ v }}</td></tr>{% endfor %}
+      {% if audit.pagespeed.lcp_ms %}<tr><td>Largest Contentful Paint</td><td class="num">{{ '%.1f'|format(audit.pagespeed.lcp_ms/1000) }} s</td></tr>{% endif %}
+      {% if audit.pagespeed.cls is not none %}<tr><td>Cumulative Layout Shift</td><td class="num">{{ '%.2f'|format(audit.pagespeed.cls) }}</td></tr>{% endif %}
+      {% if audit.pagespeed.inp_ms %}<tr><td>Interaction to Next Paint</td><td class="num">{{ audit.pagespeed.inp_ms }} ms</td></tr>{% endif %}
+    </table>{% endif %}
+  </div>
+</div>
+<div class="card" style="margin-top:14px">
+  <h3>All findings ({{ audit.issues|length }})</h3>
+  {% for i in audit.issues %}
+  <details {% if i.severity == 'high' %}open{% endif %}>
+    <summary><span class="pill p-{{ i.severity }}">{{ i.severity|capitalize }}</span><span>{{ i.title }}</span><span class="c">{{ i.category }} · {{ i.count }} URL{{ 's' if i.count != 1 }}</span></summary>
+    <div class="issue-body"><b>Fix:</b> {{ i.fix }}
+      <ul>{% for e in i.examples[:5] %}<li>{{ e.url }}{% if e.detail %} — {{ e.detail }}{% endif %}</li>{% endfor %}</ul></div>
+  </details>
+  {% else %}<p>No issues found. Excellent.</p>{% endfor %}
+</div>
+{% else %}
+<div class="card"><p class="muted">No audit has been run yet.</p></div>
+{% endif %}
+
+<p class="muted small" style="margin-top:36px;text-align:center">Report generated by SiteWatch · Analytics are cookieless and anonymous · Uptime checked every {{ cfg.check_interval_minutes }} min</p>
+</div></body></html>

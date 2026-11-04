@@ -1,0 +1,67 @@
+# SiteWatch production config. Secrets come from Railway environment variables.
+public_url: https://monitor.upplauseconsulting.com
+
+dashboard_password: ${SITEWATCH_PASSWORD}
+data_dir: data
+
+check_interval_minutes: 5
+failures_before_alert: 2
+timeout_seconds: 15
+slow_threshold_ms: 3000
+ssl_warning_days: 21
+
+audit:
+  max_pages: 50
+  daily_at: "03:00"
+
+report:
+  day_of_month: 1
+  at: "07:00"
+
+pagespeed_api_key: ${PAGESPEED_API_KEY}
+
+alerts:
+  email_to:
+    - jeremiahmills93@gmail.com
+    - salomey.gyamfi@upplauseconsulting.com
+    - saviour.avornyo@upplauseconsulting.com
+  email:
+    host: smtp.gmail.com
+    port: 587
+    username: jeremiahmills93@gmail.com
+    password: ${SMTP_PASSWORD}
+    from: "SiteWatch <jeremiahmills93@gmail.com>"
+
+sites:
+  - name: Woodin Fashion
+    id: woodinfashion
+    url: https://woodinfashion.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Sanctuary Connect
+    id: sanctuaryconnect
+    url: https://www.sanctuaryconnect.org
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Dwelling Place Church GH
+    id: dwellingplace
+    url: https://www.dwellingplacechurchgh.org
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: WePay GH
+    id: wepaygh
+    url: https://wepaygh.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Shoefabriek
+    id: shoefabriek
+    url: https://shoefabriek.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Indigo Textiles
+    id: indigo-textiles
+    url: https://indigo-textiles.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Midewest GH
+    id: midewestgh
+    url: https://midewestgh.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]
+  - name: Lenscape Fest
+    id: lenscapefest
+    url: https://lenscapefest.com
+    report_to: [jeremiahmills93@gmail.com, salomey.gyamfi@upplauseconsulting.com, saviour.avornyo@upplauseconsulting.com]

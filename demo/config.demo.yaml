@@ -1,0 +1,12 @@
+public_url: http://127.0.0.1:8080
+data_dir: demo/data
+check_interval_minutes: 1
+failures_before_alert: 2
+timeout_seconds: 10
+audit: {max_pages: 30, daily_at: "03:00"}
+sites:
+  - name: De Bakkerij
+    id: bakery
+    url: http://127.0.0.1:9000
+    keyword: Bakkerij
+    owner: "Client: De Bakkerij"

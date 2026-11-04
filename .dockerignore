@@ -1,0 +1,6 @@
+data
+demo
+.DS_Store
+__pycache__
+*.pyc
+.git
