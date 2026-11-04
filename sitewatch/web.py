@@ -1,31 +1,44 @@
 """Web dashboard + analytics collection endpoint."""
 import datetime as dt
+import hashlib
 import hmac
 import json
 import os
 import threading
 import time
 
-from flask import Flask, Response, abort, redirect, request, send_file, session, url_for
+from flask import Flask, Response, abort, jsonify, redirect, request, send_file, session, url_for
 
-from . import analytics, auditor, db, monitor, report
+from . import analytics, api, auditor, db, monitor, report
 from .charts import uptime_strip
 from .config import get_site
 
 
 def create_app(cfg):
     app = Flask(__name__)
-    app.secret_key = cfg.get("secret_key") or os.urandom(24)
     password = cfg.get("dashboard_password")
+    # Derived from the password so logins survive restarts; set secret_key to override.
+    app.secret_key = cfg.get("secret_key") or (
+        hashlib.sha256(("sitewatch-session:" + password).encode()).hexdigest() if password else os.urandom(24))
+    app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True,
+                      SESSION_COOKIE_SECURE=str(cfg.get("public_url", "")).startswith("https://"),
+                      PERMANENT_SESSION_LIFETIME=dt.timedelta(days=api.SESSION_DAYS),
+                      MAX_CONTENT_LENGTH=6 * 1024 * 1024)
     running_audits = set()
+    app.register_blueprint(api.blueprint(cfg))
 
     @app.before_request
     def auth():
-        if not password or request.path in ("/t.js", "/collect", "/health"):
+        if not password or request.path in ("/t.js", "/collect", "/health", "/api/auth/login"):
+            return
+        if session.get("auth"):
             return
         a = request.authorization
-        if not a or not hmac.compare_digest(a.password or "", password):
-            return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="SiteWatch"'})
+        if a and hmac.compare_digest(a.password or "", password):
+            return
+        if request.path.startswith("/api/"):
+            return jsonify(error="Login required"), 401
+        return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="SiteWatch"'})
 
     def flash(msg):
         session["flash"] = msg

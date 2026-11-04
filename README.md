@@ -40,6 +40,23 @@ docker run -d --restart unless-stopped -p 8080:8080 \
 
 Put it behind HTTPS (e.g. Caddy: `monitor.yourdomain.com { reverse_proxy localhost:8080 }`) and set `public_url` to that address — the tracking script on your sites sends data there.
 
+## Dashboard (Next.js)
+
+`frontend/` is the dashboard people use: login, Websites (overview, per-site tabs, add/remove) and Subscriptions
+(invoices as PDFs, monthly spend report). It talks to this Python service through `/api`.
+
+```bash
+python -m sitewatch serve                      # API + scheduler on :8080
+cd frontend && npm install
+BACKEND_URL=http://localhost:8080 npm run dev  # dashboard on :3000
+```
+
+Deploy the Python service on Railway (volume at `/app/data`, public domain such as `api.monitor.yourdomain.com`) and
+`frontend/` on Vercel with the environment variable `BACKEND_URL=https://api.monitor.yourdomain.com`.
+Set `public_url` in `config.yaml` to the API domain, so the tracking snippet loads straight from Railway instead of through Vercel.
+Invoice PDFs are limited to 4 MB because Vercel caps proxied request bodies.
+Websites are stored in the database; `sites:` in `config.yaml` only seeds the first start.
+
 ## Commands
 
 | Command | What it does |

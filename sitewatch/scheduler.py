@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import auditor, monitor, report
+from . import alerts, auditor, monitor, report, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -38,7 +38,7 @@ class Scheduler(threading.Thread):
                 now = time.time()
                 if now - last_check >= self.cfg["check_interval_minutes"] * 60:
                     last_check = now
-                    list(self.pool.map(lambda s: monitor.check_site(self.cfg, s), self.cfg["sites"]))
+                    list(self.pool.map(lambda s: monitor.check_site(self.cfg, s), list(self.cfg["sites"])))
 
                 if self.due_daily("audit", self.cfg["audit"]["daily_at"]):
                     self.state["audit"] = dt.date.today().isoformat()
@@ -56,9 +56,36 @@ class Scheduler(threading.Thread):
                     self.save()
                     for s in self.cfg["sites"]:
                         self.pool.submit(self._safe, report.generate, self.cfg, s, None, None, True, True)
+
+                if self.due_daily("renewals", "08:00"):
+                    self.state["renewals"] = dt.date.today().isoformat()
+                    self.save()
+                    self.pool.submit(self._safe, self.send_renewal_reminders)
+
+                skey = f"subreport-{today:%Y-%m}"
+                if today.day >= int(self.cfg["report"]["day_of_month"]) and \
+                        self.due_daily("subreport_day", self.cfg["report"]["at"]) and not self.state.get(skey):
+                    self.state[skey] = True
+                    self.state["subreport_day"] = today.isoformat()
+                    self.save()
+                    py, pm = report.previous_month(today.year, today.month)
+                    self.pool.submit(self._safe, sub_report.email, self.cfg, py, pm)
             except Exception:
                 log.exception("Scheduler loop error")
             time.sleep(20)
+
+    def send_renewal_reminders(self):
+        """One email per subscription per renewal date, as many days ahead as its reminder setting says."""
+        from . import db
+        for s in subscriptions.due_reminders():
+            kind = f"renewal:{s['id']}:{s['next_renewal']}"
+            if db.last_alert("", kind):
+                continue
+            site = s["site_name"] or "no website"
+            alerts.notify(self.cfg, {}, f"Renewal coming up: {s['name']} ({site})",
+                          f"{s['name']} renews on {s['next_renewal']} for {s['currency']} {s['amount']:.2f}"
+                          f"{' (charged automatically)' if s['auto_renew'] else ' (manual renewal needed)'}.")
+            db.log_alert("", kind, s["name"])
 
     @staticmethod
     def _safe(fn, *args):

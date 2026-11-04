@@ -33,6 +33,26 @@ CREATE INDEX IF NOT EXISTS idx_audits_site_ts ON audits(site_id, ts);
 CREATE TABLE IF NOT EXISTS alerts_sent (
     id INTEGER PRIMARY KEY, site_id TEXT, ts REAL, kind TEXT, message TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sites (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, keyword TEXT, owner TEXT,
+    report_to TEXT, alert_to TEXT, track_analytics INTEGER DEFAULT 1, audit INTEGER DEFAULT 1,
+    created REAL
+);
+
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY, site_id TEXT, name TEXT NOT NULL, category TEXT, provider TEXT,
+    amount REAL NOT NULL, currency TEXT DEFAULT 'USD', cycle TEXT NOT NULL,
+    started TEXT, next_renewal TEXT NOT NULL, auto_renew INTEGER DEFAULT 1,
+    remind_days INTEGER DEFAULT 14, notes TEXT, active INTEGER DEFAULT 1, created REAL
+);
+CREATE INDEX IF NOT EXISTS idx_subs_site ON subscriptions(site_id);
+
+CREATE TABLE IF NOT EXISTS invoices (
+    id INTEGER PRIMARY KEY, subscription_id INTEGER NOT NULL, period TEXT NOT NULL,
+    filename TEXT NOT NULL, original_name TEXT, size INTEGER, uploaded REAL
+);
+CREATE INDEX IF NOT EXISTS idx_inv_sub ON invoices(subscription_id, period);
 """
 
 _local = threading.local()

@@ -1,0 +1,102 @@
+"use client";
+
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import useSWR from "swr";
+import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
+import { btn, Crumbs, ErrorState, Skeleton, StatusChip } from "@/components/ui";
+import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
+import { fmtAgo } from "@/lib/format";
+
+const TABS = [
+  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"],
+  ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
+] as const;
+
+function SiteView() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const tab = useSearchParams().get("tab") ?? "overview";
+  const { data: site, error, mutate } = useSWR<SiteDetail>(`/api/sites/${id}`, fetcher, {
+    refreshInterval: (d) => (d?.audit_running ? 5000 : 60000),
+  });
+  const [note, setNote] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"check" | "audit" | null>(null);
+
+  if (error) {
+    return error instanceof ApiError && error.status === 404
+      ? <ErrorState message="We couldn't find that website. It may have been removed." />
+      : <ErrorState message={error.message} retry={() => mutate()} />;
+  }
+  if (!site) return <div className="flex flex-col gap-4"><Skeleton className="h-10 w-72" /><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
+
+  const now = new Date();
+  const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastPeriod = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`;
+
+  async function checkNow() {
+    setBusy("check"); setNote(null);
+    try {
+      const r = await send<{ ok: boolean; response_ms: number | null; error: string | null }>("POST", `/api/sites/${id}/check`);
+      setNote(r.ok ? `Up. Responded in ${r.response_ms} ms.` : `Check failed: ${r.error}`);
+      await mutate();
+    } catch (e) { setNote(e instanceof Error ? e.message : "Check failed."); }
+    setBusy(null);
+  }
+  async function runAudit() {
+    setBusy("audit"); setNote(null);
+    try {
+      await send("POST", `/api/sites/${id}/audit`);
+      setNote("Audit started. Results appear in about a minute.");
+      await mutate();
+    } catch (e) { setNote(e instanceof Error ? e.message : "Could not start the audit."); }
+    setBusy(null);
+  }
+
+  return (
+    <>
+      <Crumbs items={[{ label: "Websites", href: "/websites" }, { label: site.name }]} />
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[30px] font-semibold leading-tight">{site.name}</h1>
+            <StatusChip status={site.status} />
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted">
+            <a href={site.url} target="_blank" rel="noreferrer" className="font-mono text-brand">{site.host} ↗</a>
+            <span>Last check {fmtAgo(site.last_check)}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <button onClick={checkNow} disabled={busy !== null} className={btn.secondary}>{busy === "check" ? "Checking…" : "Check now"}</button>
+          <button onClick={runAudit} disabled={busy !== null || site.audit_running} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}</button>
+          <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} className={btn.primary}>Latest report (PDF)</a>
+        </div>
+      </header>
+      {note && <p role="status" className="rounded-lg bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">{note}</p>}
+
+      <div role="tablist" aria-label="Website sections" className="flex flex-wrap gap-1 border-b border-[#d9dde4]">
+        {TABS.map(([key, label]) => (
+          <button key={key} role="tab" aria-selected={tab === key}
+            onClick={() => router.replace(key === "overview" ? `/websites/${id}` : `/websites/${id}?tab=${key}`, { scroll: false })}
+            className={`-mb-px min-h-11 border-b-[3px] px-4 text-[15px] ${tab === key ? "border-brand font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "overview" && <OverviewTab site={site} />}
+      {tab === "analytics" && <AnalyticsTab id={id} />}
+      {tab === "audit" && <AuditTab id={id} />}
+      {tab === "reports" && <ReportsTab id={id} />}
+      {tab === "subscriptions" && <SiteSubscriptionsTab site={site} />}
+      {tab === "settings" && <SettingsTab site={site} />}
+      {!TABS.some(([k]) => k === tab) && <Link href={`/websites/${id}`} className={btn.secondary}>Back to overview</Link>}
+    </>
+  );
+}
+
+export default function SitePage() {
+  return <Suspense fallback={<Skeleton className="h-64" />}><SiteView /></Suspense>;
+}

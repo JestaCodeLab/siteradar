@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subscription report {{ r.label }}</title>
+{% include "_style.html" %}
+<style>
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line)}
+td{padding:10px 6px;border-bottom:1px solid var(--line)}
+.num{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+.bar{height:8px;border-radius:4px;background:var(--line)}.bar i{display:block;height:8px;border-radius:4px;background:var(--accent)}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:#8a5a00}
+</style>
+</head><body><div class="wrap">
+<div class="muted small" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600">Subscription report</div>
+<h1>{{ r.label }}{% if r.in_progress %} (in progress){% endif %}</h1>
+<div class="muted small">Generated {{ r.generated }} · all websites</div>
+
+<div class="kpis" style="margin-top:20px">
+  <div class="kpi"><div class="l">Spent</div><div class="v">{{ money(r.total) }}</div>
+    <div class="small muted">Last month {{ money(r.previous_total) }}</div></div>
+  <div class="kpi"><div class="l">Active subscriptions</div><div class="v">{{ r.active_count }}</div>
+    {% if r.expired_count %}<div class="small" style="color:var(--bad)">{{ r.expired_count }} expired</div>{% endif %}</div>
+  <div class="kpi"><div class="l">Due in {{ r.next_label }}</div><div class="v">{{ money(r.next_total) }}</div>
+    <div class="small muted">{{ r.upcoming|length }} renewal{{ '' if r.upcoming|length == 1 else 's' }}</div></div>
+  <div class="kpi"><div class="l">Invoices on file</div><div class="v">{{ r.invoices_on_file }} of {{ r.invoices_due }}</div></div>
+</div>
+
+{% if r.actions %}<h2>What to do next</h2>
+{% for a in r.actions %}<div class="card" style="margin-bottom:8px;display:flex;gap:12px;align-items:center">
+  <span class="tag {{ 'bad' if a.level == 'urgent' else 'warn' }}">{{ 'Urgent' if a.level == 'urgent' else 'Soon' }}</span><span>{{ a.text }}</span></div>{% endfor %}{% endif %}
+
+<div class="grid g2" style="margin-top:8px">
+  {% for title, data in (('Spend by website', r.by_site), ('Spend by category', r.by_category)) %}
+  <div class="card"><h3>{{ title }}</h3>
+    {% for cur, rows in data.items() %}{% if rows %}{% set top = rows[0][1] %}
+      {% for name, amt in rows %}<div style="margin:10px 0 4px;display:flex;justify-content:space-between"><span>{{ name }}</span><span class="num">{{ cur }} {{ '%.2f'|format(amt) }}</span></div>
+      <div class="bar"><i style="width:{{ (100 * amt / top)|round|int }}%"></i></div>{% endfor %}{% endif %}{% else %}<div class="muted">No charges this month.</div>{% endfor %}
+  </div>{% endfor %}
+</div>
+
+<h2>Charged in {{ r.label.split(' ')[0] }}</h2>
+<div class="card"><table>
+  <tr><th>Date</th><th>Subscription</th><th>Website</th><th>Amount</th><th>Invoice</th></tr>
+  {% for c in r.charges %}<tr><td class="num">{{ c.date }}</td><td>{{ c.name }}</td><td>{{ c.site }}</td>
+    <td class="num">{{ c.currency }} {{ '%.2f'|format(c.amount) }}</td>
+    <td>{% if c.invoice %}{{ c.invoice.name }}{% elif c.future %}<span class="muted">Not due yet</span>{% else %}<span style="color:var(--bad);font-weight:600">Missing</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">No charges this month.</td></tr>{% endfor %}
+  {% if r.charges %}<tr><td></td><td><b>Total</b></td><td></td><td class="num"><b>{{ money(r.total) }}</b></td><td></td></tr>{% endif %}
+</table></div>
+
+<h2>Renewing in {{ r.next_label }}</h2>
+<div class="card"><table>
+  {% for u in r.upcoming %}<tr><td class="num">{{ u.date }}</td><td>{{ u.name }}</td><td>{{ u.site }}</td><td class="num">{{ u.currency }} {{ '%.2f'|format(u.amount) }}</td></tr>
+  {% else %}<tr><td class="muted">Nothing renews next month.</td></tr>{% endfor %}
+</table></div>
+</div></body></html>

@@ -11,7 +11,7 @@ import argparse
 import logging
 import sys
 
-from . import alerts, auditor, db, monitor, report
+from . import alerts, auditor, db, monitor, report, sites
 from .config import get_site, load
 
 
@@ -38,6 +38,7 @@ def main(argv=None):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = load(args.config)
     db.init(cfg["data_dir"])
+    sites.init(cfg)
 
     def pick(site_id):
         if not site_id:
