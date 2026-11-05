@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Activity, ChevronLeft, CreditCard, LayoutGrid, Star, Users } from "lucide-react";
+import { Activity, CreditCard, LayoutGrid, Star, Users } from "lucide-react";
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui";
 import { initials } from "@/components/admin/ui";
@@ -60,7 +60,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
         <div className="flex flex-col gap-2.5 border-t border-[#2E2658] px-2 pt-3.5">
-          <Link href="/overview" className="flex min-h-11 items-center gap-2.5 font-medium text-[#E7E2FA]"><ChevronLeft size={18} aria-hidden="true" />Back to my workspace</Link>
           <div className="flex items-center gap-2.5">
             <span style={{ background: "#2A2150" }} className="flex size-[34px] items-center justify-center rounded-full text-[13px] font-semibold text-white" aria-hidden="true">{initials(name)}</span>
             <span className="flex min-w-0 flex-col"><span className="truncate font-medium text-white">{name}</span><span className="text-xs text-[#9C92C8]">Super admin</span></span>
