@@ -2,6 +2,7 @@
 import datetime as dt
 import hmac
 import json
+import logging
 import os
 import threading
 import time
@@ -9,16 +10,19 @@ from collections import defaultdict
 
 from flask import Blueprint, Response, abort, jsonify, request, send_file, session
 
-from . import analytics, auditor, db, invoice_parse, monitor, report, sites, sub_report, subscriptions
+from . import alerts, analytics, auditor, db, health, invoice_parse, monitor, report, screenshot, sites, sub_report, subscriptions
 from .config import get_site
 
 SESSION_DAYS = 30
+log = logging.getLogger("sitewatch.api")
 _failures = defaultdict(list)       # ip -> timestamps of failed logins
 
 
 def blueprint(cfg):
     bp = Blueprint("api", __name__, url_prefix="/api")
     running_audits = set()
+    running_health = set()
+    running_shots = set()
 
     def site_or_404(site_id):
         return get_site(cfg, site_id) or abort(404, "Unknown website")
@@ -49,6 +53,7 @@ def blueprint(cfg):
             return jsonify(error="Wrong username or password."), 401
         session.permanent = True
         session["auth"] = True
+        session["username"] = str(body().get("username") or "").strip()[:40] or "Team"
         return jsonify(ok=True)
 
     @bp.post("/auth/logout")
@@ -58,7 +63,68 @@ def blueprint(cfg):
 
     @bp.get("/auth/me")
     def me():
-        return jsonify(authenticated=True)
+        return jsonify(authenticated=True, username=session.get("username") or "Team")
+
+    # ---- activity and settings -------------------------------------------
+    @bp.get("/activity")
+    def activity():
+        limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+        names = {x["id"]: x["name"] for x in db.q("SELECT id, name FROM sites")}
+        events = []
+
+        def add(ts, kind, level, title, detail="", site_id=None):
+            events.append({"ts": ts, "kind": kind, "level": level, "title": title, "detail": detail,
+                           "site_id": site_id if site_id in names else None, "site_name": names.get(site_id)})
+
+        for i in db.q("SELECT * FROM incidents ORDER BY started DESC LIMIT ?", (limit,)):
+            n = names.get(i["site_id"], i["site_id"])
+            add(i["started"], "down", "bad", f"{n} went down", i["cause"] or "", i["site_id"])
+            if i["ended"]:
+                mins = max(1, round((i["ended"] - i["started"]) / 60))
+                add(i["ended"], "recovered", "ok", f"{n} is back up", f"Down for {mins} minute{'' if mins == 1 else 's'}", i["site_id"])
+        for a in db.q("SELECT * FROM alerts_sent ORDER BY ts DESC LIMIT ?", (limit,)):
+            if a["kind"].startswith("renewal:"):
+                add(a["ts"], "renewal", "warn", f"Renewal reminder: {a['message']}", "Email sent to the team")
+            elif a["kind"].startswith("domain:"):
+                add(a["ts"], "domain", "bad" if ":expired:" in a["kind"] else "warn", a["message"], "Alert sent", a["site_id"])
+            elif a["kind"] == "dns":
+                add(a["ts"], "dns", "warn", a["message"], "Alert sent", a["site_id"])
+            elif a["kind"] in ("ssl", "slow"):
+                add(a["ts"], a["kind"], "warn", a["message"], "Alert sent", a["site_id"])
+        for a in db.q("SELECT site_id, ts, pages, scores FROM audits ORDER BY ts DESC LIMIT ?", (limit,)):
+            score = json.loads(a["scores"]).get("Overall")
+            add(a["ts"], "audit", "info", f"Audit completed for {names.get(a['site_id'], a['site_id'])}",
+                f"Score {score}, {a['pages']} pages crawled", a["site_id"])
+        for i in db.q("""SELECT i.uploaded ts, i.original_name, s.name, s.site_id FROM invoices i
+                         JOIN subscriptions s ON s.id = i.subscription_id ORDER BY i.uploaded DESC LIMIT ?""", (limit,)):
+            add(i["ts"], "invoice", "info", f"Invoice uploaded for {i['name']}", i["original_name"] or "", i["site_id"])
+        for s_ in db.q("SELECT name, created, site_id FROM subscriptions ORDER BY created DESC LIMIT ?", (limit,)):
+            add(s_["created"], "subscription", "info", f"Subscription added: {s_['name']}", "", s_["site_id"])
+        events.sort(key=lambda e: -e["ts"])
+        return jsonify(events=events[:limit])
+
+    @bp.get("/settings")
+    def settings():
+        a = cfg.get("alerts") or {}
+        smtp = a.get("email") or {}
+        return jsonify(
+            username=session.get("username") or "Team",
+            public_url=cfg.get("public_url"),
+            alerts={"email_to": a.get("email_to") or [], "email_configured": bool(smtp.get("host") and smtp.get("password")),
+                    "from": smtp.get("from") or smtp.get("username"), "webhooks": len(a.get("webhooks") or [])},
+            monitoring={"check_interval_minutes": cfg["check_interval_minutes"], "failures_before_alert": cfg["failures_before_alert"],
+                        "timeout_seconds": cfg["timeout_seconds"], "slow_threshold_ms": cfg["slow_threshold_ms"],
+                        "ssl_warning_days": cfg["ssl_warning_days"], "audit_daily_at": cfg["audit"]["daily_at"],
+                        "audit_max_pages": cfg["audit"]["max_pages"], "report_day_of_month": cfg["report"]["day_of_month"],
+                        "report_at": cfg["report"]["at"], "timezone": os.environ.get("TZ", "server default")},
+            integrations={"pagespeed": bool(cfg.get("pagespeed_api_key")), "email": bool(smtp.get("host") and smtp.get("password"))},
+        )
+
+    @bp.post("/settings/test-alert")
+    def test_alert():
+        ok = alerts.notify(cfg, {}, "SiteWatch test alert", "If you can read this, alerts are working.")
+        to = (cfg.get("alerts") or {}).get("email_to") or []
+        return jsonify(sent=ok, to=to), (200 if ok else 502)
 
     # ---- websites --------------------------------------------------------
     def row_status(s, last, inc):
@@ -85,7 +151,9 @@ def blueprint(cfg):
         inc = db.open_incident(s["id"])
         u30 = monitor.uptime_stats(s["id"], now - 30 * 86400)
         au = db.latest_audit(s["id"])
+        dom = db.q1("SELECT expires FROM domain_checks WHERE site_id=? ORDER BY ts DESC LIMIT 1", (s["id"],))
         return {
+            "domain_days": health.domains.days_left(dom["expires"]) if dom and dom["expires"] else None,
             "id": s["id"], "name": s["name"], "url": s["url"], "host": s["url"].split("//")[-1],
             "keyword": s.get("keyword"), "owner": s.get("owner", ""),
             "report_to": s.get("report_to", []), "alert_to": s.get("alert_to", []),
@@ -113,6 +181,8 @@ def blueprint(cfg):
                 "down": [c["name"] for c in cards if c["status"] in ("down", "warn")],
                 "slow": [c["name"] for c in cards if c["status"] == "slow"],
                 "avg_response_ms": round(sum(resp) / len(resp)) if resp else None,
+                "domains_expiring": [{"name": c["name"], "days": c["domain_days"]} for c in cards
+                                     if c["domain_days"] is not None and c["domain_days"] <= 60],
                 "ssl_expiring": [{"name": c["name"], "days": c["ssl_days"]} for c in cards
                                  if c["ssl_days"] is not None and c["ssl_days"] <= 30],
                 "errors": {c["name"]: c["error"] for c in cards if c["status"] in ("down", "warn")},
@@ -127,6 +197,7 @@ def blueprint(cfg):
         site = sites.create(cfg, body())
         # first check right away so the new site shows a status instead of "unknown"
         threading.Thread(target=monitor.check_site, args=(cfg, site), daemon=True).start()
+        threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
         return jsonify(site_card(site)), 201
 
     @bp.get("/sites/<site_id>")
@@ -153,6 +224,9 @@ def blueprint(cfg):
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',
             "audit_running": site_id in running_audits,
+            "preview": {"desktop": screenshot.captured_at(cfg, site_id, "desktop"),
+                        "mobile": screenshot.captured_at(cfg, site_id, "mobile"),
+                        "running": site_id in running_shots},
         })
 
     @bp.patch("/sites/<site_id>")
@@ -181,6 +255,54 @@ def blueprint(cfg):
         site_or_404(site_id)
         au = db.latest_audit(site_id)
         return jsonify(audit=au, running=site_id in running_audits, categories=auditor.CATEGORIES)
+
+    @bp.get("/sites/<site_id>/screenshot")
+    def site_screenshot(site_id):
+        site_or_404(site_id)
+        device = request.args.get("device", "desktop")
+        if device not in screenshot.DEVICES:
+            abort(404)
+        path = screenshot.path_for(cfg, site_id, device)
+        if not os.path.exists(path):
+            abort(404, "No preview yet")
+        resp = send_file(path, mimetype="image/jpeg", max_age=0)
+        resp.headers["Cache-Control"] = "private, no-cache"
+        return resp
+
+    @bp.post("/sites/<site_id>/screenshot")
+    def refresh_screenshot(site_id):
+        s = site_or_404(site_id)
+        if site_id not in running_shots:
+            running_shots.add(site_id)
+
+            def job():
+                try:
+                    screenshot.capture(cfg, s)
+                except Exception as e:
+                    log.warning("Preview failed for %s: %s", site_id, e)
+                finally:
+                    running_shots.discard(site_id)
+            threading.Thread(target=job, daemon=True).start()
+        return jsonify(started=True), 202
+
+    @bp.get("/sites/<site_id>/health")
+    def site_health(site_id):
+        site_or_404(site_id)
+        return jsonify(**health.latest(site_id), running=site_id in running_health)
+
+    @bp.post("/sites/<site_id>/health")
+    def refresh_health(site_id):
+        s = site_or_404(site_id)
+        if site_id not in running_health:
+            running_health.add(site_id)
+
+            def job():
+                try:
+                    health.run_all(cfg, s)
+                finally:
+                    running_health.discard(site_id)
+            threading.Thread(target=job, daemon=True).start()
+        return jsonify(started=True), 202
 
     @bp.post("/sites/<site_id>/check")
     def check_now(site_id):

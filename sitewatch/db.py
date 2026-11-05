@@ -48,6 +48,22 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 CREATE INDEX IF NOT EXISTS idx_subs_site ON subscriptions(site_id);
 
+CREATE TABLE IF NOT EXISTS domain_checks (
+    id INTEGER PRIMARY KEY, site_id TEXT, domain TEXT, ts REAL, expires TEXT, registrar TEXT, status TEXT, error TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_domain_site_ts ON domain_checks(site_id, ts);
+
+CREATE TABLE IF NOT EXISTS dns_snapshots (
+    id INTEGER PRIMARY KEY, site_id TEXT, ts REAL, records TEXT, checks TEXT, changes TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_dns_site_ts ON dns_snapshots(site_id, ts);
+
+CREATE TABLE IF NOT EXISTS sitemap_snapshots (
+    id INTEGER PRIMARY KEY, site_id TEXT, ts REAL, sitemap_url TEXT, total INTEGER, checked INTEGER,
+    broken TEXT, redirects INTEGER, added INTEGER, removed INTEGER, urls TEXT, error TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sitemap_site_ts ON sitemap_snapshots(site_id, ts);
+
 CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY, subscription_id INTEGER NOT NULL, period TEXT NOT NULL,
     filename TEXT NOT NULL, original_name TEXT, size INTEGER, uploaded REAL

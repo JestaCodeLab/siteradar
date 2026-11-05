@@ -7,7 +7,7 @@ import time
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import alerts, analytics, db, monitor
+from . import alerts, analytics, db, health as health_mod, monitor
 from .charts import bar_chart, line_chart, uptime_strip
 
 log = logging.getLogger("sitewatch.report")
@@ -59,7 +59,8 @@ def build(cfg, site, year, month):
         new_issues = [cur_rules[r] for r in cur_rules if r not in prev_rules]
         fixed_issues = [prev_rules[r] for r in prev_rules if r not in cur_rules]
 
-    recs = recommendations(cfg, site, up, a, audit)
+    health = health_mod.latest(site["id"])
+    recs = recommendations(cfg, site, up, a, audit, health)
 
     days = [dt.date(year, month, d).isoformat() for d in range(1, calendar.monthrange(year, month)[1] + 1)]
     by_day = {s["day"]: s for s in series}
@@ -85,12 +86,12 @@ def build(cfg, site, year, month):
         },
         "audit": audit, "prev_audit": prev_audit,
         "new_issues": new_issues, "fixed_issues": fixed_issues,
-        "recs": recs, "charts": charts,
+        "recs": recs, "charts": charts, "health": health,
         "fmt_ts": lambda ts: dt.datetime.fromtimestamp(ts).strftime("%d %b %H:%M") if ts else "ongoing",
     }
 
 
-def recommendations(cfg, site, up, a, audit):
+def recommendations(cfg, site, up, a, audit, health=None):
     """Plain-language, prioritised to-do list combining all data sources."""
     recs = []
 
@@ -154,6 +155,30 @@ def recommendations(cfg, site, up, a, audit):
                     "Optimise the hero image, preload key fonts and reduce render-blocking CSS/JS.")
     else:
         add(3, "Quality", "No site audit yet", "", "Run an audit: python -m sitewatch audit")
+    health = health or {}
+    d = health.get("domain")
+    if d and d.get("days_left") is not None and d["days_left"] <= 60:
+        add(1 if d["days_left"] <= 30 else 2, "Domain", f"Domain {d['domain']} expires in {d['days_left']} days",
+            "If a domain lapses, the website and every email address on it stop working.",
+            f"Renew it with {d.get('registrar') or 'your registrar'} and switch on auto-renew.")
+    dns = health.get("dns")
+    if dns:
+        for c in dns["checks"]:
+            if c["status"] == "bad":
+                add(1, "Email & DNS", c["label"] + ": " + c["detail"], "Affects whether your email is delivered or can be spoofed.", c["fix"])
+            elif c["status"] == "warn" and c["id"] in ("dmarc", "ns"):
+                add(2, "Email & DNS", c["label"] + ": " + c["detail"], "A small gap worth closing.", c["fix"])
+        if dns["history"] and time.time() - dns["history"][0]["ts"] < 31 * 86400:
+            add(2, "DNS", "DNS records changed this month", "Unexpected changes can mean a hijack or a hosting mistake.",
+                "Check the changes listed in the report are ones you or your team made.")
+    sm = health.get("sitemap")
+    if sm:
+        if not sm["sitemap_url"]:
+            add(2, "SEO", "No sitemap found", "A sitemap helps search engines find every page.",
+                "Generate a sitemap.xml (most website builders and SEO plugins can) and list it in robots.txt.")
+        elif sm["broken"]:
+            add(1, "SEO", f"{len(sm['broken'])} pages in the sitemap return errors", "Search engines waste time on pages that do not work.",
+                "Remove or fix these pages: " + ", ".join(b["url"] for b in sm["broken"][:3]))
     recs.sort(key=lambda r: r["priority"])
     return recs
 

@@ -48,3 +48,14 @@ export const daysUntil = (iso: string) =>
 
 export const splitEmails = (v: FormDataEntryValue | string | null) =>
   String(v ?? "").split(/[,\s;]+/).map((x) => x.trim()).filter(Boolean);
+
+export const fmtTime = (ts: number) =>
+  new Date(ts * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+export function dayLabel(ts: number) {
+  const d = new Date(ts * 1000);
+  const diff = Math.round((new Date().setHours(0, 0, 0, 0) - new Date(d).setHours(0, 0, 0, 0)) / 86400000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+}

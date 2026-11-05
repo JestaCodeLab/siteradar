@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarClock, CalendarDays, FileWarning, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -37,10 +38,10 @@ export default function SubscriptionsPage() {
       <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4">
         {s ? (
           <>
-            <Tile label="Monthly spend" value={moneyMap(s.monthly)} note="Yearly items spread over 12 months" />
-            <Tile label="Yearly total" value={moneyMap(s.yearly)} note={`${s.count} subscription${s.count === 1 ? "" : "s"}`} />
-            <Tile label="Renewing in 30 days" value={s.renewing_soon} note={s.renewing_soon ? `${moneyMap(s.due_soon)} due` : "Nothing due"} tone={s.renewing_soon ? "warn" : "muted"} />
-            <Tile label="Missing invoices" value={s.missing_invoices} note={s.expired ? `${s.expired} expired` : "None expired"} tone={s.expired || s.missing_invoices ? "bad" : "muted"} />
+            <Tile label="Monthly spend" icon={Wallet} info="What the active subscriptions cost per month. Yearly items are divided by 12 so they are comparable." value={moneyMap(s.monthly)} note="Yearly items spread over 12 months" />
+            <Tile label="Yearly total" icon={CalendarDays} info="What the active subscriptions cost over a full year, adding up monthly and yearly items." value={moneyMap(s.yearly)} note={`${s.count} subscription${s.count === 1 ? "" : "s"}`} />
+            <Tile label="Renewing in 30 days" icon={CalendarClock} info="Subscriptions that renew within the next 30 days, and how much will be charged. Reminder emails go out before each renewal." value={s.renewing_soon} note={s.renewing_soon ? `${moneyMap(s.due_soon)} due` : "Nothing due"} tone={s.renewing_soon ? "warn" : "muted"} />
+            <Tile label="Missing invoices" icon={FileWarning} info="Active subscriptions that have no invoice or receipt uploaded yet. Keeping them on file makes the monthly report complete." value={s.missing_invoices} note={s.expired ? `${s.expired} expired` : "None expired"} tone={s.expired || s.missing_invoices ? "bad" : "muted"} />
           </>
         ) : (
           [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[128px]" />)

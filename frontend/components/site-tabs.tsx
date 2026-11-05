@@ -1,11 +1,13 @@
 "use client";
 
+import { CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { HBar, LineChart, StripLegend, UptimeStrip } from "./charts";
 import { PageSpeedCard } from "./vitals";
+import { PreviewCard } from "./preview-card";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
   fetcher, send, type AnalyticsResponse, type AuditResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
@@ -26,7 +28,7 @@ function Loading() {
 }
 
 // ---- Overview ---------------------------------------------------------------
-export function OverviewTab({ site }: { site: SiteDetail }) {
+export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: () => void }) {
   const [copied, setCopied] = useState(false);
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
@@ -38,12 +40,15 @@ export function OverviewTab({ site }: { site: SiteDetail }) {
         </p>
       )}
       <section className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4">
-        <Tile label="Uptime, 30 days" value={fmtPct(site.uptime_stats.uptime)} note={`${site.uptime_stats.incident_count} incident${site.uptime_stats.incident_count === 1 ? "" : "s"}`} />
-        <Tile label="Response time" value={fmtMs(site.response_ms)} note={`Average ${fmtMs(site.uptime_stats.avg_ms)}`} tone={site.status === "slow" ? "warn" : "muted"} />
-        <Tile label="SSL certificate" value={site.ssl_days == null ? "—" : `${site.ssl_days} days`} note="until it expires" tone={sslTone} />
-        <Tile label="Audit score" value={site.audit_score ?? "—"} note={site.top_issues.length ? `${site.top_issues.length} high issues` : "No high issues"} />
-        <Tile label="Visitors, 30 days" value={fmtNum(site.visitors30)} note={`${fmtNum(site.pageviews30)} page views`} />
+        <Tile label="Uptime, 30 days" icon={Activity} info="The share of the last 30 days the site was reachable. It is worked out from how long incidents lasted, so one failed check that recovers straight away does not count." value={fmtPct(site.uptime_stats.uptime)} note={`${site.uptime_stats.incident_count} incident${site.uptime_stats.incident_count === 1 ? "" : "s"}`} />
+        <Tile label="Response time" icon={Timer} info="How long the site took to answer its latest check. The 30-day average is shown underneath. Over 3 seconds counts as slow." value={fmtMs(site.response_ms)} note={`Average ${fmtMs(site.uptime_stats.avg_ms)}`} tone={site.status === "slow" ? "warn" : "muted"} />
+        <Tile label="SSL certificate" icon={ShieldCheck} info="Days left until the security certificate expires. The team is emailed 21 days before, then daily, until it is renewed." value={site.ssl_days == null ? "—" : `${site.ssl_days} days`} note="until it expires" tone={sslTone} />
+        <Tile label="Domain expires" icon={CalendarClock} tone={site.domain_days != null && site.domain_days <= 60 ? "warn" : "muted"} info="Days until the domain name registration runs out, taken from the domain registry. If it lapses, the website and email stop working. Details are in the Domain tab." value={site.domain_days == null ? "—" : `${site.domain_days} days`} note={site.domain_days == null ? "Not checked yet" : "until it expires"} />
+        <Tile label="Audit score" icon={ClipboardCheck} info="The overall result of the nightly audit of up to 50 pages, covering SEO, performance, security, accessibility and best practices. 85 or more is healthy. Under 60 needs work." value={site.audit_score ?? "—"} note={site.top_issues.length ? `${site.top_issues.length} high issues` : "No high issues"} />
+        <Tile label="Visitors, 30 days" icon={Users} info="Unique visitors in the last 30 days, counted by the tracking snippet. It needs the snippet installed, and counting starts on the day you install it." value={fmtNum(site.visitors30)} note={`${fmtNum(site.pageviews30)} page views`} />
       </section>
+
+      <PreviewCard site={site} onChange={onChange} />
 
       <PageSpeedCard ps={site.pagespeed} auditRan={site.audit_ts != null} />
 
@@ -116,10 +121,10 @@ export function AnalyticsTab({ id }: { id: string }) {
       {!empty && (
         <>
           <section className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-            <Tile label="Visitors" value={a.visitors.toLocaleString()} note={<Delta v={delta(a.visitors, data.previous.visitors)} />} />
-            <Tile label="Page views" value={a.pageviews.toLocaleString()} note={<Delta v={delta(a.pageviews, data.previous.pageviews)} />} />
-            <Tile label="Bounce rate" value={`${a.bounce_rate ?? 0}%`} note={`${a.pages_per_visit ?? 0} pages per visit`} />
-            <Tile label="Real page load" value={fmtMs(a.median_load_ms)} note="Median for visitors" />
+            <Tile label="Visitors" icon={Users} info="Unique people who visited in this period. Nobody is tracked across days, and no personal data is stored." value={a.visitors.toLocaleString()} note={<Delta v={delta(a.visitors, data.previous.visitors)} />} />
+            <Tile label="Page views" icon={Eye} info="Every page that was loaded, including repeat views by the same visitor." value={a.pageviews.toLocaleString()} note={<Delta v={delta(a.pageviews, data.previous.pageviews)} />} />
+            <Tile label="Bounce rate" icon={MousePointerClick} info="The share of visits that looked at only one page and then left. Lower usually means visitors found what they wanted." value={`${a.bounce_rate ?? 0}%`} note={`${a.pages_per_visit ?? 0} pages per visit`} />
+            <Tile label="Real page load" icon={Zap} info="The median time pages took to finish loading in real visitors' browsers. Half of the visits were faster than this." value={fmtMs(a.median_load_ms)} note="Median for visitors" />
           </section>
           <div className="flex flex-wrap items-start gap-5">
             <Card className="min-w-0 flex-[1.4_1_420px] px-5 pb-2 pt-5">
@@ -270,7 +275,7 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
     if (!confirm(`Stop monitoring ${site.name}? Its history stays on the server, but it disappears from the dashboard.`)) return;
     await send("DELETE", `/api/sites/${site.id}`);
     await mutate("/api/sites");
-    router.replace("/websites");
+    router.replace("/overview");
   }
 
   return (

@@ -26,6 +26,9 @@ report:
 # https://developers.google.com/speed/docs/insights/v5/get-started
 pagespeed_api_key: ${PAGESPEED_API_KEY}
 
+health:
+  daily_at: "03:30"              # domain expiry, DNS and sitemap checks every night
+
 alerts:
   email_to: [you@yourcompany.com]
   email:

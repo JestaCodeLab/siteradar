@@ -15,6 +15,7 @@ DEFAULTS = {
     "report": {"day_of_month": 1, "at": "07:00"},
     "alerts": {},
     "pagespeed_api_key": "",
+    "health": {"daily_at": "03:30"},     # domain expiry, DNS and sitemap checks
 }
 
 SITE_DEFAULTS = {
@@ -46,7 +47,7 @@ def load(path="config.yaml"):
     with open(path) as f:
         raw = _expand(yaml.safe_load(f) or {})
     cfg = {**DEFAULTS, **{k: v for k, v in raw.items() if k != "sites"}}
-    for key in ("audit", "report"):
+    for key in ("audit", "report", "health"):
         cfg[key] = {**DEFAULTS[key], **(raw.get(key) or {})}
     sites = []
     for s in raw.get("sites") or []:

@@ -32,7 +32,7 @@ export default function NewWebsitePage() {
 
   return (
     <>
-      <Crumbs items={[{ label: "Websites", href: "/websites" }, { label: "Add website" }]} />
+      <Crumbs items={[{ label: "Overview", href: "/overview" }, { label: "Add website" }]} />
       <PageHeader title="Add website" subtitle="SiteWatch starts checking it right away and shows you the tracking snippet to install." />
       <Card className="max-w-2xl p-5">
         <form onSubmit={submit} className="flex flex-col gap-5">

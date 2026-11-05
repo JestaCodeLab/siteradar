@@ -96,6 +96,8 @@ def update(cfg, site_id, data):
 
 def delete(cfg, site_id):
     """Stops monitoring. Check, audit and analytics history stays in the database."""
+    from . import screenshot
+    screenshot.remove(cfg, site_id)
     db.run("UPDATE subscriptions SET site_id=NULL WHERE site_id=?", (site_id,))
     db.run("DELETE FROM sites WHERE id=?", (site_id,))
     refresh(cfg)

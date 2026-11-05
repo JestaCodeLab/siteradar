@@ -36,14 +36,14 @@ export interface SiteCard {
   report_to: string[]; alert_to: string[]; track_analytics: boolean; audit_enabled: boolean;
   status: SiteStatus; error: string | null; down_since: number | null; last_check: number | null;
   response_ms: number | null; ssl_days: number | null; uptime30: number | null; avg_ms30: number | null;
-  audit_score: number | null; visitors30: number; strip: StripDay[];
+  audit_score: number | null; visitors30: number; strip: StripDay[]; domain_days: number | null;
 }
 
 export interface SitesResponse {
   sites: SiteCard[];
   summary: {
     total: number; up: number; down: string[]; slow: string[]; avg_response_ms: number | null;
-    ssl_expiring: { name: string; days: number }[]; errors: Record<string, string | null>;
+    ssl_expiring: { name: string; days: number }[]; domains_expiring: { name: string; days: number }[]; errors: Record<string, string | null>;
     slow_threshold_ms: number; ssl_warning_days: number; check_interval_minutes: number; latest_check: number | null;
   };
 }
@@ -59,6 +59,7 @@ export interface PageSpeed {
 
 export interface SiteDetail extends SiteCard {
   audit_ts: number | null; pagespeed: PageSpeed | null;
+  preview: { desktop: number | null; mobile: number | null; running: boolean };
   uptime_stats: { uptime: number | null; avg_ms: number | null; p95_ms: number | null; downtime_minutes: number; incident_count: number };
   response_series: { day: string; ms: number }[];
   incidents: { started: number; ended: number | null; cause: string | null }[];
@@ -113,3 +114,35 @@ export interface SubReport {
 export interface SubReportMonths {
   months: { period: string; label: string; total: Money; in_progress: boolean }[]; recipients: string[];
 }
+
+export interface ActivityEvent {
+  ts: number; kind: string; level: "bad" | "warn" | "ok" | "info"; title: string; detail: string;
+  site_id: string | null; site_name: string | null;
+}
+
+export interface SettingsData {
+  username: string; public_url: string;
+  alerts: { email_to: string[]; email_configured: boolean; from: string | null; webhooks: number };
+  monitoring: {
+    check_interval_minutes: number; failures_before_alert: number; timeout_seconds: number; slow_threshold_ms: number;
+    ssl_warning_days: number; audit_daily_at: string; audit_max_pages: number; report_day_of_month: number;
+    report_at: string; timezone: string;
+  };
+  integrations: { pagespeed: boolean; email: boolean };
+}
+
+export interface DomainInfo {
+  domain: string; expires: string | null; registrar: string | null; status: "ok" | "unsupported" | "error";
+  error: string | null; days_left: number | null; ts: number;
+}
+export interface DnsCheck { id: string; label: string; status: "ok" | "warn" | "bad" | "na"; detail: string; fix: string }
+export interface DnsInfo {
+  ts: number; records: Record<string, string[]>; checks: DnsCheck[]; score: number | null;
+  history: { ts: number; changes: { record: string; before: string[]; after: string[] }[] }[];
+}
+export interface SitemapInfo {
+  ts: number; sitemap_url: string | null; total: number; checked: number; redirects: number;
+  added: number | null; removed: number | null; error: string | null;
+  broken: { url: string; status: number | string }[]; trend: { ts: number; total: number }[];
+}
+export interface HealthResponse { domain: DomainInfo | null; dns: DnsInfo | null; sitemap: SitemapInfo | null; running: boolean }

@@ -1,4 +1,6 @@
+import { Image as ImageIcon, MousePointerClick, MoveVertical, type LucideIcon } from "lucide-react";
 import type { PageSpeed } from "@/lib/api";
+import { InfoTip } from "./info-tip";
 import { Card, CardTitle } from "./ui";
 
 type Rating = "good" | "improve" | "poor";
@@ -21,10 +23,21 @@ const scoreLabels: [string, string][] = [
   ["performance", "Performance"], ["seo", "SEO"], ["accessibility", "Accessibility"], ["best-practices", "Best practices"],
 ];
 
-function Metric({ label, hint, value, rating }: { label: string; hint: string; value: string; rating: Rating | null }) {
+const scoreInfo: Record<string, string> = {
+  performance: "How fast the page loads and becomes usable on a phone, scored by Google Lighthouse. 90 or more is good.",
+  seo: "Basic search-engine readiness: page titles, descriptions, links that can be crawled and mobile-friendly layout.",
+  accessibility: "How usable the page is for people who use screen readers, keyboards or have low vision, for example colour contrast and image descriptions.",
+  "best-practices": "Whether the page follows modern web standards: secure HTTPS, no browser errors and up-to-date libraries.",
+};
+
+function Metric({ label, hint, value, rating, icon: Glyph, info }: { label: string; hint: string; value: string; rating: Rating | null; icon: LucideIcon; info: string }) {
   return (
     <div className="flex flex-col gap-2 rounded-xl bg-soft p-4">
-      <span className="text-[13px] text-muted">{label}</span>
+      <span className="mb-1 flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand"><Glyph aria-hidden="true" size={16} /></span>
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[13px] leading-snug text-muted">{label}</span>
+        <InfoTip label={label} text={info} />
+      </div>
       <span className="text-[26px] font-semibold leading-none">{value}</span>
       <div className="flex flex-wrap items-center gap-2">
         {rating && <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${chip[rating][1]}`}>{chip[rating][0]}</span>}
@@ -53,17 +66,17 @@ export function PageSpeedCard({ ps, auditRan }: { ps: PageSpeed | null; auditRan
         Google PageSpeed (mobile)
       </CardTitle>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-        <Metric label="Largest Contentful Paint" hint="Good: 2.5 s or less"
+        <Metric label="Largest Contentful Paint" icon={ImageIcon} info="How long it takes for the main content, usually the biggest image or heading, to appear on screen. Good is 2.5 seconds or less." hint="Good: 2.5 s or less"
           value={ps.lcp_ms ? `${(ps.lcp_ms / 1000).toFixed(1)} s` : "—"} rating={ps.lcp_ms ? rate.lcp(ps.lcp_ms) : null} />
-        <Metric label="Cumulative Layout Shift" hint="Good: 0.1 or less"
+        <Metric label="Cumulative Layout Shift" icon={MoveVertical} info="How much the page jumps around while it loads, for example when an image pushes the text down. Good is 0.1 or less." hint="Good: 0.1 or less"
           value={ps.cls != null ? ps.cls.toFixed(2) : "—"} rating={ps.cls != null ? rate.cls(ps.cls) : null} />
-        <Metric label="Interaction to Next Paint" hint="Good: 200 ms or less"
+        <Metric label="Interaction to Next Paint" icon={MousePointerClick} info="How quickly the page reacts when someone taps or clicks. Good is 200 milliseconds or less." hint="Good: 200 ms or less"
           value={ps.inp_ms ? `${Math.round(ps.inp_ms)} ms` : "—"} rating={ps.inp_ms ? rate.inp(ps.inp_ms) : null} />
       </div>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
         {scoreLabels.filter(([k]) => ps.scores[k] != null).map(([k, label]) => (
           <div key={k} className="flex flex-col gap-2 rounded-xl border border-line p-4">
-            <span className="text-[13px] text-muted">{label}</span>
+            <div className="flex items-start justify-between gap-2"><span className="text-[13px] leading-snug text-muted">{label}</span><InfoTip label={label} text={scoreInfo[k]} /></div>
             <span className="text-2xl font-semibold leading-none">{ps.scores[k]}<span className="text-sm font-medium text-muted"> / 100</span></span>
             <div className="h-1.5 rounded bg-[#e8ebf0]">
               <div className={`h-1.5 rounded ${rate.score(ps.scores[k]) === "good" ? "bg-bar-ok" : rate.score(ps.scores[k]) === "improve" ? "bg-bar-warn" : "bg-bar-bad"}`} style={{ width: `${ps.scores[k]}%` }} />

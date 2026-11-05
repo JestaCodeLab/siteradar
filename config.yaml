@@ -20,6 +20,9 @@ report:
 
 pagespeed_api_key: ${PAGESPEED_API_KEY}
 
+health:
+  daily_at: "03:30"              # domain expiry, DNS and sitemap checks
+
 alerts:
   email_to:
     - jeremiahmills93@gmail.com

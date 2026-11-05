@@ -4,13 +4,15 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import useSWR from "swr";
+import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 
 const TABS = [
-  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"],
+  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"], ["domain", "Domain"],
+  ["dns", "DNS & email"], ["sitemap", "Sitemap"],
   ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
 ] as const;
 
@@ -19,7 +21,7 @@ function SiteView() {
   const router = useRouter();
   const tab = useSearchParams().get("tab") ?? "overview";
   const { data: site, error, mutate } = useSWR<SiteDetail>(`/api/sites/${id}`, fetcher, {
-    refreshInterval: (d) => (d?.audit_running ? 5000 : 60000),
+    refreshInterval: (d) => (d?.audit_running || d?.preview.running ? 5000 : d && !d.preview.desktop ? 10000 : 60000),
   });
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState<"check" | "audit" | null>(null);
@@ -56,7 +58,7 @@ function SiteView() {
 
   return (
     <>
-      <Crumbs items={[{ label: "Websites", href: "/websites" }, { label: site.name }]} />
+      <Crumbs items={[{ label: "Overview", href: "/overview" }, { label: site.name }]} />
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -86,9 +88,12 @@ function SiteView() {
         ))}
       </div>
 
-      {tab === "overview" && <OverviewTab site={site} />}
+      {tab === "overview" && <OverviewTab site={site} onChange={() => mutate()} />}
       {tab === "analytics" && <AnalyticsTab id={id} />}
       {tab === "audit" && <AuditTab id={id} />}
+      {tab === "domain" && <DomainTab site={site} />}
+      {tab === "dns" && <DnsTab id={id} />}
+      {tab === "sitemap" && <SitemapTab id={id} />}
       {tab === "reports" && <ReportsTab id={id} />}
       {tab === "subscriptions" && <SiteSubscriptionsTab site={site} />}
       {tab === "settings" && <SettingsTab site={site} />}

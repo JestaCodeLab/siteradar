@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   const signedIn = request.cookies.has("session");
   const { pathname } = request.nextUrl;
   if (pathname === "/login") {
-    return signedIn ? NextResponse.redirect(new URL("/websites", request.url)) : NextResponse.next();
+    return signedIn ? NextResponse.redirect(new URL("/overview", request.url)) : NextResponse.next();
   }
   return signedIn ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));
 }

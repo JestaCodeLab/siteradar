@@ -1,5 +1,10 @@
 import Link from "next/link";
+import {
+  Activity, Bell, ChevronDown, ChevronRight, Clock, FileText, Globe, LayoutGrid, LogOut, Menu, Plus, Receipt, Search,
+  Settings, Upload, User, type LucideIcon,
+} from "lucide-react";
 import type { ReactNode } from "react";
+import { InfoTip } from "./info-tip";
 import type { SiteStatus, SubStatus } from "@/lib/api";
 
 export const btn = {
@@ -39,11 +44,18 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function Tile({ label, value, note, tone = "muted" }: { label: string; value: ReactNode; note?: ReactNode; tone?: "muted" | "ok" | "warn" | "bad" }) {
+export function Tile({ label, value, note, tone = "muted", icon: Glyph, info }: {
+  label: string; value: ReactNode; note?: ReactNode; tone?: "muted" | "ok" | "warn" | "bad"; icon?: LucideIcon; info?: string;
+}) {
   const toneClass = { muted: "text-muted", ok: "text-ok font-medium", warn: "text-warn font-medium", bad: "text-bad font-medium" }[tone];
+  const chip = { muted: "bg-brand-soft text-brand", ok: "bg-ok-soft text-ok", warn: "bg-warn-soft text-warn", bad: "bg-bad-soft text-bad" }[tone];
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-5">
-      <span className="text-[13px] text-muted">{label}</span>
+      {Glyph && <span className={`mb-1 flex size-9 shrink-0 items-center justify-center rounded-lg ${chip}`}><Glyph aria-hidden="true" size={18} /></span>}
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[13px] leading-snug text-muted">{label}</span>
+        {info && <InfoTip label={label} text={info} />}
+      </div>
       <span className="text-[30px] font-semibold leading-none">{value}</span>
       {note && <span className={`text-[13px] ${toneClass}`}>{note}</span>}
     </div>
@@ -145,39 +157,26 @@ export function Crumbs({ items }: { items: { label: string; href?: string }[] })
   );
 }
 
+type IconProps = { className?: string };
+const make = (Cmp: LucideIcon, size = 18) => function Wrapped(props: IconProps) {
+  return <Cmp aria-hidden="true" size={size} strokeWidth={2} {...props} />;
+};
+
 export const Icon = {
-  globe: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18" />
-    </svg>
-  ),
-  receipt: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}>
-      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6" />
-    </svg>
-  ),
-  chevronDown: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M6 9l6 6 6-6" /></svg>
-  ),
-  chevronRight: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 6l6 6-6 6" /></svg>
-  ),
-  plus: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" {...p}><path d="M12 5v14M5 12h14" /></svg>
-  ),
-  upload: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 16V4M7 9l5-5 5 5M5 20h14" /></svg>
-  ),
-  file: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z" /><path d="M14 3v5h5" /></svg>
-  ),
-  logout: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M9 4H5v16h4M16 8l4 4-4 4M20 12H9" /></svg>
-  ),
-  menu: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
-  ),
-  pulse: (p: { className?: string }) => (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 12h4l3-7 4 14 3-7h4" /></svg>
-  ),
+  globe: make(Globe),
+  receipt: make(Receipt),
+  chevronDown: make(ChevronDown, 16),
+  chevronRight: make(ChevronRight, 16),
+  plus: make(Plus, 15),
+  upload: make(Upload),
+  file: make(FileText, 16),
+  logout: make(LogOut),
+  menu: make(Menu, 20),
+  grid: make(LayoutGrid),
+  settings: make(Settings),
+  activity: make(Clock),
+  bell: make(Bell, 20),
+  search: make(Search, 20),
+  user: make(User, 16),
+  pulse: (p: IconProps) => <Activity aria-hidden="true" size={20} strokeWidth={2.2} color="#fff" {...p} />,
 };

@@ -41,7 +41,7 @@ export function LineChart({ points, threshold, unit = "ms", label }: { points: {
   const max = Math.max(...points.map((p) => p.y), threshold ?? 0) * 1.1 || 1;
   const x = (i: number) => L + (i * (W - L - R)) / (points.length - 1);
   const y = (v: number) => H - B - (v / max) * (H - T - B);
-  const fmt = (v: number) => (unit === "ms" && v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`);
+  const fmt = (v: number) => (unit !== "ms" ? `${Math.round(v)}` : v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${Math.round(v)} ms`);
   const ticks = [0, 0.5, 1].map((f) => f * max);
   return (
     <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} className="block h-52 w-full" preserveAspectRatio="none">

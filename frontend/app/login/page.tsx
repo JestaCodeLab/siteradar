@@ -17,7 +17,7 @@ export default function LoginPage() {
     setError(null);
     try {
       await send("POST", "/api/auth/login", { username: form.get("username"), password: form.get("password") });
-      router.replace("/websites");
+      router.replace("/overview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in.");
       setBusy(false);

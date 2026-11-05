@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import alerts, auditor, monitor, report, sub_report, subscriptions
+from . import alerts, auditor, health, monitor, report, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -19,6 +19,7 @@ class Scheduler(threading.Thread):
         self.state_path = os.path.join(cfg["data_dir"], "state.json")
         self.state = json.load(open(self.state_path)) if os.path.exists(self.state_path) else {}
         self.pool = ThreadPoolExecutor(max_workers=8)
+        self.health_started = set()
 
     def save(self):
         with open(self.state_path, "w") as f:
@@ -46,6 +47,18 @@ class Scheduler(threading.Thread):
                     for s in self.cfg["sites"]:
                         if s.get("audit"):
                             self.pool.submit(self._safe, auditor.audit_site, self.cfg, s)
+
+                if self.due_daily("health", self.cfg["health"]["daily_at"]):
+                    self.state["health"] = dt.date.today().isoformat()
+                    self.save()
+                    for s in list(self.cfg["sites"]):
+                        self.pool.submit(self._safe, health.run_all, self.cfg, s)
+                else:
+                    # sites that have never been checked (new, or first start after this feature) run straight away
+                    for s in list(self.cfg["sites"]):
+                        if s["id"] not in self.health_started and health.needs_first_run(self.cfg, s["id"]):
+                            self.health_started.add(s["id"])
+                            self.pool.submit(self._safe, health.run_all, self.cfg, s)
 
                 today = dt.date.today()
                 rkey = f"report-{today:%Y-%m}"
