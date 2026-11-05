@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, ChevronDown, LogOut, Menu, Search, Undo2 } from "lucide-react";
 import useSWR from "swr";
-import { EmptyState, Pill, initials, tones, type Tone } from "./ui";
+import { EmptyState, initials, tones, type Tone } from "./ui";
 import { fetcher, send, type User } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 
@@ -124,19 +124,31 @@ function Profile({ user, onLogout }: { user: User; onLogout: () => void }) {
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
   const name = `${user.first_name} ${user.last_name}`.trim() || user.email;
-  const item = "flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-[#F5F1FF]";
+  const item = "flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-left hover:bg-[#F5F1FF]";
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex min-h-11 items-center gap-2 rounded-lg px-1.5 hover:bg-[#F5F1FF]">
         <span className="flex size-8 items-center justify-center rounded-full bg-[#2A2150] text-xs font-semibold text-white">{initials(name)}</span>
-        <span className="hidden max-w-32 truncate text-sm font-medium sm:block">{name}</span><ChevronDown size={16} className="hidden text-[#5B6472] sm:block" aria-hidden="true" />
+        <span className="hidden max-w-32 truncate text-sm font-medium sm:block">{name}</span><ChevronDown size={16} className={`hidden text-[#5B6472] transition-transform sm:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
       {open && (
-        <div role="menu" className={`${panel} w-64 p-1.5`}>
-          <div className="border-b border-[#EDEFF3] px-3 pb-2.5 pt-2"><p className="text-xs text-[#5B6472]">Signed in as</p><p className="truncate text-sm font-semibold">{name}</p><p className="truncate text-xs text-[#5B6472]">{user.email}</p><Pill className="mt-1.5">Super admin</Pill></div>
-          <div className="pt-1.5">
-            <Link role="menuitem" href="/overview" onClick={close} className={item}><Undo2 size={16} aria-hidden="true" />Exit admin, back to my workspace</Link>
-            <button role="menuitem" onClick={onLogout} className={`${item} text-[#B3261E]`}><LogOut size={16} aria-hidden="true" />Log out</button>
+        <div role="menu" className={`${panel} w-[272px] overflow-hidden`}>
+          <div className="flex items-center gap-3 bg-[#F5F1FF] px-4 py-4">
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#2A2150] text-sm font-semibold text-white">{initials(name)}</span>
+            <span className="min-w-0"><span className="block truncate text-sm font-semibold">{name}</span><span className="block truncate text-[13px] text-[#5B6472]">{user.email}</span>
+              <span className="mt-1 inline-block rounded-full bg-[#EFEAFF] px-2 py-0.5 text-[11px] font-semibold text-[#4A33B0] ring-1 ring-[#D9CFFF]">Super admin</span></span>
+          </div>
+          <div className="flex flex-col gap-0.5 p-1.5">
+            <Link role="menuitem" href="/overview" onClick={close} className={item}>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-[#F3F4F6] text-[#3F4857]"><Undo2 size={16} aria-hidden="true" /></span>
+              <span className="flex flex-col"><span className="text-sm font-medium">Exit admin</span><span className="text-xs text-[#5B6472]">Back to my workspace</span></span>
+            </Link>
+          </div>
+          <div className="border-t border-[#EDEFF3] p-1.5">
+            <button role="menuitem" onClick={onLogout} className={`${item} text-[#B3261E] hover:!bg-[#FBE7E5]`}>
+              <span className="flex size-8 items-center justify-center rounded-lg bg-[#FBE7E5]"><LogOut size={16} aria-hidden="true" /></span>
+              <span className="text-sm font-medium">Log out</span>
+            </button>
           </div>
         </div>
       )}
