@@ -11,7 +11,7 @@ export { Logo } from "./logo";
 /* Marketing palette (the brand kit). The site is always light. */
 export const C = { ink: "#0F172A", slate: "#475569", body: "#334155", orange: "#F97316", burnt: "#C2410C", deep: "#9A3412", soft: "#FFEDD5", cream: "#FFF7ED", page: "#FBF8F4", line: "#EFE4D8" };
 
-export const btnOrange = "inline-flex items-center justify-center rounded-xl bg-[#F97316] px-6 py-[15px] text-base font-bold text-[#0F172A] hover:bg-[#FB923C]";
+export const btnOrange = "inline-flex items-center justify-center rounded-xl bg-[#F97316] px-6 py-[15px] text-base font-bold text-white hover:bg-[#EA580C]";
 export const btnOutlineDark = "inline-flex items-center justify-center rounded-xl border border-[#475569] px-6 py-[15px] text-base font-semibold text-white hover:bg-white/10";
 export const btnOutline = "inline-flex items-center justify-center rounded-xl border-[1.5px] border-[#0F172A] px-6 py-3.5 text-base font-bold text-[#0F172A] hover:bg-[#0F172A] hover:text-white";
 export const eyebrow = "text-[13px] font-bold uppercase tracking-[0.08em]";
@@ -59,7 +59,7 @@ export function MktHeader() {
         </div>
         <div className="hidden items-center gap-2.5 md:flex">
           <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
-          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-[#0F172A] hover:bg-[#FB923C]">Get started free</Link>
+          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started free</Link>
         </div>
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#FFF7ED] md:hidden">{open ? <X size={22} /> : <Menu size={22} />}</button>
       </nav>
@@ -68,7 +68,7 @@ export function MktHeader() {
           {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
             <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-medium text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
           <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-[#0F172A]">Get started free</Link>
+          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started free</Link>
         </div>
       )}
     </header>

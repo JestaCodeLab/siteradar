@@ -49,7 +49,7 @@ export default function Contact() {
           <div className="flex flex-col gap-1.5"><label htmlFor="c-msg" className="text-sm font-semibold">Message</label><textarea id="c-msg" name="message" rows={6} required className={`${field} resize-y`} /></div>
           {error && <p role="alert" className="rounded-lg bg-[#FEE2E2] px-3.5 py-2.5 text-sm text-[#991B1B]">{error}</p>}
           <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-sm text-[#475569]">We only use your details to reply to you.</p>
-            <button disabled={state === "busy"} className="rounded-xl bg-[#F97316] px-7 py-[15px] font-bold text-[#0F172A] hover:bg-[#FB923C] disabled:opacity-60">{state === "busy" ? "Sending…" : "Send message"}</button></div>
+            <button disabled={state === "busy"} className="rounded-xl bg-[#F97316] px-7 py-[15px] font-bold text-white hover:bg-[#EA580C] disabled:opacity-60">{state === "busy" ? "Sending…" : "Send message"}</button></div>
         </form>
       )}
     </Container>

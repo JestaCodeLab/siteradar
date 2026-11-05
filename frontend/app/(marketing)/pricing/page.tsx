@@ -33,7 +33,7 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
   const plans = cat?.plans ?? [];
   const disc = cat?.yearly_discount ?? 20;
-  const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold ${on ? "bg-[#F97316] text-[#0F172A]" : "text-[#CBD5E1] hover:text-white"}`;
+  const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold ${on ? "bg-[#F97316] text-white" : "text-[#CBD5E1] hover:text-white"}`;
 
   const rows: [string, (p: PlanInfo) => string, boolean?][] = [
     ["Websites", (p) => String(p.sites), true], ["Team members", (p) => String(p.members), true],
@@ -70,7 +70,7 @@ export default function Pricing() {
                 <div className="flex flex-col gap-1"><span className={`text-base font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</span><span className="text-sm text-[#475569]">{TAGLINE[p.id] ?? p.tagline}</span></div>
                 <div><span className="font-mono text-[40px] font-semibold tracking-[-0.03em]">{free ? "GHS 0" : ghs(yearly ? Math.round(p.price_year_month) : p.price_month)}</span><span className="text-[15px] text-[#475569]"> / month</span>
                   {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">Billed {ghs(p.price_year)} a year</div>}</div>
-                <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold text-[#0F172A] ${pop ? "bg-[#F97316] hover:bg-[#FB923C]" : "border-[1.5px] border-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
+                <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
                 <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{bullets(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
               </div>
             );
