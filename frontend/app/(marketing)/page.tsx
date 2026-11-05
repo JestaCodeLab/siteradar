@@ -35,7 +35,7 @@ export default function Home() {
         <div className="flex flex-wrap items-center gap-x-16 gap-y-12">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
             <span className="w-fit rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-ink">Website monitoring for agencies and businesses</span>
-            <h1 className="text-[40px] font-semibold leading-[1.1] lg:text-[54px]">Know when your websites break, expire or slow down.</h1>
+            <h1 className="text-[44px] font-bold leading-[1.04] tracking-[-0.035em] lg:text-[64px]">Know when your websites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-lg leading-relaxed text-ink-2">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
             <div className="flex flex-wrap gap-3">
               <Link href="/signup" className={ctaPrimary}>Get started free</Link>
@@ -69,14 +69,14 @@ export default function Home() {
 
       <Section>
         <div className="mx-auto mb-12 flex max-w-[720px] flex-col gap-3 text-center">
-          <h2 className="text-[34px] font-semibold leading-tight">Everything a website can quietly go wrong with, watched in one place</h2>
+          <h2 className="text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Everything a website can quietly go wrong with, watched in one place</h2>
           <p className="text-[17px] leading-relaxed text-ink-2">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record is missing. SiteRadar checks all of it every day.</p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {features.map(({ Icon, title, text }) => (
             <div key={title} className="flex flex-col gap-3 rounded-xl border border-line p-6">
               <span className="flex size-10 items-center justify-center rounded-lg bg-brand-soft text-brand"><Icon size={20} aria-hidden="true" /></span>
-              <h3 className="text-base font-semibold">{title}</h3>
+              <h3 className="text-base font-bold tracking-[-0.015em]">{title}</h3>
               <p className="text-[15px] leading-relaxed text-ink-2">{text}</p>
             </div>
           ))}
@@ -84,12 +84,12 @@ export default function Home() {
       </Section>
 
       <Section tone="soft">
-        <h2 className="mb-10 text-center text-[34px] font-semibold">Set up in about ten minutes</h2>
+        <h2 className="mb-10 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Set up in about ten minutes</h2>
         <div className="grid gap-6 md:grid-cols-3">
           {steps.map((s) => (
             <div key={s.n} className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-7">
               <span className="flex size-10 items-center justify-center rounded-full bg-brand text-base font-semibold text-white">{s.n}</span>
-              <h3 className="text-lg font-semibold">{s.title}</h3>
+              <h3 className="text-lg font-bold tracking-[-0.015em]">{s.title}</h3>
               <p className="text-[15px] leading-relaxed text-ink-2">{s.text}</p>
             </div>
           ))}
@@ -99,7 +99,7 @@ export default function Home() {
       <Section>
         <div className="flex flex-wrap items-center gap-x-16 gap-y-10">
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
-            <h2 className="text-[34px] font-semibold leading-tight">Alerts that reach you where you are</h2>
+            <h2 className="text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Alerts that reach you where you are</h2>
             <p className="text-[17px] leading-relaxed text-ink-2">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack, Teams or Discord for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</p>
             <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams", "Discord"].map((c) => <span key={c} className="rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-ink">{c}</span>)}</div>
           </div>
@@ -116,7 +116,7 @@ export default function Home() {
           <div className="min-w-0 flex-[1_1_380px]">
             <div className="rounded-xl border border-line bg-surface p-6 shadow-sm">
               <p className="text-xs uppercase tracking-wider text-muted">Monthly report · October 2026</p>
-              <h3 className="mb-4 mt-1 text-xl font-semibold">shop.example.com</h3>
+              <h3 className="mb-4 mt-1 text-xl font-bold tracking-[-0.015em]">shop.example.com</h3>
               <div className="mb-4 grid grid-cols-3 gap-3 text-center">
                 {[["Uptime", "99.97%"], ["Visitors", "4,212"], ["Health", "81"]].map(([k, v]) => <div key={k} className="rounded-lg bg-soft p-3"><p className="text-xs text-muted">{k}</p><p className="text-xl font-semibold">{v}</p></div>)}
               </div>
@@ -126,7 +126,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
-            <h2 className="text-[34px] font-semibold leading-tight">A monthly report your clients will actually read</h2>
+            <h2 className="text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">A monthly report your clients will actually read</h2>
             <p className="text-[17px] leading-relaxed text-ink-2">On the 1st of every month SiteRadar emails a clean PDF for each website: uptime, incidents, speed, visitors, domain and DNS health, and a short list of what to do next, in plain language.</p>
             <ul className="flex flex-col gap-3 text-[15px]">
               {["Send it to your client, your team, or both", "Your company logo on every report, and no watermark on paid plans", "Track domains, hosting and tool subscriptions with their invoices"].map((t) => <li key={t} className="flex gap-3"><span className="mt-2 size-2 shrink-0 rounded-full bg-ok" />{t}</li>)}
@@ -137,7 +137,7 @@ export default function Home() {
 
       <Section>
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-[34px] font-semibold leading-tight">Start free, upgrade when you grow</h2>
+          <h2 className="text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Start free, upgrade when you grow</h2>
           <Link href="/pricing" className="text-[15px] font-semibold text-brand">Compare all plans</Link>
         </div>
         <HomePlans />

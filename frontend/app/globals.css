@@ -1,26 +1,28 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 @theme {
-  --color-bg: #f3f4f6;
+  --color-bg: #fff7ed;
   --color-surface: #ffffff;
   --color-soft: #f8f9fb;
   --color-line: #e2e5ea;
   --color-line-soft: #edeff3;
-  --color-ink: #12151c;
+  --color-ink: #0f172a;
   --color-ink-2: #3f4857;
   --color-muted: #5b6472;
-  --color-brand: #1f4fd8;
-  --color-brand-soft: #e5ecff;
-  --color-brand-ink: #1a3fb0;
-  --color-nav: #0f1420;
-  --color-nav-active: #1e2a44;
-  --color-nav-text: #c5ccd8;
-  --color-nav-muted: #8a94a6;
+  --color-brand: #f97316;
+  --color-brand-hover: #ea580c;
+  --color-link: #c2410c;
+  --color-brand-soft: #ffedd5;
+  --color-brand-ink: #7c2d12;
+  --color-nav: #0f172a;
+  --color-nav-active: #1e293b;
+  --color-nav-text: #cbd5e1;
+  --color-nav-muted: #94a3b8;
   --color-ok: #0b7a4b;
   --color-ok-soft: #e3f4ec;
   --color-warn: #8a5a00;
@@ -68,7 +70,7 @@ body {
    here; the rules below cover the few places that use a fixed hex colour instead of a token. */
 html.dark {
   color-scheme: dark;
-  --color-bg: #0b0f17;
+  --color-bg: #0b1120;
   --color-surface: #131a26;
   --color-soft: #182131;
   --color-line: #263247;
@@ -76,11 +78,13 @@ html.dark {
   --color-ink: #e8ecf3;
   --color-ink-2: #b4bdcc;
   --color-muted: #8f9bb0;
-  --color-brand: #5b8cff;
-  --color-brand-soft: #1b2a4d;
-  --color-brand-ink: #9db8ff;
-  --color-nav: #070a10;
-  --color-nav-active: #1a2540;
+  --color-brand: #fb923c;
+  --color-brand-hover: #f97316;
+  --color-link: #fdba74;
+  --color-brand-soft: #3b1d0a;
+  --color-brand-ink: #fdba74;
+  --color-nav: #020617;
+  --color-nav-active: #1e293b;
   --color-ok: #4fd08f;
   --color-ok-soft: #12301f;
   --color-warn: #f5c04a;
@@ -131,3 +135,6 @@ html.dark .text-\[\#4a33b0\]{color:#b6a6ff}
 html.dark .text-\[\#5B6472\]{color:#8f9bb0}
 html.dark .text-\[\#8A5A00\]{color:#f5c04a}
 html.dark .text-\[\#B3261E\]{color:#ff8a7a}
+
+/* links and brand-coloured text use a darker orange so they stay readable on white */
+.text-brand, .hover\:text-brand:hover { color: var(--color-link); }

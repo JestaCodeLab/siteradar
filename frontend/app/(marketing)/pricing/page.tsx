@@ -43,7 +43,7 @@ export default function Pricing() {
     <>
       <Section tone="soft" className="!py-14 lg:!py-20">
         <div className="mx-auto flex max-w-[760px] flex-col items-center gap-5 text-center">
-          <h1 className="text-[40px] font-semibold leading-[1.1] lg:text-[48px]">Start free, upgrade when you grow</h1>
+          <h1 className="text-[44px] font-bold leading-[1.04] tracking-[-0.035em] lg:text-[64px]">Start free, upgrade when you grow</h1>
           <p className="text-lg leading-relaxed text-ink-2">Prices in Ghana cedis. Every plan includes the same checks and the subscriptions tracker. You choose how many websites and people.</p>
           <div role="group" aria-label="Billing period" className="mt-2 inline-flex gap-1 rounded-xl border border-line bg-surface p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
@@ -59,13 +59,13 @@ export default function Pricing() {
             return (
               <div key={p.id} className={`relative flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-sm ${popular ? "border-2 border-brand" : "border border-line"}`}>
                 {popular && <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white">Most popular</span>}
-                <div><h2 className="text-xl font-semibold">{p.name}</h2><p className="mt-1 min-h-10 text-sm text-ink-2">{p.tagline}</p></div>
+                <div><h2 className="text-xl font-bold tracking-[-0.015em]">{p.name}</h2><p className="mt-1 min-h-10 text-sm text-ink-2">{p.tagline}</p></div>
                 <div>
                   <p className="text-[34px] font-semibold leading-none">{priceLine(p, yearly)} <span className="text-sm font-normal text-muted">{free ? "for ever" : "/ month"}</span></p>
                   <p className="mt-1.5 text-[13px] text-muted">{free ? "No card needed" : yearly ? `Billed ${ghs(p.price_year)} a year` : "Billed monthly"}</p>
                 </div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`}
-                  className={`flex min-h-12 items-center justify-center rounded-lg text-[15px] font-semibold ${popular ? "bg-brand text-white hover:bg-brand-ink" : "border border-[#c9cfd8] hover:bg-soft"}`}>
+                  className={`flex min-h-12 items-center justify-center rounded-lg text-[15px] font-semibold ${popular ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] hover:bg-soft"}`}>
                   {free ? "Get started free" : `Choose ${p.name}`}
                 </Link>
                 <ul className="flex flex-col gap-2.5 text-sm">{planFeatures(p).map((f) => <li key={f} className="flex gap-2.5"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f}</li>)}</ul>
@@ -76,7 +76,7 @@ export default function Pricing() {
       </Section>
 
       <Section tone="soft">
-        <h2 className="mb-8 text-center text-[32px] font-semibold">Compare the plans</h2>
+        <h2 className="mb-8 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Compare the plans</h2>
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead><tr className="border-b border-line bg-soft"><th className="px-5 py-3.5"><span className="sr-only">Feature</span></th>{plans.map((p) => <th key={p.id} className="px-5 py-3.5 font-semibold">{p.name}</th>)}</tr></thead>
@@ -89,7 +89,7 @@ export default function Pricing() {
       </Section>
 
       <Section>
-        <h2 className="mb-8 text-center text-[32px] font-semibold">Questions</h2>
+        <h2 className="mb-8 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Questions</h2>
         <div className="mx-auto flex max-w-[800px] flex-col gap-3">
           {faq.map(([q, a]) => (
             <details key={q} className="group rounded-xl border border-line p-5">

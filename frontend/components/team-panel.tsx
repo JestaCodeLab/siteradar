@@ -86,7 +86,7 @@ export function TeamPanel() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[15px] text-muted">People who can sign in to this workspace.</p>
-        {isAdmin && <button onClick={() => { setOpen(!open); setErr(null); }} disabled={full} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-ink disabled:cursor-not-allowed disabled:bg-[#c9cfd8]">Invite member</button>}
+        {isAdmin && <button onClick={() => { setOpen(!open); setErr(null); }} disabled={full} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-[#c9cfd8]">Invite member</button>}
       </div>
 
       <section aria-label="Seats" className="flex flex-wrap items-center justify-between gap-4 rounded-[14px] border border-line bg-surface px-[22px] py-5">
@@ -116,7 +116,7 @@ export function TeamPanel() {
           <div className="flex flex-wrap items-center justify-end gap-3">
             <span className="mr-auto text-[13px] text-muted">They get an email with a link to set a password. The link works for 7 days.</span>
             <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center rounded-lg border border-[#c9cfd8] bg-surface px-[18px] text-sm font-semibold hover:bg-soft">Cancel</button>
-            <button disabled={busy || (access === "some" && picked.length === 0)} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-ink disabled:opacity-60">{busy ? "Sending…" : "Send invitation"}</button>
+            <button disabled={busy || (access === "some" && picked.length === 0)} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60">{busy ? "Sending…" : "Send invitation"}</button>
           </div>
         </form>
       )}

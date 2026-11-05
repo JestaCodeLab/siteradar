@@ -4,15 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "./ui";
+import { Logo } from "./logo";
 
-export function Logo({ dark = false }: { dark?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className={`flex size-[34px] items-center justify-center rounded-[9px] ${dark ? "bg-[#2f6bff]" : "bg-brand"}`}><Icon.pulse /></span>
-      <span className={`text-[19px] font-semibold ${dark ? "text-white" : ""}`}>SiteRadar</span>
-    </span>
-  );
-}
+export { Logo } from "./logo";
 
 const links = [
   { href: "/", label: "Home" }, { href: "/solutions", label: "Solutions" },
@@ -34,7 +28,7 @@ export function MktHeader() {
         </nav>
         <div className="hidden items-center gap-2 md:flex">
           <Link href="/login" className="flex min-h-11 items-center px-4 text-[15px] font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-11 items-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-ink">Get started free</Link>
+          <Link href="/signup" className="flex min-h-11 items-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-hover">Get started free</Link>
         </div>
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-soft md:hidden"><Icon.menu /></button>
       </div>
@@ -82,14 +76,14 @@ export function Section({ children, tone = "plain", className = "" }: { children
   return <section className={`${bg} px-5 py-16 lg:px-10 lg:py-24 ${className}`}><div className="mx-auto max-w-[1200px]">{children}</div></section>;
 }
 
-export const ctaPrimary = "inline-flex min-h-12 items-center justify-center rounded-lg bg-brand px-6 text-base font-semibold text-white hover:bg-brand-ink";
+export const ctaPrimary = "inline-flex min-h-12 items-center justify-center rounded-lg bg-brand px-6 text-base font-semibold text-white hover:bg-brand-hover";
 export const ctaSecondary = "inline-flex min-h-12 items-center justify-center rounded-lg border border-[#c9cfd8] bg-surface px-6 text-base font-semibold hover:bg-soft";
 
 export function CtaBand({ title, text, secondary }: { title: string; text: string; secondary?: { href: string; label: string } }) {
   return (
     <Section tone="dark">
       <div className="mx-auto flex max-w-[720px] flex-col items-center gap-5 text-center">
-        <h2 className="text-[34px] font-semibold leading-tight text-white">{title}</h2>
+        <h2 className="text-white text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">{title}</h2>
         <p className="text-[17px] leading-relaxed">{text}</p>
         <div className="flex flex-wrap justify-center gap-3 pt-2">
           <Link href="/signup" className={ctaPrimary}>Get started free</Link>

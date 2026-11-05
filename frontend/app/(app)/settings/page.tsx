@@ -18,7 +18,7 @@ const zones = [["Africa/Accra", "Africa/Accra (GMT)"], ["Africa/Lagos", "Africa/
 
 const box = "rounded-[14px] border border-line bg-surface p-[22px]";
 const inputCls = "min-h-[46px] w-full rounded-lg border border-[#c9cfd8] bg-surface px-3.5 text-[15px] disabled:bg-soft";
-const primary = "inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-ink disabled:opacity-60";
+const primary = "inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60";
 const secondary = "inline-flex min-h-11 items-center justify-center rounded-lg border border-[#c9cfd8] bg-surface px-[18px] text-sm font-semibold hover:bg-soft disabled:opacity-60";
 
 function Notice({ note }: { note: Note }) {
@@ -252,8 +252,8 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           {!pref ? <Skeleton className="mt-3 h-40" /> : pref.events.map((ev) => (
             <div key={ev.id} className="grid grid-cols-[1fr_70px_70px] items-center gap-3 border-b border-line-soft py-3 text-sm last:border-0">
               <span>{ev.label}<span className="block text-[13px] text-muted">{ev.sub}</span></span>
-              <input type="checkbox" aria-label={`${ev.label} by email`} checked={pref.prefs[ev.id].email} onChange={(e) => toggle(ev.id, "email", e.target.checked)} className="size-[18px] accent-[#1f4fd8]" />
-              <input type="checkbox" aria-label={`${ev.label} by SMS`} checked={sms && pref.prefs[ev.id].sms} disabled={!sms} onChange={(e) => toggle(ev.id, "sms", e.target.checked)} className="size-[18px] accent-[#1f4fd8]" />
+              <input type="checkbox" aria-label={`${ev.label} by email`} checked={pref.prefs[ev.id].email} onChange={(e) => toggle(ev.id, "email", e.target.checked)} className="size-[18px] accent-[#f97316]" />
+              <input type="checkbox" aria-label={`${ev.label} by SMS`} checked={sms && pref.prefs[ev.id].sms} disabled={!sms} onChange={(e) => toggle(ev.id, "sms", e.target.checked)} className="size-[18px] accent-[#f97316]" />
             </div>))}
         </div></div>
       </section>

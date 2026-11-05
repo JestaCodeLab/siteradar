@@ -23,19 +23,19 @@ export default function Contact() {
     <Section tone="soft" className="!py-14 lg:!py-20">
       <div className="flex flex-wrap gap-x-16 gap-y-12">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
-          <h1 className="text-[40px] font-semibold leading-[1.1] lg:text-[48px]">Talk to us</h1>
+          <h1 className="text-[44px] font-bold leading-[1.04] tracking-[-0.035em] lg:text-[64px]">Talk to us</h1>
           <p className="text-lg leading-relaxed text-ink-2">Questions about plans, migrating many websites, or something you would like SiteRadar to check? Send a message and a person will reply, usually within one working day.</p>
           <p className="rounded-xl border border-line bg-surface p-5 text-[15px] leading-relaxed text-ink-2">Already a customer? Log in and write to us from inside your account so we can see your workspace and answer faster.</p>
         </div>
         <div className="min-w-0 flex-[1_1_480px]">
           {state === "sent" ? (
             <div role="status" className="rounded-2xl border border-line bg-surface p-8 text-center">
-              <h2 className="text-2xl font-semibold">Message sent</h2>
+              <h2 className="text-2xl font-bold tracking-[-0.015em]">Message sent</h2>
               <p className="mt-2 text-ink-2">Thank you. We will reply to the email address you gave.</p>
             </div>
           ) : (
             <form onSubmit={submit} className="flex flex-col gap-5 rounded-2xl border border-line bg-surface p-7">
-              <h2 className="text-xl font-semibold">Send a message</h2>
+              <h2 className="text-xl font-bold tracking-[-0.015em]">Send a message</h2>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Your name" htmlFor="name"><input id="name" name="name" required autoComplete="name" className={input} /></Field>
                 <Field label="Company" hint="optional" htmlFor="company"><input id="company" name="company" autoComplete="organization" className={input} /></Field>

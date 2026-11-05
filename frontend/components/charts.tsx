@@ -48,13 +48,13 @@ export function LineChart({ points, threshold, unit = "ms", label }: { points: {
       {ticks.map((t) => (
         <g key={t}>
           <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="#e2e5ea" />
-          <text x={0} y={y(t) + 4} fontSize="11" fill="#5b6472" fontFamily="var(--font-plex-mono)">{fmt(t)}</text>
+          <text x={0} y={y(t) + 4} fontSize="11" fill="#5b6472" fontFamily="var(--font-geist-mono)">{fmt(t)}</text>
         </g>
       ))}
       {threshold != null && threshold < max && (
         <line x1={L} x2={W - R} y1={y(threshold)} y2={y(threshold)} stroke="#b3261e" strokeWidth="1.5" strokeDasharray="5 4" />
       )}
-      <polyline fill="none" stroke="#1f4fd8" strokeWidth="2.5" strokeLinejoin="round" points={points.map((p, i) => `${x(i)},${y(p.y)}`).join(" ")} />
+      <polyline fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinejoin="round" points={points.map((p, i) => `${x(i)},${y(p.y)}`).join(" ")} />
       <text x={L} y={H - 4} fontSize="11" fill="#5b6472">{fmtDay(points[0].x)}</text>
       <text x={W - R} y={H - 4} fontSize="11" fill="#5b6472" textAnchor="end">{fmtDay(points[points.length - 1].x)}</text>
     </svg>

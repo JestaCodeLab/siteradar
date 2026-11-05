@@ -121,12 +121,12 @@ export function BillingPanel() {
             const here = p.id === cur && (p.price_month === 0 || ws.cycle === (isYearly ? "yearly" : "monthly"));
             const isCur = p.id === cur;
             return (
-              <div key={p.id} className={`flex flex-col gap-2.5 rounded-xl p-[18px] ${isCur ? "border-2 border-brand bg-[#f5f8ff]" : "border border-line bg-surface"}`}>
+              <div key={p.id} className={`flex flex-col gap-2.5 rounded-xl p-[18px] ${isCur ? "border-2 border-brand bg-brand-soft/40" : "border border-line bg-surface"}`}>
                 <div className="flex items-center justify-between"><span className="text-base font-semibold">{p.name}</span>{isCur && <span className="rounded-full bg-brand-soft px-2.5 py-[3px] text-xs font-semibold text-brand-ink">Current</span>}</div>
                 <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{priceLine(p, isYearly)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : "/ month"}</span></div>
                 <span className="flex-1 text-[13px] leading-snug text-muted">{planLine(p)}</span>
                 {here ? <span className="flex min-h-11 items-center justify-center text-sm font-semibold text-muted">Your plan</span>
-                  : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${idx > curIdx ? "bg-brand text-white hover:bg-brand-ink" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
+                  : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${idx > curIdx ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
                     {busy === p.id + (isYearly ? "yearly" : "monthly") ? "Please wait…" : idx > curIdx ? `Upgrade to ${p.name}` : `Switch to ${p.name}`}</button>}
               </div>
             );

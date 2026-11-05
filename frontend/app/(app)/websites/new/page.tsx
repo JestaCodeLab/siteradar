@@ -60,7 +60,7 @@ export default function NewWebsitePage() {
             {error && <p role="alert" className="rounded-lg bg-bad-soft px-3.5 py-2.5 text-sm text-bad">{error.text} {error.limit && <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link>}</p>}
             <div className="flex flex-wrap justify-end gap-3">
               <button type="button" onClick={() => router.back()} className="inline-flex min-h-[46px] items-center rounded-lg border border-[#c9cfd8] bg-surface px-5 text-sm font-semibold hover:bg-soft">Cancel</button>
-              <button disabled={locked || busy} className="inline-flex min-h-[46px] items-center rounded-lg bg-brand px-[22px] text-sm font-semibold text-white hover:bg-brand-ink disabled:cursor-not-allowed disabled:bg-[#c9cfd8] disabled:hover:bg-[#c9cfd8]">{busy ? "Adding…" : "Add website"}</button>
+              <button disabled={locked || busy} className="inline-flex min-h-[46px] items-center rounded-lg bg-brand px-[22px] text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-[#c9cfd8] disabled:hover:bg-[#c9cfd8]">{busy ? "Adding…" : "Add website"}</button>
             </div>
           </form>
         </div>

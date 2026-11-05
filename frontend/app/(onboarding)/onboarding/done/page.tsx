@@ -26,7 +26,7 @@ export default function DoneStep() {
             : "Reports carry a light SiteRadar watermark. You can upgrade any time from Billing."}</> : "Setting up your workspace…"}
         </p>
       </div>
-      <Link href="/overview" className="inline-flex min-h-12 items-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-white hover:bg-brand-ink">Go to my dashboard</Link>
+      <Link href="/overview" className="inline-flex min-h-12 items-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-white hover:bg-brand-hover">Go to my dashboard</Link>
       <div className="w-full rounded-2xl border border-line bg-surface p-6 text-left">
         <p className="mb-3 text-base font-semibold">Do these next</p>
         <ul className="flex flex-col">{tasks.map((t) => (

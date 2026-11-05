@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Clock, Globe, LayoutGrid, Receipt, Settings } from "lucide-react";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
-import { Icon } from "./ui";
+import { LogoMark } from "./logo";
 
 const row = "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm";
 const on = "bg-nav-active text-white";
@@ -46,7 +46,7 @@ function WorkspaceSwitcher({ onClose }: { onClose: () => void }) {
         className="flex min-h-14 w-full items-center gap-2.5 rounded-[10px] border border-[#222b3d] bg-[#151c2c] px-2.5 py-2 text-left">
         {ws.logo_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={ws.logo_url} alt="" className="size-8 shrink-0 rounded-lg bg-white object-contain" />
           : <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#26324a] text-xs font-semibold text-white">{initials}</span>}
-        <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-white">{ws.name}</span><span className="block text-xs text-[#8fb0ff]">{ws.plan.name} plan</span></span>
+        <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-white">{ws.name}</span><span className="block text-xs text-[#fdba74]">{ws.plan.name} plan</span></span>
         <ChevronsUpDown size={16} aria-hidden="true" />
       </button>
       {open && (
@@ -76,8 +76,8 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
       <aside aria-label="Sidebar"
         className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
-          <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#2f6bff]"><Icon.pulse /></span>
-          <span className="text-[17px] font-semibold text-white">SiteRadar</span>
+          <LogoMark size={34} />
+          <span className="text-[20px] font-bold tracking-[-0.03em] text-white">SiteRadar</span>
         </Link>
 
         <WorkspaceSwitcher onClose={onClose} />
@@ -97,7 +97,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <div className="h-1.5 rounded-[3px] bg-[#26324a]"><div className="h-1.5 rounded-[3px] bg-[#4fd08f]" style={{ width: `${Math.min(100, ((used as number) / Math.max(of as number, 1)) * 100)}%` }} /></div>
               </div>
             ))}
-            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#2f6bff] text-[13px] font-semibold text-white">Manage plan</Link>}
+            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-brand text-[13px] font-semibold text-white">Manage plan</Link>}
           </div>
         )}
 

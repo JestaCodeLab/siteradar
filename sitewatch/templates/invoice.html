@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>Invoice {{ number }}</title>
 <style>
-body{font-family:Helvetica,Arial,sans-serif;color:#12151C;margin:0;padding:48px;font-size:14px}
+body{font-family:system-ui,Helvetica,Arial,sans-serif;color:#0F172A;margin:0;padding:48px;font-size:14px}
 h1{font-size:28px;margin:0 0 4px}.muted{color:#5B6472}.row{display:flex;justify-content:space-between;gap:24px}
 table{width:100%;border-collapse:collapse;margin-top:32px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#5B6472;padding:10px 0;border-bottom:1px solid #E2E5EA}
-td{padding:14px 0;border-bottom:1px solid #EDEFF3}.num{text-align:right;font-family:ui-monospace,Menlo,monospace}.tag{display:inline-block;padding:3px 10px;border-radius:99px;background:#E3F4EC;color:#0B7A4B;font-weight:600;font-size:12px}
+td{padding:14px 0;border-bottom:1px solid #EDEFF3}.num{text-align:right;font-family:"Geist Mono",ui-monospace,Menlo,monospace}.tag{display:inline-block;padding:3px 10px;border-radius:99px;background:#E3F4EC;color:#0B7A4B;font-weight:600;font-size:12px}
 </style></head><body>
 <div class="row"><div>{% if logo %}<img src="{{ logo }}" alt="" style="max-height:48px;max-width:200px;margin-bottom:12px;display:block">{% endif %}
 <h1>Invoice</h1><div class="muted">{{ number }}</div></div>

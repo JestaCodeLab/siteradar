@@ -9,7 +9,7 @@ import type { SiteStatus, SubStatus } from "@/lib/api";
 
 export const btn = {
   primary:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-ink disabled:opacity-60",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brand px-4 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60",
   secondary:
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[#c9cfd8] bg-surface px-4 text-sm font-semibold text-ink hover:bg-soft disabled:opacity-60",
   danger:

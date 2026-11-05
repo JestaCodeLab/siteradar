@@ -35,7 +35,7 @@ export default function Solutions() {
     <>
       <Section tone="soft" className="!py-14 lg:!py-20">
         <div className="mx-auto flex max-w-[760px] flex-col items-center gap-5 text-center">
-          <h1 className="text-[40px] font-semibold leading-[1.1] lg:text-[48px]">One platform, whoever looks after the website</h1>
+          <h1 className="text-[44px] font-bold leading-[1.04] tracking-[-0.035em] lg:text-[64px]">One platform, whoever looks after the website</h1>
           <p className="text-lg leading-relaxed text-ink-2">Whether you run sites for clients or for your own organisation, the same checks and the same monthly report keep everyone informed.</p>
         </div>
       </Section>
@@ -45,7 +45,7 @@ export default function Solutions() {
           <div className={`flex flex-wrap items-center gap-x-16 gap-y-10 ${a.reverse ? "flex-row-reverse" : ""}`}>
             <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
               <span className="w-fit rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-ink">{a.tag}</span>
-              <h2 className="text-[32px] font-semibold leading-tight">{a.title}</h2>
+              <h2 className="text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">{a.title}</h2>
               <p className="text-[17px] leading-relaxed text-ink-2">{a.text}</p>
               <ul className="flex flex-col gap-3 text-[15px]">{a.points.map((p) => <li key={p} className="flex gap-3"><span className="mt-2 size-2 shrink-0 rounded-full bg-ok" />{p}</li>)}</ul>
               <Link href="/signup" className={`${ctaPrimary} w-fit`}>Get started free</Link>
@@ -63,7 +63,7 @@ export default function Solutions() {
       ))}
 
       <Section>
-        <h2 className="mb-10 text-center text-[34px] font-semibold">What is checked on every website</h2>
+        <h2 className="mb-10 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">What is checked on every website</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {checks.map(([t, s]) => (
             <div key={t} className="flex gap-3 rounded-xl border border-line p-5">
