@@ -86,3 +86,14 @@ Websites are stored in the database; `sites:` in `config.yaml` only seeds the fi
 - **Google Search Console** data (search queries, impressions, rankings) isn't included yet — it needs an OAuth connection per site and is the natural next addition.
 - Data lives in Postgres (set `DATABASE_URL`). Invoice PDFs, reports and screenshots are still files in `data/` until they move to cloud storage.
 - `demo/` contains a fake website with deliberate problems and a script that seeds simulated history, used to test everything locally. Don't run `seed_history.py` on a real install.
+
+## Multi-tenant platform (branch `multitenant`)
+
+SiteWatch is now a subscription product: each customer has a workspace with its own websites, subscriptions, team and plan.
+
+- **Services on Railway**: web (`python -m sitewatch serve --no-scheduler`), worker (`python -m sitewatch worker`), Postgres. Vercel runs `frontend/`.
+- **Environment**: see `.env.example` (DATABASE_URL, SECRET_KEY, APP_URL, ADMIN_EMAIL/ADMIN_PASSWORD, RESEND_API_KEY, MAIL_FROM, CLOUDINARY_URL, PAYSTACK_SECRET_KEY).
+- **First admin**: set ADMIN_EMAIL and ADMIN_PASSWORD; that account is created as super admin on first start and opens `/admin`.
+- **Paystack**: point the webhook at `https://<api-host>/api/billing/webhook`. Without a key, `BILLING_TEST_MODE=1` switches plans with no payment (development only).
+- **Email**: without RESEND_API_KEY, verification codes are printed in the server log.
+- **Files**: without Cloudinary, invoices, screenshots and logos go to local disk (single service only; the worker and web would not share them).
