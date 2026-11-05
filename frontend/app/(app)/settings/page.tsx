@@ -1,99 +1,189 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useRef, useState } from "react";
 import useSWR from "swr";
-import { btn, Card, CardTitle, ErrorState, PageHeader, Skeleton } from "@/components/ui";
+import { btn, Card, CardTitle, ErrorState, Field, input, PageHeader, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type SettingsData } from "@/lib/api";
+import { splitEmails } from "@/lib/format";
+import { useMe } from "@/lib/me";
 
-function Status({ on, yes, no }: { on: boolean; yes: string; no: string }) {
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-[13px] font-semibold ${on ? "bg-ok-soft text-ok" : "bg-warn-soft text-warn"}`}>{on ? yes : no}</span>;
+type Tab = "company" | "profile" | "alerts" | "monitoring";
+type Note = { ok: boolean; text: string } | null;
+const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];
+
+function Notice({ note }: { note: Note }) {
+  return note ? <p role="status" className={`text-sm ${note.ok ? "text-ok" : "text-bad"}`}>{note.text}</p> : null;
 }
-
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line-soft py-3.5 first:border-t-0">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="text-sm font-medium">{children}</dd>
+      <dt className="text-sm text-muted">{label}</dt><dd className="text-sm font-medium">{children}</dd>
     </div>
   );
 }
 
-export default function SettingsPage() {
-  const { data, error, mutate } = useSWR<SettingsData>("/api/settings", fetcher);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+function Company() {
+  const { ws, isAdmin, mutate } = useMe();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [note, setNote] = useState<Note>(null);
   const [busy, setBusy] = useState(false);
+  if (!ws) return null;
 
-  if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
-  if (!data) return <div className="flex flex-col gap-4"><Skeleton className="h-10 w-48" /><Skeleton className="h-40" /><Skeleton className="h-56" /></div>;
-  const m = data.monitoring;
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)); setBusy(true); setNote(null);
+    try { await send("PATCH", "/api/account/workspace", f); await mutate(); setNote({ ok: true, text: "Saved." }); }
+    catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not save." }); }
+    setBusy(false);
+  }
+  async function upload(file?: File) {
+    if (!file) return; const fd = new FormData(); fd.append("logo", file); setNote(null);
+    try { await send("POST", "/api/account/logo", fd); await mutate(); setNote({ ok: true, text: "Logo updated." }); }
+    catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not upload the logo." }); }
+  }
+  async function removeLogo() { await send("DELETE", "/api/onboarding/logo"); await mutate(); }
 
-  async function testAlert() {
-    setBusy(true);
-    setNote(null);
+  return (
+    <Card className="max-w-3xl p-5">
+      <CardTitle>Company</CardTitle>
+      <div className="mb-5 flex flex-wrap items-center gap-4">
+        {ws.logo_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={ws.logo_url} alt="Company logo" className="size-16 rounded-lg border border-line bg-white object-contain" />
+          : <span className="flex size-16 items-center justify-center rounded-lg bg-brand-soft text-lg font-semibold text-brand">{ws.name.slice(0, 2).toUpperCase()}</span>}
+        <div className="flex-1"><p className="text-sm font-medium">Logo <span className="font-normal text-muted">(shown at the top of your reports)</span></p>
+          <p className="text-[13px] text-muted">PNG, JPG or WebP up to 1.5 MB.</p></div>
+        {isAdmin && <div className="flex gap-2">
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" aria-label="Choose logo" onChange={(e) => upload(e.target.files?.[0])} />
+          <button onClick={() => fileRef.current?.click()} className={btn.secondary}>{ws.logo_url ? "Replace" : "Upload"}</button>
+          {ws.logo_url && <button onClick={removeLogo} className={btn.secondary}>Remove</button>}</div>}
+      </div>
+      <form onSubmit={save} className="flex flex-col gap-5">
+        <fieldset disabled={!isAdmin} className="grid gap-5 sm:grid-cols-2">
+          <Field label="Company name" htmlFor="name"><input id="name" name="name" required defaultValue={ws.name} className={input} /></Field>
+          <Field label="Company website" htmlFor="website"><input id="website" name="website" defaultValue={ws.website ?? ""} className={input} /></Field>
+          <Field label="Country" htmlFor="country"><select id="country" name="country" defaultValue={ws.country ?? "Ghana"} className={input}>{countries.map((c) => <option key={c}>{c}</option>)}</select></Field>
+          <Field label="Phone" htmlFor="phone"><input id="phone" name="phone" defaultValue={ws.phone ?? ""} className={input} /></Field>
+        </fieldset>
+        <div className="flex items-center gap-4">{isAdmin && <button disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button>}<Notice note={note} /></div>
+        {!isAdmin && <p className="text-sm text-muted">Only owners and admins can change company details.</p>}
+      </form>
+    </Card>
+  );
+}
+
+function Profile() {
+  const { user, mutate } = useMe();
+  const [pn, setPn] = useState<Note>(null);
+  const [pw, setPw] = useState<Note>(null);
+  if (!user) return null;
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget)); setPn(null);
+    try { await send("PATCH", "/api/account/profile", f); await mutate(); setPn({ ok: true, text: "Saved." }); } catch (err) { setPn({ ok: false, text: err instanceof Error ? err.message : "Could not save." }); }
+  }
+  async function password(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const form = e.currentTarget; const f = Object.fromEntries(new FormData(form)); setPw(null);
+    try { await send("POST", "/api/account/password", f); form.reset(); setPw({ ok: true, text: "Password changed." }); } catch (err) { setPw({ ok: false, text: err instanceof Error ? err.message : "Could not change the password." }); }
+  }
+  return (
+    <div className="grid max-w-5xl gap-5 lg:grid-cols-2">
+      <Card className="p-5"><CardTitle>Your details</CardTitle>
+        <form onSubmit={save} className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2"><Field label="First name" htmlFor="fn"><input id="fn" name="first_name" defaultValue={user.first_name} required className={input} /></Field>
+            <Field label="Last name" htmlFor="ln"><input id="ln" name="last_name" defaultValue={user.last_name} required className={input} /></Field></div>
+          <Field label="Email" htmlFor="em"><input id="em" value={user.email} readOnly className={`${input} bg-soft`} /></Field>
+          <Field label="Phone" hint="used for SMS alerts" htmlFor="ph"><input id="ph" name="phone" defaultValue={user.phone} className={input} /></Field>
+          <div className="flex items-center gap-4"><button className={btn.primary}>Save changes</button><Notice note={pn} /></div>
+        </form></Card>
+      <Card className="p-5"><CardTitle>Password</CardTitle>
+        <form onSubmit={password} className="flex flex-col gap-4">
+          <Field label="Current password" htmlFor="cp"><input id="cp" name="current" type="password" required autoComplete="current-password" className={input} /></Field>
+          <Field label="New password" hint="at least 8 characters" htmlFor="np"><input id="np" name="password" type="password" required minLength={8} autoComplete="new-password" className={input} /></Field>
+          <div className="flex items-center gap-4"><button className={btn.primary}>Change password</button><Notice note={pw} /></div>
+        </form></Card>
+    </div>
+  );
+}
+
+function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) {
+  const { isAdmin } = useMe();
+  const [note, setNote] = useState<Note>(null);
+  const [busy, setBusy] = useState(false);
+  const a = data.alerts, sms = a.channels.includes("sms"), chat = a.channels.includes("chat");
+
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = new FormData(e.currentTarget); setBusy(true); setNote(null);
     try {
-      const r = await send<{ sent: boolean; to: string[] }>("POST", "/api/settings/test-alert");
-      setNote({ ok: true, text: `Test alert sent to ${r.to.join(", ")}.` });
-    } catch (e) {
-      setNote({ ok: false, text: e instanceof ApiError && e.status === 502 ? "No alert could be delivered. Check the email settings on the server (SMTP_PASSWORD)." : "Could not send the test alert." });
-    }
+      await send("PATCH", "/api/settings/alerts", {
+        alert_emails: splitEmails(f.get("emails")),
+        ...(sms ? { alert_phones: String(f.get("phones") ?? "").split(/[,\n]/).map((x) => x.trim()).filter(Boolean) } : {}),
+        ...(chat ? { alert_webhooks: String(f.get("hooks") ?? "").split(/[\s,]+/).filter(Boolean) } : {}),
+      });
+      refresh(); setNote({ ok: true, text: "Saved." });
+    } catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not save." }); }
+    setBusy(false);
+  }
+  async function test() {
+    setBusy(true); setNote(null);
+    try { const r = await send<{ sent: boolean; to: string[] }>("POST", "/api/settings/test-alert"); setNote({ ok: true, text: `Test alert sent to ${r.to.join(", ")}.` }); }
+    catch (e) { setNote({ ok: false, text: e instanceof ApiError && e.status === 502 ? "No alert could be delivered right now." : "Could not send the test alert." }); }
     setBusy(false);
   }
 
   return (
+    <Card className="max-w-3xl p-5">
+      <CardTitle>Where alerts go</CardTitle>
+      <form onSubmit={save} className="flex flex-col gap-5">
+        <fieldset disabled={!isAdmin} className="flex flex-col gap-5">
+          <Field label="Email recipients" hint="down, recovery, SSL, domain and report emails; separate with commas" htmlFor="emails">
+            <input id="emails" name="emails" defaultValue={a.emails.join(", ")} className={input} /></Field>
+          {sms ? (
+            <Field label="SMS numbers" hint={`${a.sms_used} of ${a.sms_quota} messages used this month; texts are sent for outages and recoveries`} htmlFor="phones">
+              <input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={input} /></Field>
+          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>SMS alerts</b> are available on the Growth plan and above. <Link href="/billing" className="font-semibold text-brand">See plans</Link></p>}
+          {chat ? (
+            <Field label="Slack, Teams or Discord webhook addresses" hint="one per line" htmlFor="hooks">
+              <textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${input} py-2.5`} /></Field>
+          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>Slack, Teams and Discord</b> alerts are available on the Starter plan and above. <Link href="/billing" className="font-semibold text-brand">See plans</Link></p>}
+        </fieldset>
+        {isAdmin && <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={btn.primary}>Save changes</button>
+          <button type="button" onClick={test} disabled={busy} className={btn.secondary}>Send test alert</button><Notice note={note} /></div>}
+        {!isAdmin && <p className="text-sm text-muted">Only owners and admins can change alert settings.</p>}
+      </form>
+    </Card>
+  );
+}
+
+function Monitoring({ data }: { data: SettingsData }) {
+  const m = data.monitoring;
+  return (
+    <Card className="max-w-3xl p-5"><CardTitle>Monitoring on your plan</CardTitle>
+      <dl>
+        <Row label="Uptime check every">{m.check_interval_minutes} minute{m.check_interval_minutes === 1 ? "" : "s"}</Row>
+        <Row label="Alert after">{m.failures_before_alert} failed checks in a row</Row>
+        <Row label="Slow response threshold">{m.slow_threshold_ms / 1000} seconds</Row>
+        <Row label="SSL warning">{m.ssl_warning_days} days before expiry</Row>
+        <Row label="Nightly audit">{m.audit_daily_at}, up to {m.audit_max_pages} pages</Row>
+        <Row label="Monthly reports">Day {m.report_day_of_month} at {m.report_at}</Row>
+        <Row label="History kept">{m.history_months} month{m.history_months === 1 ? "" : "s"}</Row>
+        <Row label="Timezone">{m.timezone}</Row>
+      </dl></Card>
+  );
+}
+
+export default function SettingsPage() {
+  const [tab, setTab] = useState<Tab>("company");
+  const { data, error, mutate } = useSWR<SettingsData>("/api/settings", fetcher);
+  const tabs: [Tab, string][] = [["company", "Company"], ["profile", "Your account"], ["alerts", "Alerts"], ["monitoring", "Monitoring"]];
+  return (
     <>
-      <PageHeader title="Settings" subtitle="Your account and how SiteWatch watches and alerts. Changes to these values are made on the server." />
-
-      <div className="grid gap-5 xl:grid-cols-2">
-        <Card className="p-5">
-          <CardTitle>Account</CardTitle>
-          <dl>
-            <Row label="Signed in as">{data.username}</Row>
-            <Row label="Login type">Shared team login</Row>
-            <Row label="Password">Set by the account owner</Row>
-          </dl>
-          <p className="mt-3 text-sm leading-relaxed text-muted">Everyone uses the same password. To change it, update the <code className="font-mono">SITEWATCH_PASSWORD</code> variable on the server. Everyone is signed out and signs in again with the new one.</p>
-        </Card>
-
-        <Card className="p-5">
-          <CardTitle aside={<Status on={data.alerts.email_configured} yes="Email connected" no="Email not connected" />}>Alerts and reports</CardTitle>
-          <p className="mb-3 text-sm text-muted">Down, recovery, slow and SSL alerts, and the monthly subscription report, go to:</p>
-          <ul className="mb-4 flex flex-wrap gap-2">
-            {data.alerts.email_to.map((e) => <li key={e} className="rounded-full bg-soft px-3 py-1.5 text-sm">{e}</li>)}
-            {data.alerts.email_to.length === 0 && <li className="text-sm text-muted">No recipients set.</li>}
-          </ul>
-          <dl>
-            <Row label="Sent from">{data.alerts.from ?? "—"}</Row>
-            <Row label="Chat webhooks (Slack, Teams, Discord)">{data.alerts.webhooks}</Row>
-          </dl>
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button onClick={testAlert} disabled={busy} className={btn.secondary}>{busy ? "Sending…" : "Send test alert"}</button>
-            {note && <p role="status" className={`text-sm ${note.ok ? "text-ok" : "text-bad"}`}>{note.text}</p>}
-          </div>
-        </Card>
-
-        <Card className="p-5">
-          <CardTitle>Monitoring</CardTitle>
-          <dl>
-            <Row label="Uptime check every">{m.check_interval_minutes} minutes</Row>
-            <Row label="Alert after">{m.failures_before_alert} failed checks in a row</Row>
-            <Row label="Check timeout">{m.timeout_seconds} seconds</Row>
-            <Row label="Slow response threshold">{m.slow_threshold_ms / 1000} seconds</Row>
-            <Row label="SSL warning">{m.ssl_warning_days} days before expiry</Row>
-            <Row label="Nightly audit">{m.audit_daily_at}, up to {m.audit_max_pages} pages</Row>
-            <Row label="Monthly reports">Day {m.report_day_of_month} at {m.report_at}</Row>
-            <Row label="Server timezone">{m.timezone}</Row>
-          </dl>
-        </Card>
-
-        <Card className="p-5">
-          <CardTitle>Connections</CardTitle>
-          <dl>
-            <Row label="Google PageSpeed (Core Web Vitals)"><Status on={data.integrations.pagespeed} yes="Connected" no="No API key" /></Row>
-            <Row label="Email (SMTP)"><Status on={data.integrations.email} yes="Connected" no="Not connected" /></Row>
-            <Row label="Tracking script address"><span className="break-all font-mono text-[13px]">{data.public_url}</span></Row>
-          </dl>
-        </Card>
+      <PageHeader title="Settings" subtitle="Your company, your own account and how you are alerted." />
+      <div role="tablist" aria-label="Settings" className="flex flex-wrap gap-1 border-b border-line">
+        {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
+          className={`min-h-11 border-b-2 px-4 text-sm font-semibold ${tab === k ? "border-brand text-brand" : "border-transparent text-ink-2 hover:text-ink"}`}>{label}</button>)}
       </div>
+      {tab === "company" && <Company />}
+      {tab === "profile" && <Profile />}
+      {(tab === "alerts" || tab === "monitoring") && (error ? <ErrorState message={error.message} retry={() => mutate()} /> : !data ? <Skeleton className="h-64 max-w-3xl" />
+        : tab === "alerts" ? <Alerts data={data} refresh={() => mutate()} /> : <Monitoring data={data} />)}
     </>
   );
 }

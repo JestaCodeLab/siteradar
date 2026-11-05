@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { fetcher, send, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
+import { useMe } from "@/lib/me";
 import { Icon } from "./ui";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
@@ -32,7 +33,9 @@ const PAGES: Hit[] = [
   { label: "Add subscription", hint: "Upload an invoice", href: "/subscriptions/new", group: "Pages" },
   { label: "Monthly reports", hint: "Subscription spend by month", href: "/subscriptions/reports", group: "Pages" },
   { label: "Activity logs", hint: "Incidents, alerts and changes", href: "/activity", group: "Pages" },
-  { label: "Settings", hint: "Alerts and monitoring", href: "/settings", group: "Pages" },
+  { label: "Settings", hint: "Company, profile and alerts", href: "/settings", group: "Pages" },
+  { label: "Team", hint: "Members and invitations", href: "/team", group: "Pages" },
+  { label: "Billing", hint: "Plan, usage and invoices", href: "/billing", group: "Pages" },
 ];
 
 function SearchDialog({ onClose }: { onClose: () => void }) {
@@ -151,12 +154,13 @@ function Profile() {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
-  const { data } = useSWR<{ username: string }>("/api/auth/me", fetcher);
-  const name = data?.username ?? "Team";
+  const { me, user, isAdmin, mutate } = useMe();
+  const name = user ? `${user.first_name} ${user.last_name}`.trim() : "Account";
   const initials = name.split(/[\s._-]+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "T";
 
   async function logout() {
     await send("POST", "/api/auth/logout").catch(() => {});
+    await mutate();
     router.replace("/login");
   }
 
@@ -174,9 +178,20 @@ function Profile() {
           <div className="border-b border-line-soft px-3 pb-2.5 pt-2">
             <p className="text-xs text-muted">Signed in as</p>
             <p className="truncate text-sm font-semibold">{name}</p>
+            <p className="truncate text-xs text-muted">{user?.email}</p>
           </div>
+          {(me?.workspaces.length ?? 0) > 1 && (
+            <div className="border-b border-line-soft py-1.5">
+              <p className="px-3 pb-1 pt-1 text-xs text-muted">Switch workspace</p>
+              {me?.workspaces.map((w) => (
+                <button key={w.id} role="menuitem" onClick={async () => { await send("POST", "/api/auth/switch", { workspace_id: w.id }); await mutate(); close(); router.push("/overview"); }}
+                  className={`${item} ${w.id === me.workspace?.id ? "font-semibold" : ""}`}>{w.name}</button>
+              ))}
+            </div>
+          )}
           <div className="pt-1.5">
             <Link role="menuitem" href="/settings" onClick={close} className={item}><Icon.user />Profile settings</Link>
+            {isAdmin && <Link role="menuitem" href="/billing" onClick={close} className={item}><Icon.card />Billing</Link>}
             <button role="menuitem" onClick={logout} className={`${item} text-bad`}><Icon.logout />Log out</button>
           </div>
         </div>

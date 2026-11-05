@@ -1,18 +1,18 @@
 export class ApiError extends Error {
-  constructor(message: string, public status: number) {
+  constructor(message: string, public status: number, public code?: string) {
     super(message);
   }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "same-origin", ...init });
-  if (res.status === 401 && !path.startsWith("/api/auth/login")) {
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
     window.location.href = "/login";
     throw new ApiError("Please sign in again.", 401);
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new ApiError(body.error ?? "Something went wrong. Please try again.", res.status);
+    throw new ApiError(body.error ?? "Something went wrong. Please try again.", res.status, body.code);
   }
   return res.json();
 }
@@ -27,7 +27,7 @@ export const send = <T,>(method: "POST" | "PATCH" | "DELETE", path: string, body
 
 // ---- types -----------------------------------------------------------------
 
-export type SiteStatus = "up" | "slow" | "down" | "warn" | "unknown";
+export type SiteStatus = "up" | "slow" | "down" | "warn" | "unknown" | "paused";
 
 export interface StripDay { day: string; uptime: number | null }
 
@@ -123,14 +123,12 @@ export interface ActivityEvent {
 }
 
 export interface SettingsData {
-  username: string; public_url: string;
-  alerts: { email_to: string[]; email_configured: boolean; from: string | null; webhooks: number };
+  alerts: { emails: string[]; phones: string[]; webhooks: string[]; channels: ("email" | "chat" | "sms")[]; sms_quota: number; sms_used: number };
   monitoring: {
     check_interval_minutes: number; failures_before_alert: number; timeout_seconds: number; slow_threshold_ms: number;
     ssl_warning_days: number; audit_daily_at: string; audit_max_pages: number; report_day_of_month: number;
-    report_at: string; timezone: string;
+    report_at: string; timezone: string; history_months: number;
   };
-  integrations: { pagespeed: boolean; email: boolean };
 }
 
 export interface DomainInfo {
@@ -148,3 +146,42 @@ export interface SitemapInfo {
   broken: { url: string; status: number | string }[]; trend: { ts: number; total: number }[];
 }
 export interface HealthResponse { domain: DomainInfo | null; dns: DnsInfo | null; sitemap: SitemapInfo | null; running: boolean }
+
+
+// ---- accounts, plans and billing ----------------------------------------------
+
+export type Role = "owner" | "admin" | "member" | "viewer";
+
+export interface PlanInfo {
+  id: string; name: string; tagline: string; price_month: number; price_year: number; price_year_month: number;
+  sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
+  channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean; active: boolean;
+}
+export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currency: string }
+
+export interface Workspace {
+  id: number; name: string; website: string | null; industry: string | null; size: string | null; country: string | null;
+  phone: string | null; address: string | null; logo_url: string | null; role: Role | null; onboarded: boolean; suspended: boolean;
+  plan: { id: string; name: string; sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
+          channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
+  plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; plan_renews: number | null;
+  usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number };
+}
+
+export interface User { id: number; email: string; first_name: string; last_name: string; phone: string; is_super: boolean; email_verified: boolean }
+
+export interface Me {
+  authenticated: boolean; user: User | null;
+  workspaces: { id: number; name: string; role: Role; logo_url: string | null }[];
+  workspace: Workspace | null;
+  support: { until: number; reason: string; mode: "view" | "edit" } | null;
+}
+
+export interface TeamData {
+  members: { id: number; email: string; first_name: string; last_name: string; last_login: number | null; role: Role; created: number }[];
+  invites: { id: number; email: string; role: Role; created: number; expires: number }[];
+  plan: Workspace["plan"]; usage: Workspace["usage"]; role: Role;
+}
+
+export interface Payment { reference: string; plan_id: string; cycle: string; amount: number; currency: string; status: string; channel: string | null; created: number; paid: number | null }
+export interface BillingData { workspace: Workspace; catalogue: Catalogue; payments: Payment[]; card: string | null; comped: boolean; test_mode: boolean; grace_days: number }

@@ -6,12 +6,14 @@ import useSWR from "swr";
 import { StripLegend, UptimeStrip } from "@/components/charts";
 import { btn, Card, CardTitle, Empty, ErrorState, PageHeader, Skeleton, StatusChip, Tile } from "@/components/ui";
 import { fetcher, type SitesResponse } from "@/lib/api";
+import { useMe } from "@/lib/me";
 import { fmtAgo, fmtDate, fmtDay, fmtMs, fmtNum, fmtPct } from "@/lib/format";
 
 const cols = "grid grid-cols-[minmax(210px,2fr)_96px_minmax(250px,2.4fr)_92px_92px_104px_76px_96px] items-center gap-4";
 const mono = "font-mono text-sm";
 
 export default function OverviewPage() {
+  const { canWrite } = useMe();
   const { data, error, mutate, isLoading } = useSWR<SitesResponse>("/api/sites", fetcher, { refreshInterval: 60000 });
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
@@ -22,7 +24,7 @@ export default function OverviewPage() {
       <PageHeader
         title="Overview"
         subtitle={s ? `${s.total} sites monitored · last check ${fmtAgo(s.latest_check)} · checks run every ${s.check_interval_minutes} minutes` : "Loading…"}
-        actions={<Link href="/websites/new" className={btn.primary}>Add website</Link>}
+        actions={canWrite ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : undefined}
       />
 
       <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4">

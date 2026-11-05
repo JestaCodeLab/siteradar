@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  Activity, Bell, ChevronDown, ChevronRight, Clock, FileText, Globe, LayoutGrid, LogOut, Menu, Plus, Receipt, Search,
-  Settings, Upload, User, type LucideIcon,
+  Activity, Bell, Check, ChevronDown, ChevronRight, Clock, CreditCard, FileText, Globe, LayoutGrid, LogOut, Menu, Plus, Receipt, Search,
+  Settings, Shield, Upload, User, Users, type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { InfoTip } from "./info-tip";
@@ -71,6 +71,7 @@ export function StatusChip({ status }: { status: SiteStatus }) {
     down: ["Down", "bg-bad-soft text-bad", "bg-bad"],
     warn: ["Failing", "bg-warn-soft text-warn", "bg-warn"],
     unknown: ["Waiting", "bg-line-soft text-ink-2", "bg-muted"],
+    paused: ["Paused", "bg-line-soft text-ink-2", "bg-muted"],
   } as const;
   const [label, cls, dot] = map[status];
   return (
@@ -178,5 +179,9 @@ export const Icon = {
   bell: make(Bell, 20),
   search: make(Search, 20),
   user: make(User, 16),
+  check: make(Check, 16),
+  card: make(CreditCard),
+  users: make(Users),
+  shield: make(Shield),
   pulse: (p: IconProps) => <Activity aria-hidden="true" size={20} strokeWidth={2.2} color="#fff" {...p} />,
 };

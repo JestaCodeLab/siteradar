@@ -129,7 +129,7 @@ def check_code(user, purpose, code):
 def verify_email(email, code):
     user = user_by_email(norm_email(email)) or raise_(AuthError("That code is not right.", "bad_code", 400))
     check_code(user, "verify", code)
-    sets = "email_verified=1"
+    sets = f"email_verified=1, last_login={time.time()}"
     if user["email"].lower() in super_emails():
         sets += ", is_super=1"
     db.exec(f"UPDATE users SET {sets} WHERE id=?", (user["id"],))

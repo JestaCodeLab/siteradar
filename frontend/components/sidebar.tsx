@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
 import { fetcher, type SitesResponse } from "@/lib/api";
+import { useMe } from "@/lib/me";
 import { Icon } from "./ui";
 
 const row = "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm";
@@ -32,6 +33,7 @@ function Group({ title, icon, open, current, onToggle, children }: {
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const path = usePathname();
+  const { ws, user, isAdmin, canWrite } = useMe();
   const { data } = useSWR<SitesResponse>("/api/sites", fetcher, { refreshInterval: 60000 });
   // Collapsed by default. Opening one group closes the other.
   const [group, setGroup] = useState<GroupId | null>(null);
@@ -49,9 +51,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         <div className="px-3.5 pb-3 pt-5">
           <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
             <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#2f6bff]"><Icon.pulse /></span>
-            <span className="flex flex-col">
+            <span className="flex min-w-0 flex-col">
               <span className="text-[17px] font-semibold leading-tight text-white">SiteWatch</span>
-              <span className="text-xs text-nav-muted">Upplause Consulting</span>
+              <span className="truncate text-xs text-nav-muted">{ws?.name}</span>
             </span>
           </Link>
         </div>
@@ -64,14 +66,14 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           <Group title="Websites" icon={<Icon.globe />} open={group === "sites"} current={sitesCurrent} onToggle={() => toggle("sites")}>
             {data?.sites.map((s) => (
               <Link key={s.id} href={`/websites/${s.id}`} onClick={onClose} className={`${sub} ${is(`/websites/${s.id}`) ? active : idle}`}>
-                <span className={`size-2 shrink-0 rounded-full ${s.status === "down" || s.status === "warn" ? "bg-[#ff6b5b]" : s.status === "unknown" ? "bg-nav-muted" : "bg-[#4fd08f]"}`} />
+                <span className={`size-2 shrink-0 rounded-full ${s.status === "down" || s.status === "warn" ? "bg-[#ff6b5b]" : s.status === "unknown" || s.status === "paused" ? "bg-nav-muted" : "bg-[#4fd08f]"}`} />
                 <span className="truncate">{s.name}</span>
                 {(s.status === "down" || s.status === "warn") && <span className="sr-only">(down)</span>}
               </Link>
             ))}
-            <Link href="/websites/new" onClick={onClose} className={`${sub} font-medium text-[#8fb0ff] hover:bg-nav-active/60`}>
+            {canWrite && <Link href="/websites/new" onClick={onClose} className={`${sub} font-medium text-[#8fb0ff] hover:bg-nav-active/60`}>
               <Icon.plus /> Add website
-            </Link>
+            </Link>}
           </Group>
 
           <Group title="Subscriptions" icon={<Icon.receipt />} open={group === "subs"} current={subsCurrent} onToggle={() => toggle("subs")}>
@@ -80,7 +82,17 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           </Group>
         </nav>
 
+        {ws && (
+          <div className="mx-3.5 mt-4 rounded-lg bg-nav-active/50 p-3 text-[13px]">
+            <div className="flex items-center justify-between"><span className="font-semibold text-white">{ws.plan.name} plan</span>
+              {isAdmin && ws.plan_id !== "scale" && <Link href="/billing" onClick={onClose} className="font-semibold text-[#8fb0ff]">Upgrade</Link>}</div>
+            <p className="mt-1 text-nav-muted">{ws.usage.sites} of {ws.plan.sites} website{ws.plan.sites === 1 ? "" : "s"} used</p>
+          </div>
+        )}
         <div className="mt-4 flex flex-col gap-1 border-t border-[#222b3d] px-3.5 py-3.5">
+          {user?.is_super && <Link href="/admin" onClick={onClose} className={`${row} ${idle}`}><Icon.shield />Admin area</Link>}
+          <Link href="/team" onClick={onClose} className={`${row} ${is("/team") ? active : idle}`}><Icon.users />Team</Link>
+          {isAdmin && <Link href="/billing" onClick={onClose} className={`${row} ${is("/billing") ? active : idle}`}><Icon.card />Billing</Link>}
           <Link href="/settings" onClick={onClose} className={`${row} ${is("/settings") ? active : idle}`}><Icon.settings />Settings</Link>
           <Link href="/activity" onClick={onClose} className={`${row} ${is("/activity") ? active : idle}`}><Icon.activity />Activity logs</Link>
         </div>
