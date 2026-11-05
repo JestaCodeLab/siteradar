@@ -13,12 +13,11 @@ sys.path.insert(0, ".")
 from sitewatch import config, db
 
 cfg = config.load(sys.argv[1] if len(sys.argv) > 1 else "demo/config.demo.yaml")
-db.init(cfg["data_dir"])
+db.init(cfg)
 site = cfg["sites"][0]["id"]
 random.seed(7)
 start = dt.datetime(2026, 9, 1).timestamp()
 now = time.time() - 3600
-conn = db.connect()
 
 # Uptime checks every 5 minutes, two outages and a slow week
 outages = [(dt.datetime(2026, 9, 12, 2, 10).timestamp(), 47 * 60, "HTTP 502"),
@@ -35,9 +34,9 @@ while t < now:
     rows.append((site, t, 0 if down else 1, 502 if down and "502" in down[2] else (None if down else 200),
                  None if down else max(80, ms), down[2] if down else None, 64 - int((t - start) / 86400)))
     t += 300
-conn.executemany("INSERT INTO checks(site_id, ts, ok, status_code, response_ms, error, ssl_days_left) VALUES (?,?,?,?,?,?,?)", rows)
+db.bulk("INSERT INTO checks(site_id, ts, ok, status_code, response_ms, error, ssl_days_left) VALUES (?,?,?,?,?,?,?)", rows)
 for s, dur, cause in outages:
-    conn.execute("INSERT INTO incidents(site_id, started, ended, cause) VALUES (?,?,?,?)", (site, s, s + dur, cause))
+    db.exec("INSERT INTO incidents(site_id, started, ended, cause) VALUES (?,?,?,?)", (site, s, s + dur, cause))
 
 # Analytics: weekday-heavy traffic, growing in October
 pages = [("/", 40), ("/menu", 25), ("/About_Us", 10), ("/contact", 12), ("/privacy", 2), ("/blog/old-post", 3)]
@@ -62,7 +61,7 @@ while d.timestamp() < now:
                 hits.append((site, ts, path, ref if k == 0 else "", vid, *dev, *(utm if k == 0 else (None, None, None)), load))
             ts += random.uniform(20, 240)
     d += dt.timedelta(days=1)
-conn.executemany("""INSERT INTO hits(site_id, ts, path, referrer, visitor, device, browser, os, screen,
+db.bulk("""INSERT INTO hits(site_id, ts, path, referrer, visitor, device, browser, os, screen,
                     utm_source, utm_medium, utm_campaign, load_ms) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", hits)
 
 # An older audit (early September) so the report can show what changed
@@ -74,7 +73,6 @@ if latest:
                 "count": 1, "examples": [{"url": "http://127.0.0.1:9000/.env", "detail": ""}], "share": .2})
     scores = dict(latest["scores"], Security=latest["scores"]["Security"] - 15, Overall=latest["scores"]["Overall"] - 4)
     for when in (dt.datetime(2026, 8, 31, 3), dt.datetime(2026, 9, 30, 3)):
-        conn.execute("INSERT INTO audits(site_id, ts, pages, scores, issues) VALUES (?,?,?,?,?)",
+        db.exec("INSERT INTO audits(site_id, ts, pages, scores, issues) VALUES (?,?,?,?,?)",
                      (site, when.timestamp(), latest["pages"], json.dumps(scores), json.dumps(old)))
-conn.commit()
 print(f"Seeded {len(rows)} checks, {len(hits)} page views, {len(outages)} incidents.")

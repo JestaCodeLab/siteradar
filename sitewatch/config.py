@@ -15,6 +15,7 @@ DEFAULTS = {
     "report": {"day_of_month": 1, "at": "07:00"},
     "alerts": {},
     "pagespeed_api_key": "",
+    "database_url": "",                  # Postgres connection string (Railway sets DATABASE_URL)
     "health": {"daily_at": "03:30"},     # domain expiry, DNS and sitemap checks
 }
 

@@ -160,8 +160,8 @@ def uptime_stats(site_id, since, until=None):
 
 def daily_series(site_id, since, until):
     """Per-day uptime % (check-based) and average response time, for charts."""
-    rows = db.q("""SELECT date(ts, 'unixepoch', 'localtime') d, COUNT(*) n, SUM(ok) up,
+    rows = db.q("""SELECT to_char(to_timestamp(ts) AT TIME ZONE ?, 'YYYY-MM-DD') d, COUNT(*) n, SUM(ok) up,
                           AVG(CASE WHEN ok=1 THEN response_ms END) ms
                    FROM checks WHERE site_id=? AND ts>=? AND ts<? GROUP BY d ORDER BY d""",
-                (site_id, since, until))
+                (db.TZ, site_id, since, until))
     return [{"day": r["d"], "uptime": 100 * r["up"] / r["n"], "avg_ms": round(r["ms"] or 0)} for r in rows]

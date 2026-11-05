@@ -1,6 +1,8 @@
 """Command line:
 
-  python -m sitewatch serve              dashboard + scheduler (the normal way to run it)
+  python -m sitewatch serve              API + scheduler in one process (add --no-scheduler when a worker runs separately)
+  python -m sitewatch worker             the scheduler only (checks, audits, reports)
+  python -m sitewatch migrate-sqlite F   copy an old SQLite database into Postgres
   python -m sitewatch check              run one uptime check of every site
   python -m sitewatch audit [site-id]    run an SEO/performance/security audit now
   python -m sitewatch report [site-id] [--month 2026-09] [--pdf] [--email]
@@ -23,6 +25,9 @@ def main(argv=None):
     s.add_argument("--host", default="0.0.0.0")
     s.add_argument("--port", type=int, default=8080)
     s.add_argument("--no-scheduler", action="store_true")
+    sub.add_parser("worker")           # the scheduler on its own, for a separate Railway service
+    m = sub.add_parser("migrate-sqlite")
+    m.add_argument("path", help="path to the old sitewatch.db file")
     sub.add_parser("check")
     a = sub.add_parser("audit")
     a.add_argument("site", nargs="?")
@@ -37,7 +42,11 @@ def main(argv=None):
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = load(args.config)
-    db.init(cfg["data_dir"])
+    db.init(cfg)
+    if args.cmd == "migrate-sqlite":
+        from .migrate_sqlite import migrate
+        migrate(args.path, cfg["data_dir"])
+        return
     sites.init(cfg)
 
     def pick(site_id):
@@ -60,6 +69,12 @@ def main(argv=None):
             serve(app, host=args.host, port=args.port, threads=8)
         except ImportError:
             app.run(host=args.host, port=args.port, threaded=True)
+    elif args.cmd == "worker":
+        from .scheduler import Scheduler
+        print("SiteWatch worker running (checks, audits, reports)")
+        worker = Scheduler(cfg)
+        worker.start()
+        worker.join()
     elif args.cmd == "check":
         for sid, res in monitor.check_all(cfg).items():
             mark = "UP  " if res["ok"] else "DOWN"

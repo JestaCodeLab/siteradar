@@ -7,7 +7,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import alerts, auditor, health, monitor, report, sub_report, subscriptions
+from . import alerts, auditor, db, health, monitor, report, sites, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -16,14 +16,16 @@ class Scheduler(threading.Thread):
     def __init__(self, cfg):
         super().__init__(daemon=True)
         self.cfg = cfg
-        self.state_path = os.path.join(cfg["data_dir"], "state.json")
-        self.state = json.load(open(self.state_path)) if os.path.exists(self.state_path) else {}
+        self.state = db.kv_get("scheduler")
+        if self.state is None:
+            # first start on Postgres: pick up what the old file-based scheduler had already done today
+            old = os.path.join(cfg["data_dir"], "state.json")
+            self.state = json.load(open(old)) if os.path.exists(old) else {}
         self.pool = ThreadPoolExecutor(max_workers=8)
         self.health_started = set()
 
     def save(self):
-        with open(self.state_path, "w") as f:
-            json.dump(self.state, f)
+        db.kv_set("scheduler", self.state)
 
     def due_daily(self, key, hhmm):
         now = dt.datetime.now()
@@ -36,6 +38,7 @@ class Scheduler(threading.Thread):
         last_check = 0
         while True:
             try:
+                sites.refresh(self.cfg)           # websites added on the web service appear here too
                 now = time.time()
                 if now - last_check >= self.cfg["check_interval_minutes"] * 60:
                     last_check = now

@@ -40,6 +40,18 @@ docker run -d --restart unless-stopped -p 8080:8080 \
 
 Put it behind HTTPS (e.g. Caddy: `monitor.yourdomain.com { reverse_proxy localhost:8080 }`) and set `public_url` to that address — the tracking script on your sites sends data there.
 
+## Database (Postgres)
+
+SiteWatch stores everything in Postgres. Set `DATABASE_URL` (Railway's Postgres plugin provides it) and the
+tables are created on first start. Moving an existing install from SQLite:
+
+```bash
+python -m sitewatch migrate-sqlite /app/data/sitewatch.db   # copies the old data, safe to run twice
+```
+
+Run the monitoring jobs as their own service so the web service can scale: give the web service the start command
+`python -m sitewatch serve --no-scheduler` and a second service `python -m sitewatch worker`.
+
 ## Dashboard (Next.js)
 
 `frontend/` is the dashboard people use: login, Websites (overview, per-site tabs, add/remove) and Subscriptions
@@ -72,5 +84,5 @@ Websites are stored in the database; `sites:` in `config.yaml` only seeds the fi
 
 - **Core Web Vitals**: add a free Google PageSpeed Insights API key (`pagespeed_api_key`) to include LCP/CLS/INP from real Chrome users in audits and reports.
 - **Google Search Console** data (search queries, impressions, rankings) isn't included yet — it needs an OAuth connection per site and is the natural next addition.
-- Data is in a single SQLite file in `data/` — back that folder up.
+- Data lives in Postgres (set `DATABASE_URL`). Invoice PDFs, reports and screenshots are still files in `data/` until they move to cloud storage.
 - `demo/` contains a fake website with deliberate problems and a script that seeds simulated history, used to test everything locally. Don't run `seed_history.py` on a real install.
