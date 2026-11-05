@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Clock, CreditCard, Globe, LayoutGrid, Receipt, Settings, Users } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Check, ChevronsUpDown, Clock, Globe, LayoutGrid, Receipt, Settings } from "lucide-react";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { Icon } from "./ui";
@@ -66,7 +66,6 @@ function WorkspaceSwitcher({ onClose }: { onClose: () => void }) {
 
 function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const path = usePathname();
-  const tab = useSearchParams().get("tab") ?? "company";
   const { ws, isAdmin } = useMe();
   const is = (href: string) => path === href || path.startsWith(href + "/");
   const settings = path === "/settings";
@@ -87,11 +86,6 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
           <Item href="/overview" label="Overview" Icon={LayoutGrid} current={path === "/overview"} strong onClose={onClose} />
           <Item href="/websites" label="Websites" Icon={Globe} badge={ws?.usage.sites} current={is("/websites")} strong onClose={onClose} />
           <Item href="/subscriptions" label="Subscriptions" Icon={Receipt} current={is("/subscriptions")} strong onClose={onClose} />
-          <span className="mx-2.5 mb-1.5 mt-[18px] text-[11px] font-semibold uppercase tracking-[0.08em] text-nav-muted">Workspace</span>
-          <Item href="/settings?tab=team" label="Team" Icon={Users} current={settings && tab === "team"} onClose={onClose} />
-          {isAdmin && <Item href="/settings?tab=billing" label="Billing and plan" Icon={CreditCard} current={settings && tab === "billing"} onClose={onClose} />}
-          <Item href="/settings" label="Settings" Icon={Settings} current={settings && tab !== "team" && tab !== "billing"} onClose={onClose} />
-          <Item href="/activity" label="Activity logs" Icon={Clock} current={is("/activity")} onClose={onClose} />
         </nav>
 
         {ws && (
@@ -106,11 +100,16 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
             {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#2f6bff] text-[13px] font-semibold text-white">Manage plan</Link>}
           </div>
         )}
+
+        <div className="flex flex-col gap-1 border-t border-[#222b3d] pt-3">
+          <Item href="/settings" label="Settings" Icon={Settings} current={settings} onClose={onClose} />
+          <Item href="/activity" label="Activity logs" Icon={Clock} current={is("/activity")} onClose={onClose} />
+        </div>
       </aside>
     </>
   );
 }
 
 export function Sidebar(props: { open: boolean; onClose: () => void }) {
-  return <Suspense><Nav {...props} /></Suspense>;
+  return <Nav {...props} />;
 }
