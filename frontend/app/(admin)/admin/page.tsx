@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { CreditCard, TrendingUp, TriangleAlert, Users, X } from "lucide-react";
-import { Avatar, AdminCard, AdminHeader, Pill, money, whenAgo, tones, type Tone } from "@/components/admin/ui";
+import { CircleCheck, CreditCard, TrendingUp, TriangleAlert, UserPlus, Users, X } from "lucide-react";
+import { Avatar, AdminCard, EmptyState, AdminHeader, Pill, money, whenAgo, tones, type Tone } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
 
@@ -77,7 +77,7 @@ export default function AdminOverview() {
       <div className="flex flex-wrap items-stretch gap-5">
         <AdminCard label="Recent signups" className="min-w-0 flex-[1.4_1_460px] !pb-2">
           <div className="mb-2 flex items-center justify-between"><h2 className="text-lg font-semibold">Recent signups</h2><Link href="/admin/customers" className="flex min-h-11 items-center text-sm font-semibold text-[#4A33B0]">All customers</Link></div>
-          {data.recent.length === 0 && <p className="border-t border-[#EDEFF3] py-8 text-center text-sm text-[#5B6472]">No customers yet.</p>}
+          {data.recent.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState compact Icon={UserPlus} title="No customers yet" text="New signups will appear here as soon as someone registers." /></div>}
           {data.recent.map((r) => (
             <Link key={r.id} href={`/admin/customers/${r.id}`} className="flex min-h-14 items-center gap-3 border-t border-[#EDEFF3]">
               <Avatar name={r.name} />
@@ -89,7 +89,7 @@ export default function AdminOverview() {
 
         <AdminCard label="Needs attention" className="min-w-0 flex-[1_1_340px] !pb-2">
           <h2 className="mb-2 text-lg font-semibold">Needs attention</h2>
-          {data.attention.length === 0 && <p className="border-t border-[#EDEFF3] py-8 text-center text-sm text-[#5B6472]">Nothing needs attention.</p>}
+          {data.attention.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState compact Icon={CircleCheck} title="All clear" text="Failed payments, low credit and service problems will be listed here." /></div>}
           {data.attention.map((a, i) => (
             <Link key={i} href={a.href} className="flex items-start gap-3 border-t border-[#EDEFF3] py-3.5">
               <span className={`min-w-[68px] rounded-full px-2 py-[3px] text-center text-xs font-semibold ${tones[a.tone]}`}>{a.tag}</span>

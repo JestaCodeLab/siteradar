@@ -149,6 +149,22 @@ def blueprint(cfg):
         local = "localhost" in str(cfg.get("public_url", ""))
         return jsonify(customers=n, failed_payments=failed, attention=len(attention()), env="Local" if local else "Production")
 
+    @bp.get("/notifications")
+    def notifications():
+        """What needs attention now, plus what happened in the last week (signups, failed payments, messages)."""
+        week = time.time() - 7 * 86400
+        events = []
+        for w in db.q("SELECT id, name, plan_id, created FROM workspaces WHERE created>? ORDER BY created DESC LIMIT 10", (week,)):
+            events.append({"ts": w["created"], "tag": "Signup", "tone": "ok", "title": f"{w['name']} signed up", "sub": f"{w['plan_id'].title()} plan", "href": f"/admin/customers/{w['id']}"})
+        for p in db.q("""SELECT p.created, p.amount, p.workspace_id, w.name FROM payments p JOIN workspaces w ON w.id=p.workspace_id
+                         WHERE p.status IN ('failed','abandoned') AND p.created>? ORDER BY p.created DESC LIMIT 10""", (week,)):
+            events.append({"ts": p["created"], "tag": "Payment", "tone": "bad", "title": f"Payment from {p['name']} failed", "sub": f"GHS {p['amount']:,.2f}", "href": f"/admin/customers/{p['workspace_id']}"})
+        for m in db.q("SELECT ts, detail FROM admin_audit WHERE action='contact' AND ts>? ORDER BY ts DESC LIMIT 10", (week,)):
+            first = (m["detail"] or "").splitlines()[0].replace("From:", "").strip()
+            events.append({"ts": m["ts"], "tag": "Message", "tone": "purple", "title": f"New message from {first.split('<')[0].strip() or 'a visitor'}", "sub": "Contact form", "href": "/admin/audit"})
+        events.sort(key=lambda e: -e["ts"])
+        return jsonify(attention=attention(), events=events[:15])
+
     @bp.get("/search")
     def search():
         q = (request.args.get("q") or "").strip().lower()

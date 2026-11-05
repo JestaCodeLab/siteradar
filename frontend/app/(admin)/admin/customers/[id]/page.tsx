@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
-import { Avatar, AdminCard, Pill, aBtn, aInput, money, shortDate, statusTone, whenAgo } from "@/components/admin/ui";
+import { Globe, History, StickyNote } from "lucide-react";
+import { Avatar, AdminCard, EmptyState, Pill, aBtn, aInput, money, shortDate, statusTone, whenAgo } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
 import { useMe } from "@/lib/me";
@@ -157,7 +158,7 @@ export default function CustomerPage() {
       <div className="flex flex-wrap items-stretch gap-5">
         <AdminCard label="Websites" className="min-w-0 flex-[1_1_400px] !pb-2">
           <h2 className="mb-2 text-lg font-semibold">Websites</h2>
-          {data.sites.length === 0 && <p className="border-t border-[#EDEFF3] py-6 text-sm text-[#5B6472]">No websites yet.</p>}
+          {data.sites.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState compact Icon={Globe} title="No websites yet" text="Websites show here once the customer adds one." /></div>}
           {data.sites.map((s) => (
             <div key={s.id} className="flex items-center gap-3 border-t border-[#EDEFF3] py-3.5">
               <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{s.name}</span><span className="block truncate font-mono text-[13px] text-[#5B6472]">{s.url.split("//")[1]}</span></span>
@@ -184,6 +185,7 @@ export default function CustomerPage() {
             <label htmlFor="note" className="sr-only">Add a note</label>
             <textarea id="note" name="text" rows={3} placeholder="Only admins see notes" className="w-full rounded-lg border border-[#C9CFD8] px-3.5 py-3 text-sm" />
             <div><button disabled={busy} className={`${aBtn.primary}`}>Save note</button></div></form>
+          {data.notes.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState compact Icon={StickyNote} title="No notes yet" text="Notes you save are only visible to admins." /></div>}
           {data.notes.map((n, i) => <div key={i} className="border-t border-[#EDEFF3] pt-3 text-sm leading-relaxed"><b>{n.admin}</b> · {shortDate(n.ts)}<br />{n.text}</div>)}
         </AdminCard>
         <AdminCard label="Audit trail" className="min-w-0 flex-[1_1_340px] !pb-2">

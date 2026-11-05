@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { Pill, AdminCard, AdminHeader, TableHead, Tabs, aBtn, downloadCsv, money, shortDate, type Tone } from "@/components/admin/ui";
-import { Empty, ErrorState, Skeleton } from "@/components/ui";
+import { CreditCard } from "lucide-react";
+import { EmptyState, Pill, AdminCard, AdminHeader, TableHead, Tabs, aBtn, downloadCsv, money, shortDate, type Tone } from "@/components/admin/ui";
+import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
 
 interface Resp {
@@ -73,7 +74,7 @@ export default function AdminPayments() {
         <div className="border-b border-[#E2E5EA] px-5 py-3.5"><Tabs items={filters} value={filter} onChange={setFilter} /></div>
         <div className="overflow-x-auto"><div className="min-w-[960px]">
           <TableHead template={GRID} cols={["Date", "Customer", "Plan", "Amount", "Method", "Status", "Reference"]} />
-          {data.payments.length === 0 && <Empty title="No payments here yet" />}
+          {data.payments.length === 0 && <EmptyState Icon={CreditCard} title="No payments here yet" text="Charges from Paystack appear here as customers pay for a plan." />}
           {data.payments.map((r) => (
             <div key={r.reference} style={{ display: "grid", gridTemplateColumns: GRID }} className="min-h-12 items-center gap-4 border-b border-[#EDEFF3] px-5 py-3 text-sm">
               <span className="text-[13px] text-[#5B6472]">{shortDate(r.paid ?? r.created)}</span>

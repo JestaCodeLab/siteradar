@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Activity, Bell, ChevronLeft, CreditCard, LayoutGrid, Menu, Search, Star, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Activity, ChevronLeft, CreditCard, LayoutGrid, Star, Users } from "lucide-react";
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui";
-import { avatarColor, initials } from "@/components/admin/ui";
-import { fetcher, send } from "@/lib/api";
+import { initials } from "@/components/admin/ui";
+import { AdminTopbar } from "@/components/admin/topbar";
+import { fetcher } from "@/lib/api";
 import { useMe } from "@/lib/me";
 
 interface Summary { customers: number; failed_payments: number; attention: number; env: string }
@@ -19,42 +20,10 @@ const nav = [
   { href: "/admin/health", label: "Platform health", Icon: Activity },
 ];
 
-function SearchBox() {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const { data } = useSWR<{ results: { id: number; name: string; email: string; plan: string }[] }>(q.trim().length >= 2 ? `/api/admin/search?q=${encodeURIComponent(q.trim())}` : null, fetcher);
-  useEffect(() => {
-    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", down); return () => document.removeEventListener("mousedown", down);
-  }, []);
-  return (
-    <div ref={ref} className="relative min-w-0 max-w-[420px] flex-[1_1_260px]">
-      <div className="flex min-h-10 items-center gap-2 rounded-lg border border-[#C9CFD8] px-3 text-[#5B6472]">
-        <Search size={16} aria-hidden="true" />
-        <label htmlFor="admin-q" className="sr-only">Search customers</label>
-        <input id="admin-q" value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} placeholder="Search customers, emails, websites"
-          className="w-full bg-transparent text-sm text-[#12151C] outline-none placeholder:text-[#5B6472] focus-visible:!outline-none" />
-      </div>
-      {open && q.trim().length >= 2 && (
-        <ul className="absolute left-0 right-0 top-12 z-50 overflow-hidden rounded-xl border border-[#E2E5EA] bg-white shadow-lg">
-          {(data?.results ?? []).length === 0 && <li className="px-4 py-4 text-sm text-[#5B6472]">{data ? "No customers found." : "Searching…"}</li>}
-          {data?.results.map((r) => (
-            <li key={r.id}><button onClick={() => { setOpen(false); setQ(""); router.push(`/admin/customers/${r.id}`); }} className="flex min-h-12 w-full items-center gap-3 px-4 text-left hover:bg-[#F5F1FF]">
-              <span className="flex min-w-0 flex-1 flex-col"><span className="truncate text-sm font-semibold">{r.name}</span><span className="truncate text-xs text-[#5B6472]">{r.email}</span></span>
-              <span className="text-xs text-[#5B6472]">{r.plan}</span></button></li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
-  const { me, user, isLoading, mutate } = useMe();
+  const { me, user, isLoading } = useMe();
   const { data: summary } = useSWR<Summary>(user?.is_super ? "/api/admin/summary" : null, fetcher, { refreshInterval: 60000 });
   const [menu, setMenu] = useState(false);
 
@@ -67,7 +36,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user?.is_super) return <div className="p-8"><Skeleton className="h-10 w-64" /></div>;
   const name = `${user.first_name} ${user.last_name}`.trim();
   const is = (h: string) => (h === "/admin" ? path === h : path === h || path.startsWith(h + "/"));
-  void mutate; void send;
 
   return (
     <div className="min-h-screen bg-[#F3F4F6]">
@@ -101,20 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       <div className="flex min-h-screen flex-col lg:pl-[264px]">
-        <header className="sticky top-0 z-20 flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-[3px] border-[#6B4FE0] bg-white px-3 py-1.5 lg:px-6">
-          <div className="flex min-w-0 flex-[1_1_360px] flex-wrap items-center gap-x-4 gap-y-2">
-            <button onClick={() => setMenu(true)} aria-label="Open menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#F5F1FF] lg:hidden"><Menu size={20} /></button>
-            <span className="inline-flex min-h-8 items-center gap-2 rounded-full bg-[#EFEAFF] px-3 text-[13px] font-semibold text-[#4A33B0]"><span className="size-2 rounded-full bg-[#6B4FE0]" />Super admin · {summary?.env ?? "Production"}</span>
-            <SearchBox />
-          </div>
-          <div className="flex items-center gap-1">
-            <Link href="/admin" aria-label={summary?.attention ? `Alerts, ${summary.attention} need attention` : "Alerts"} className="relative flex size-11 items-center justify-center rounded-lg text-[#3F4857] hover:bg-[#F5F1FF]">
-              <Bell size={20} aria-hidden="true" />
-              {!!summary?.attention && <span className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-lg bg-[#B3261E] px-1 text-[10px] font-semibold text-white">{summary.attention}</span>}
-            </Link>
-            <Link href="/overview" className="flex min-h-11 items-center rounded-lg px-3 text-sm font-semibold text-[#4A33B0]">Exit admin</Link>
-          </div>
-        </header>
+        <AdminTopbar user={user} env={summary?.env ?? "Production"} onMenu={() => setMenu(true)} />
         <main className="min-w-0 flex-1 p-4 lg:p-6"><div className="mx-auto flex max-w-[1400px] flex-col gap-6">{children}</div></main>
       </div>
     </div>

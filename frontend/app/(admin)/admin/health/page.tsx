@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { AdminCard, AdminHeader, aBtn, aInput, tones, type Tone } from "@/components/admin/ui";
+import { Camera, ClipboardCheck, Gauge, Globe, Mail, MessageSquare, ShieldCheck, Timer, Webhook, type LucideIcon } from "lucide-react";
+import { AdminCard, EmptyState, AdminHeader, aBtn, aInput, tones, type Tone } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
 
@@ -14,6 +15,11 @@ interface Health {
   errors: { ts: number; source: string; text: string }[];
   announcement: { message: string; audience: string } | null;
 }
+const ICONS: Record<string, LucideIcon> = {
+  "Web app and API": Globe, "Check scheduler": Timer, "Nightly audits": ClipboardCheck, "Homepage preview worker": Camera,
+  "Email sending": Mail, "SMS gateway": MessageSquare, "Payment webhooks": Webhook, "Google PageSpeed quota": Gauge,
+};
+const iconTone = { ok: "bg-[#E3F4EC] text-[#0B7A4B]", warn: "bg-[#FFF1D6] text-[#8A5A00]", bad: "bg-[#FBE7E5] text-[#B3261E]" } as const;
 const dot = { ok: "#0B7A4B", warn: "#8A5A00", bad: "#B3261E" } as const;
 const when = (ts: number) => {
   const d = new Date(ts * 1000), today = new Date();
@@ -37,13 +43,18 @@ export default function AdminHealth() {
   return (
     <>
       <AdminHeader title="Platform health" subtitle="Is the machinery that monitors your customers' websites working?" />
-      <section aria-label="Services" className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-        {data.services.map((s) => (
-          <div key={s.name} className="flex flex-col gap-2 rounded-xl border border-[#E2E5EA] bg-white p-[18px]">
-            <div className="flex items-center justify-between gap-2"><span className="text-[15px] font-semibold">{s.name}</span>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-semibold ${tones[s.tone as Tone]}`}><span style={{ background: dot[s.tone as keyof typeof dot] }} className="size-2 rounded-full" />{s.status}</span></div>
-            <span className="text-[13px] leading-snug text-[#5B6472]">{s.detail}</span>
-          </div>))}
+      <section aria-label="Services" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {data.services.map((s) => {
+          const Icon = ICONS[s.name] ?? Globe;
+          return (
+            <div key={s.name} className="flex flex-col gap-2.5 rounded-xl border border-[#E2E5EA] bg-white p-5">
+              <span className={`flex size-9 items-center justify-center rounded-lg ${iconTone[s.tone as keyof typeof iconTone]}`}><Icon size={18} aria-hidden="true" /></span>
+              <span className="text-[15px] font-semibold">{s.name}</span>
+              <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-semibold ${tones[s.tone as Tone]}`}><span style={{ background: dot[s.tone as keyof typeof dot] }} className="size-2 rounded-full" />{s.status}</span>
+              <span className="text-[13px] leading-snug text-[#5B6472]">{s.detail}</span>
+            </div>
+          );
+        })}
       </section>
 
       <div className="flex flex-wrap items-stretch gap-5">
@@ -61,7 +72,7 @@ export default function AdminHealth() {
 
       <AdminCard label="Recent errors" className="!pb-2">
         <h2 className="mb-2 text-lg font-semibold">Recent errors</h2>
-        {data.errors.length === 0 && <p className="border-t border-[#EDEFF3] py-6 text-sm text-[#5B6472]">No errors recorded. Good.</p>}
+        {data.errors.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState Icon={ShieldCheck} title="No errors recorded" text="Problems with checks, email, SMS or payments will be listed here when they happen." /></div>}
         {data.errors.map((e, i) => (
           <div key={i} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#EDEFF3] py-3 text-sm">
             <span className="w-[130px] shrink-0 text-[13px] text-[#5B6472]">{when(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}

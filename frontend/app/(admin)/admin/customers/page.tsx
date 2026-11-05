@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { Avatar, AdminCard, AdminHeader, Pill, TableHead, Tabs, aBtn, aSelect, downloadCsv, shortDate, statusTone } from "@/components/admin/ui";
-import { Empty, ErrorState, Skeleton } from "@/components/ui";
+import { Users } from "lucide-react";
+import { Avatar, AdminCard, EmptyState, AdminHeader, Pill, TableHead, Tabs, aBtn, aSelect, downloadCsv, shortDate, statusTone } from "@/components/admin/ui";
+import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
 
 export interface CustomerRow {
@@ -48,7 +49,7 @@ export default function Customers() {
           <>
             <div className="overflow-x-auto"><div className="min-w-[1040px]">
               <TableHead template={GRID} cols={["Workspace", "Owner", "Plan", "Websites", "Team", "Status", "MRR", "Joined"]} />
-              {data.customers.length === 0 && <Empty title="No customers found" />}
+              {data.customers.length === 0 && <EmptyState Icon={Users} title="No customers found" text="Try another tab or plan filter. New workspaces appear here once someone signs up." />}
               {data.customers.map((r) => (
                 <Link key={r.id} href={`/admin/customers/${r.id}`} style={{ display: "grid", gridTemplateColumns: GRID }} className="min-h-11 items-center gap-4 border-b border-[#EDEFF3] px-5 py-3.5 hover:bg-[#FBFAFF]">
                   <span className="flex min-w-0 items-center gap-3"><Avatar name={r.name} /><span className="truncate text-[15px] font-semibold">{r.name}</span></span>

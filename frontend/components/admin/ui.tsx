@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 export const tones = {
@@ -92,4 +93,15 @@ export async function downloadCsv(path: string, name: string) {
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a"); a.href = url; a.download = `${name}.csv`; a.click();
   URL.revokeObjectURL(url);
+}
+
+/** Empty state: an icon, what is missing, and what to do or expect. */
+export function EmptyState({ Icon, title, text, compact = false }: { Icon: LucideIcon; title: string; text: string; compact?: boolean }) {
+  return (
+    <div className={`flex flex-col items-center gap-2 px-6 text-center ${compact ? "py-8" : "py-12"}`}>
+      <span className="flex size-12 items-center justify-center rounded-full bg-[#EFEAFF] text-[#4A33B0]"><Icon size={22} aria-hidden="true" /></span>
+      <p className="text-base font-semibold">{title}</p>
+      <p className="max-w-sm text-sm leading-relaxed text-[#5B6472]">{text}</p>
+    </div>
+  );
 }
