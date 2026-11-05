@@ -1,4 +1,5 @@
-import { Image as ImageIcon, MousePointerClick, MoveVertical, type LucideIcon } from "lucide-react";
+import { Image as ImageIcon, Monitor, MousePointerClick, MoveVertical, Smartphone, type LucideIcon } from "lucide-react";
+import { useState } from "react";
 import type { PageSpeed } from "@/lib/api";
 import { InfoTip } from "./info-tip";
 import { Card, CardTitle } from "./ui";
@@ -47,11 +48,14 @@ function Metric({ label, hint, value, rating, icon: Glyph, info }: { label: stri
   );
 }
 
+type Device = "mobile" | "desktop";
+
 export function PageSpeedCard({ ps, auditRan }: { ps: PageSpeed | null; auditRan: boolean }) {
+  const [picked, setPicked] = useState<Device | null>(null);
   if (!ps) {
     return (
       <Card className="p-5">
-        <CardTitle>Google PageSpeed (mobile)</CardTitle>
+        <CardTitle>Google PageSpeed</CardTitle>
         <p className="text-sm text-muted">
           {auditRan
             ? "The last audit has no PageSpeed data. Check that the PAGESPEED_API_KEY is set on the server, then run an audit."
@@ -60,37 +64,59 @@ export function PageSpeedCard({ ps, auditRan }: { ps: PageSpeed | null; auditRan
       </Card>
     );
   }
+  const device: Device = picked ?? (ps.mobile ? "mobile" : "desktop");
+  const res = ps[device];
+  const tabs: [Device, string, LucideIcon][] = [["mobile", "Mobile", Smartphone], ["desktop", "Desktop", Monitor]];
+
   return (
     <Card className="flex flex-col gap-5 p-5">
-      <CardTitle aside={ps.field_data ? "Measured from real Chrome visitors" : "Lab test (not enough real visitor data yet)"}>
-        Google PageSpeed (mobile)
-      </CardTitle>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
-        <Metric label="Largest Contentful Paint" icon={ImageIcon} info="How long it takes for the main content, usually the biggest image or heading, to appear on screen. Good is 2.5 seconds or less." hint="Good: 2.5 s or less"
-          value={ps.lcp_ms ? `${(ps.lcp_ms / 1000).toFixed(1)} s` : "—"} rating={ps.lcp_ms ? rate.lcp(ps.lcp_ms) : null} />
-        <Metric label="Cumulative Layout Shift" icon={MoveVertical} info="How much the page jumps around while it loads, for example when an image pushes the text down. Good is 0.1 or less." hint="Good: 0.1 or less"
-          value={ps.cls != null ? ps.cls.toFixed(2) : "—"} rating={ps.cls != null ? rate.cls(ps.cls) : null} />
-        <Metric label="Interaction to Next Paint" icon={MousePointerClick} info="How quickly the page reacts when someone taps or clicks. Good is 200 milliseconds or less." hint="Good: 200 ms or less"
-          value={ps.inp_ms ? `${Math.round(ps.inp_ms)} ms` : "—"} rating={ps.inp_ms ? rate.inp(ps.inp_ms) : null} />
-      </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
-        {scoreLabels.filter(([k]) => ps.scores[k] != null).map(([k, label]) => (
-          <div key={k} className="flex flex-col gap-2 rounded-xl border border-line p-4">
-            <div className="flex items-start justify-between gap-2"><span className="text-[13px] leading-snug text-muted">{label}</span><InfoTip label={label} text={scoreInfo[k]} /></div>
-            <span className="text-2xl font-semibold leading-none">{ps.scores[k]}<span className="text-sm font-medium text-muted"> / 100</span></span>
-            <div className="h-1.5 rounded bg-[#e8ebf0]">
-              <div className={`h-1.5 rounded ${rate.score(ps.scores[k]) === "good" ? "bg-bar-ok" : rate.score(ps.scores[k]) === "improve" ? "bg-bar-warn" : "bg-bar-bad"}`} style={{ width: `${ps.scores[k]}%` }} />
-            </div>
-          </div>
-        ))}
-      </div>
-      {ps.opportunities.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <h3 className="text-[15px] font-semibold">Biggest improvements suggested by Google</h3>
-          <ul className="list-disc pl-5 text-sm leading-relaxed text-ink-2">
-            {ps.opportunities.map((o) => <li key={o}>{o}</li>)}
-          </ul>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold">Google PageSpeed</h2>
+          {res && <span className="text-sm text-muted">{res.field_data ? "Measured from real Chrome visitors" : "Lab test (not enough real visitor data yet)"}</span>}
         </div>
+        <div role="group" aria-label="Device" className="inline-flex gap-1 rounded-[10px] bg-[#e8ebf0] p-1">
+          {tabs.map(([key, label, Glyph]) => (
+            <button key={key} aria-pressed={device === key} onClick={() => setPicked(key)}
+              className={`inline-flex min-h-10 items-center gap-2 rounded-[7px] px-4 text-sm ${device === key ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>
+              <Glyph size={16} aria-hidden="true" />{label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!res && <p className="rounded-lg bg-soft px-4 py-6 text-center text-sm text-muted">No {device} results yet. They appear after the next audit, which runs every night or when you press Run audit.</p>}
+
+      {res && (
+        <>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
+            <Metric label="Largest Contentful Paint" icon={ImageIcon} info="How long it takes for the main content, usually the biggest image or heading, to appear on screen. Good is 2.5 seconds or less." hint="Good: 2.5 s or less"
+              value={res.lcp_ms ? `${(res.lcp_ms / 1000).toFixed(1)} s` : "—"} rating={res.lcp_ms ? rate.lcp(res.lcp_ms) : null} />
+            <Metric label="Cumulative Layout Shift" icon={MoveVertical} info="How much the page jumps around while it loads, for example when an image pushes the text down. Good is 0.1 or less." hint="Good: 0.1 or less"
+              value={res.cls != null ? res.cls.toFixed(2) : "—"} rating={res.cls != null ? rate.cls(res.cls) : null} />
+            <Metric label="Interaction to Next Paint" icon={MousePointerClick} info="How quickly the page reacts when someone taps or clicks. Good is 200 milliseconds or less." hint="Good: 200 ms or less"
+              value={res.inp_ms ? `${Math.round(res.inp_ms)} ms` : "—"} rating={res.inp_ms ? rate.inp(res.inp_ms) : null} />
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+            {scoreLabels.filter(([k]) => res.scores[k] != null).map(([k, label]) => (
+              <div key={k} className="flex flex-col gap-2 rounded-xl border border-line p-4">
+                <div className="flex items-start justify-between gap-2"><span className="text-[13px] leading-snug text-muted">{label}</span><InfoTip label={label} text={scoreInfo[k]} /></div>
+                <span className="text-2xl font-semibold leading-none">{res.scores[k]}<span className="text-sm font-medium text-muted"> / 100</span></span>
+                <div className="h-1.5 rounded bg-[#e8ebf0]">
+                  <div className={`h-1.5 rounded ${rate.score(res.scores[k]) === "good" ? "bg-bar-ok" : rate.score(res.scores[k]) === "improve" ? "bg-bar-warn" : "bg-bar-bad"}`} style={{ width: `${res.scores[k]}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          {res.opportunities.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <h3 className="text-[15px] font-semibold">Biggest improvements suggested by Google ({device})</h3>
+              <ul className="list-disc pl-5 text-sm leading-relaxed text-ink-2">
+                {res.opportunities.map((o) => <li key={o}>{o}</li>)}
+              </ul>
+            </div>
+          )}
+        </>
       )}
     </Card>
   );

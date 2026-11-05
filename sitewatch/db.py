@@ -80,6 +80,10 @@ def init(data_dir):
     _path = os.path.join(data_dir, "sitewatch.db")
     with connect() as c:
         c.executescript(SCHEMA)
+        try:                                  # added later: the certificate's exact expiry date
+            c.execute("ALTER TABLE checks ADD COLUMN ssl_expires TEXT")
+        except sqlite3.OperationalError:
+            pass
 
 
 def connect():
@@ -114,6 +118,13 @@ def open_incident(site_id):
     return q1("SELECT * FROM incidents WHERE site_id=? AND ended IS NULL ORDER BY started DESC LIMIT 1", (site_id,))
 
 
+def normalise_pagespeed(ps):
+    """Audits before desktop support stored a single (mobile) result; new ones hold both."""
+    if "scores" in ps:
+        return {"mobile": ps, "desktop": None}
+    return {"mobile": ps.get("mobile"), "desktop": ps.get("desktop")}
+
+
 def latest_audit(site_id, before=None):
     sql = "SELECT * FROM audits WHERE site_id=?"
     args = [site_id]
@@ -124,7 +135,7 @@ def latest_audit(site_id, before=None):
     if row:
         row["scores"] = json.loads(row["scores"])
         row["issues"] = json.loads(row["issues"])
-        row["pagespeed"] = json.loads(row["pagespeed"]) if row["pagespeed"] else None
+        row["pagespeed"] = normalise_pagespeed(json.loads(row["pagespeed"])) if row["pagespeed"] else None
     return row
 
 

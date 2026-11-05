@@ -18,7 +18,8 @@ log = logging.getLogger("sitewatch.monitor")
 UA = "SiteWatch-Monitor/1.0 (+uptime check)"
 
 
-def ssl_days_left(url, timeout=10):
+def ssl_info(url, timeout=10):
+    """(days left, expiry date as YYYY-MM-DD), or None for sites without https."""
     u = urlparse(url)
     if u.scheme != "https":
         return None
@@ -28,12 +29,17 @@ def ssl_days_left(url, timeout=10):
         with ctx.wrap_socket(sock, server_hostname=host) as s:
             cert = s.getpeercert()
     expires = dt.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z").replace(tzinfo=dt.timezone.utc)
-    return (expires - dt.datetime.now(dt.timezone.utc)).days
+    return (expires - dt.datetime.now(dt.timezone.utc)).days, expires.date().isoformat()
+
+
+def ssl_days_left(url, timeout=10):
+    info = ssl_info(url, timeout)
+    return info[0] if info else None
 
 
 def check_site(cfg, site):
     """Run one check, store it, and handle incidents/alerts. Returns the check dict."""
-    result = {"ok": False, "status_code": None, "response_ms": None, "error": None, "ssl_days_left": None}
+    result = {"ok": False, "status_code": None, "response_ms": None, "error": None, "ssl_days_left": None, "ssl_expires": None}
     start = time.perf_counter()
     try:
         r = requests.get(site["url"], timeout=cfg["timeout_seconds"],
@@ -56,14 +62,16 @@ def check_site(cfg, site):
         result["error"] = f"{type(e).__name__}: {str(e)[:150]}"
 
     try:
-        result["ssl_days_left"] = ssl_days_left(site["url"])
+        info = ssl_info(site["url"])
+        if info:
+            result["ssl_days_left"], result["ssl_expires"] = info
     except Exception:
         pass
 
     now = time.time()
-    db.run("INSERT INTO checks(site_id, ts, ok, status_code, response_ms, error, ssl_days_left) VALUES (?,?,?,?,?,?,?)",
+    db.run("INSERT INTO checks(site_id, ts, ok, status_code, response_ms, error, ssl_days_left, ssl_expires) VALUES (?,?,?,?,?,?,?,?)",
            (site["id"], now, int(result["ok"]), result["status_code"], result["response_ms"],
-            result["error"], result["ssl_days_left"]))
+            result["error"], result["ssl_days_left"], result["ssl_expires"]))
     _handle_incidents(cfg, site, result, now)
     _handle_warnings(cfg, site, result)
     return result

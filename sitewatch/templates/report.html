@@ -131,12 +131,12 @@
       {% if new_issues %}<p class="small"><span class="pill p-high">New</span></p><ul class="small">{% for i in new_issues %}<li>{{ i.title }}</li>{% endfor %}</ul>{% endif %}
       {% if not fixed_issues and not new_issues %}<p class="muted small">No change in issue types since the previous audit.</p>{% endif %}
     {% else %}<p class="muted small">This is the first audit — next month's report will show what was fixed.</p>{% endif %}
-    {% if audit.pagespeed %}<h3 style="margin-top:14px">Google PageSpeed (mobile)</h3><table>
-      {% for k, v in audit.pagespeed.scores.items() %}<tr><td>{{ k|replace('-', ' ')|title }}</td><td class="num">{{ v }}</td></tr>{% endfor %}
-      {% if audit.pagespeed.lcp_ms %}<tr><td>Largest Contentful Paint</td><td class="num">{{ '%.1f'|format(audit.pagespeed.lcp_ms/1000) }} s</td></tr>{% endif %}
-      {% if audit.pagespeed.cls is not none %}<tr><td>Cumulative Layout Shift</td><td class="num">{{ '%.2f'|format(audit.pagespeed.cls) }}</td></tr>{% endif %}
-      {% if audit.pagespeed.inp_ms %}<tr><td>Interaction to Next Paint</td><td class="num">{{ audit.pagespeed.inp_ms }} ms</td></tr>{% endif %}
-    </table>{% endif %}
+    {% for label, ps in (('mobile', audit.pagespeed.mobile), ('desktop', audit.pagespeed.desktop)) if audit.pagespeed and ps %}<h3 style="margin-top:14px">Google PageSpeed ({{ label }})</h3><table>
+      {% for k, v in ps.scores.items() %}<tr><td>{{ k|replace('-', ' ')|title }}</td><td class="num">{{ v }}</td></tr>{% endfor %}
+      {% if ps.lcp_ms %}<tr><td>Largest Contentful Paint</td><td class="num">{{ '%.1f'|format(ps.lcp_ms/1000) }} s</td></tr>{% endif %}
+      {% if ps.cls is not none %}<tr><td>Cumulative Layout Shift</td><td class="num">{{ '%.2f'|format(ps.cls) }}</td></tr>{% endif %}
+      {% if ps.inp_ms %}<tr><td>Interaction to Next Paint</td><td class="num">{{ ps.inp_ms }} ms</td></tr>{% endif %}
+    </table>{% endfor %}
   </div>
 </div>
 <div class="card" style="margin-top:14px">

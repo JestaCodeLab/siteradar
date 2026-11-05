@@ -152,7 +152,12 @@ def blueprint(cfg):
         u30 = monitor.uptime_stats(s["id"], now - 30 * 86400)
         au = db.latest_audit(s["id"])
         dom = db.q1("SELECT expires FROM domain_checks WHERE site_id=? ORDER BY ts DESC LIMIT 1", (s["id"],))
+        ssl_expires = last["ssl_expires"] if last else None
+        if not ssl_expires and last and last["ssl_days_left"] is not None:       # checks saved before the date was stored
+            ssl_expires = (dt.datetime.fromtimestamp(last["ts"]) + dt.timedelta(days=last["ssl_days_left"])).date().isoformat()
         return {
+            "ssl_expires": ssl_expires,
+            "domain_expires": dom["expires"] if dom else None,
             "domain_days": health.domains.days_left(dom["expires"]) if dom and dom["expires"] else None,
             "id": s["id"], "name": s["name"], "url": s["url"], "host": s["url"].split("//")[-1],
             "keyword": s.get("keyword"), "owner": s.get("owner", ""),
@@ -181,9 +186,9 @@ def blueprint(cfg):
                 "down": [c["name"] for c in cards if c["status"] in ("down", "warn")],
                 "slow": [c["name"] for c in cards if c["status"] == "slow"],
                 "avg_response_ms": round(sum(resp) / len(resp)) if resp else None,
-                "domains_expiring": [{"name": c["name"], "days": c["domain_days"]} for c in cards
+                "domains_expiring": [{"name": c["name"], "days": c["domain_days"], "expires": c["domain_expires"]} for c in cards
                                      if c["domain_days"] is not None and c["domain_days"] <= 60],
-                "ssl_expiring": [{"name": c["name"], "days": c["ssl_days"]} for c in cards
+                "ssl_expiring": [{"name": c["name"], "days": c["ssl_days"], "expires": c["ssl_expires"]} for c in cards
                                  if c["ssl_days"] is not None and c["ssl_days"] <= 30],
                 "errors": {c["name"]: c["error"] for c in cards if c["status"] in ("down", "warn")},
                 "slow_threshold_ms": cfg["slow_threshold_ms"],

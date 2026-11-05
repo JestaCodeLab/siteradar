@@ -469,16 +469,16 @@ class Auditor:
         for u in uncached[:10]:
             self.flag("no_cache", u)
 
-    def pagespeed(self):
+    def _pagespeed(self, strategy):
         key = self.cfg.get("pagespeed_api_key")
-        if not key:
-            return None
         try:
             r = requests.get("https://www.googleapis.com/pagespeedonline/v5/runPagespeed",
-                             params={"url": self.base, "strategy": "mobile", "key": key,
+                             params={"url": self.base, "strategy": strategy, **({"key": key} if key else {}),
                                      "category": ["performance", "seo", "accessibility", "best-practices"]},
                              timeout=120)
             d = r.json()
+            if "lighthouseResult" not in d:
+                raise RuntimeError((d.get("error") or {}).get("message", "unexpected response from Google"))
             cats = d["lighthouseResult"]["categories"]
             audits = d["lighthouseResult"]["audits"]
             field = (d.get("loadingExperience") or {}).get("metrics") or {}
@@ -494,8 +494,16 @@ class Auditor:
                                   if a.get("details", {}).get("type") == "opportunity" and (a.get("score") or 1) < 0.9][:6],
             }
         except Exception as e:
-            log.warning("PageSpeed Insights failed: %s", e)
+            log.warning("PageSpeed Insights (%s) failed: %s", strategy, e)
             return None
+
+    def pagespeed(self):
+        """Google PageSpeed for phones and desktops, run side by side. None when no key is set."""
+        if not self.cfg.get("pagespeed_api_key"):
+            return None
+        with ThreadPoolExecutor(2) as ex:
+            mobile, desktop = ex.map(self._pagespeed, ("mobile", "desktop"))
+        return {"mobile": mobile, "desktop": desktop} if (mobile or desktop) else None
 
     # -- results --------------------------------------------------------
     def run(self):

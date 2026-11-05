@@ -147,8 +147,8 @@ def recommendations(cfg, site, up, a, audit, health=None):
             add(1, i["category"], i["title"], f"Found on {i['count']} URL(s).", i["fix"])
         for i in [x for x in audit["issues"] if x["severity"] == "medium"][:6]:
             add(2, i["category"], i["title"], f"Found on {i['count']} URL(s).", i["fix"])
-        if audit.get("pagespeed"):
-            ps = audit["pagespeed"]
+        ps = (audit.get("pagespeed") or {}).get("mobile")
+        if ps:
             if (ps.get("lcp_ms") or 0) > 2500:
                 add(1, "Speed", f"Largest Contentful Paint is {ps['lcp_ms'] / 1000:.1f}s (target < 2.5s)",
                     "This Core Web Vital is part of Google's ranking.",

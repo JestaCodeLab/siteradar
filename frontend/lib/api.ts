@@ -37,13 +37,14 @@ export interface SiteCard {
   status: SiteStatus; error: string | null; down_since: number | null; last_check: number | null;
   response_ms: number | null; ssl_days: number | null; uptime30: number | null; avg_ms30: number | null;
   audit_score: number | null; visitors30: number; strip: StripDay[]; domain_days: number | null;
+  domain_expires: string | null; ssl_expires: string | null;
 }
 
 export interface SitesResponse {
   sites: SiteCard[];
   summary: {
     total: number; up: number; down: string[]; slow: string[]; avg_response_ms: number | null;
-    ssl_expiring: { name: string; days: number }[]; domains_expiring: { name: string; days: number }[]; errors: Record<string, string | null>;
+    ssl_expiring: { name: string; days: number; expires: string | null }[]; domains_expiring: { name: string; days: number; expires: string | null }[]; errors: Record<string, string | null>;
     slow_threshold_ms: number; ssl_warning_days: number; check_interval_minutes: number; latest_check: number | null;
   };
 }
@@ -52,10 +53,11 @@ export interface Issue {
   rule: string; category: string; severity: "high" | "medium" | "low"; title: string; fix: string; count: number;
 }
 
-export interface PageSpeed {
+export interface PageSpeedResult {
   scores: Record<string, number>; lcp_ms: number | null; cls: number | null; inp_ms: number | null;
   field_data: boolean; opportunities: string[];
 }
+export interface PageSpeed { mobile: PageSpeedResult | null; desktop: PageSpeedResult | null }
 
 export interface SiteDetail extends SiteCard {
   audit_ts: number | null; pagespeed: PageSpeed | null;
