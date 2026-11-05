@@ -53,10 +53,15 @@ def layout(heading, body, button=None, footer="You are receiving this because of
         label, url = button
         btn = (f'<p style="margin:28px 0"><a href="{_html.escape(url)}" style="background:#EA580C;color:#fff;text-decoration:none;'
                f'font-weight:600;padding:13px 22px;border-radius:8px;display:inline-block">{_html.escape(label)}</a></p>')
+    base = os.environ.get("APP_URL", "").rstrip("/")
+    if base.startswith("https://"):          # an image needs a public address; fall back to the name locally
+        brand = f'<img src="{base}/logos/siteradar-logo-horizontal.png" alt="SiteRadar" height="40" style="height:40px;width:auto;display:block;border:0">'
+    else:
+        brand = '<span style="font-size:18px;font-weight:700;color:#EA580C">SiteRadar</span>'
     return f"""<!doctype html><html><body style="margin:0;background:#FFF7ED;font-family:system-ui,Arial,Helvetica,sans-serif;color:#0F172A">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:12px;border:1px solid #E2E5EA">
-<tr><td style="padding:28px 32px 8px;font-size:15px;font-weight:700;color:#EA580C">SiteRadar</td></tr>
+<tr><td style="padding:26px 32px 8px">{brand}</td></tr>
 <tr><td style="padding:0 32px 8px"><h1 style="font-size:22px;margin:8px 0 12px">{_html.escape(heading)}</h1>
 <div style="font-size:15px;line-height:1.6;color:#3F4857">{body}</div>{btn}</td></tr>
 <tr><td style="padding:16px 32px 28px;font-size:12px;color:#8A93A3">{_html.escape(footer)}</td></tr>

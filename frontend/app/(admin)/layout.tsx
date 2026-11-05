@@ -7,7 +7,7 @@ import { Activity, Clock, CreditCard, LayoutGrid, Star, Users } from "lucide-rea
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui";
 import { AdminTopbar } from "@/components/admin/topbar";
-import { LogoMark } from "@/components/logo";
+import { Logo } from "@/components/logo";
 import { fetcher } from "@/lib/api";
 import { useMe } from "@/lib/me";
 
@@ -41,9 +41,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {menu && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setMenu(false)} aria-hidden="true" />}
       <aside aria-label="Admin" className={`fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col gap-5 bg-[#16122B] px-3.5 py-5 text-sm text-[#CFC8EA] transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}>
         <Link href="/admin" onClick={() => setMenu(false)} className="flex items-center gap-2.5 px-2">
-          <LogoMark size={34} />
-          <span className="flex flex-col"><span className="text-[19px] font-bold leading-[1.1] tracking-[-0.03em] text-white">SiteRadar</span>
-            <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#B6A6FF]">Super admin</span></span>
+          <span className="flex flex-col gap-1"><Logo dark height={42} />
+            <span className="w-fit rounded bg-[#6B4FE0] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-white">Super admin</span></span>
         </Link>
         <nav aria-label="Admin" className="flex flex-1 flex-col gap-1">
           {nav.map(({ href, label, Icon, badge }) => {

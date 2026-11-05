@@ -19,7 +19,7 @@ export function MktHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-4 px-5 lg:px-10">
-        <Link href="/" aria-label="SiteRadar home"><Logo /></Link>
+        <Link href="/" aria-label="SiteRadar home"><Logo height={52} /></Link>
         <nav aria-label="Main" className="hidden gap-1 md:flex">
           {links.map((l) => (
             <Link key={l.href} href={l.href} aria-current={path === l.href ? "page" : undefined}

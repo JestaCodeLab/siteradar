@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Clock, Globe, LayoutGrid, Receipt, Settings } from "lucide-react";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
-import { LogoMark } from "./logo";
+import { Logo } from "./logo";
 
 const row = "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm";
 const on = "bg-nav-active text-white";
@@ -75,9 +75,8 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
       {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside aria-label="Sidebar"
         className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
-          <LogoMark size={34} />
-          <span className="text-[20px] font-bold tracking-[-0.03em] text-white">SiteRadar</span>
+        <Link href="/overview" onClick={onClose} className="flex items-center px-1">
+          <Logo dark height={46} />
         </Link>
 
         <WorkspaceSwitcher onClose={onClose} />
