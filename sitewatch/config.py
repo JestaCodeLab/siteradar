@@ -63,6 +63,8 @@ def load(path="config.yaml"):
     if len(ids) != len(set(ids)):
         raise ValueError("Two sites share the same id; give them unique 'id' values.")
     cfg["sites"] = sites
+    if os.environ.get("PUBLIC_URL"):                 # lets local runs override the address in config.yaml
+        cfg["public_url"] = os.environ["PUBLIC_URL"].rstrip("/")
     os.makedirs(cfg["data_dir"], exist_ok=True)
     return cfg
 
