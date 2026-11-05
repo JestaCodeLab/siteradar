@@ -68,6 +68,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex min-h-screen flex-col lg:pl-[264px]">
         <AdminTopbar user={user} env={summary?.env ?? "Production"} onMenu={() => setMenu(true)} />
         <main className="min-w-0 flex-1 p-4 lg:p-6"><div className="mx-auto flex max-w-[1400px] flex-col gap-6">{children}</div></main>
+        <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-[#E2E5EA] bg-white px-4 py-4 text-[13px] text-[#5B6472] lg:px-6">
+          <span>© {new Date().getFullYear()} SiteWatch. All rights reserved.</span>
+          <span>Powered by <span className="font-medium text-[#3F4857]">Upplause Consulting</span></span>
+        </footer>
       </div>
     </div>
   );
