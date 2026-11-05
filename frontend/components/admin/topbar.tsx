@@ -8,6 +8,7 @@ import useSWR from "swr";
 import { EmptyState, initials, tones, type Tone } from "./ui";
 import { fetcher, send, type User } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
+import { ThemeToggle } from "../theme";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
   useEffect(() => {
@@ -173,6 +174,7 @@ export function AdminTopbar({ user, env, onMenu }: { user: User; env: string; on
           <span className="inline-flex min-h-8 items-center gap-2 rounded-full bg-[#EFEAFF] px-3 text-[13px] font-semibold text-[#4A33B0]"><span className="size-2 rounded-full bg-[#6B4FE0]" />Super admin · {env}</span>
         </div>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={iconBtn}><Search size={20} aria-hidden="true" /></button>
           <Notifications />
           <Profile user={user} onLogout={logout} />

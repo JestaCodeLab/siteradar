@@ -13,7 +13,7 @@ def _once(site, kind, subject, text, cfg):
     if db.last_alert(site["id"], kind):
         return
     db.log_alert(site["id"], kind, subject)
-    alerts.notify(cfg, site, subject, text)
+    alerts.notify(cfg, site, subject, text, event="domain")
 
 
 def check_domain(cfg, site):
@@ -45,7 +45,7 @@ def check_dns(cfg, site):
     if changes:
         lines = "\n".join(f"- {c['record']}: {', '.join(c['before']) or 'none'} → {', '.join(c['after']) or 'none'}" for c in changes)
         alerts.notify(cfg, site, f"DNS changed for {domain}",
-                      f"The DNS records for {domain} changed:\n{lines}\n\nIf you did not make this change, check with your DNS provider straight away.")
+                      f"The DNS records for {domain} changed:\n{lines}\n\nIf you did not make this change, check with your DNS provider straight away.", event="dns")
         db.log_alert(site["id"], "dns", f"DNS records changed for {domain}")
     return rec, chk, changes
 

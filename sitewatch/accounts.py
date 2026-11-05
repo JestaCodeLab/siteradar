@@ -10,7 +10,7 @@ import time
 
 from werkzeug.security import check_password_hash, generate_password_hash as _gen
 
-from . import db, mailer, plans
+from . import db, mailer, plans, storage
 
 log = logging.getLogger("sitewatch.accounts")
 CODE_MINUTES = 15
@@ -39,7 +39,7 @@ def norm_email(email):
 
 
 def public_user(u):
-    return {"id": u["id"], "email": u["email"], "first_name": u["first_name"], "last_name": u["last_name"],
+    return {"id": u["id"], "pending_email": u.get("pending_email"), "email": u["email"], "first_name": u["first_name"], "last_name": u["last_name"],
             "phone": u["phone"], "is_super": bool(u["is_super"]), "email_verified": bool(u["email_verified"])}
 
 
@@ -92,7 +92,7 @@ def _hash_code(uid, purpose, code):
     return hmac.new(f"{uid}:{purpose}".encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
-def send_code(user, purpose):
+def send_code(user, purpose, to=None):
     """Email a 6-digit code. At most one a minute and five an hour per person."""
     now = time.time()
     recent = db.q("SELECT created FROM email_codes WHERE user_id=? AND purpose=? AND created>? ORDER BY created DESC",
@@ -109,7 +109,7 @@ def send_code(user, purpose):
     if purpose == "reset":
         text = f"Your SiteWatch password reset code is {code}\n\nIt expires in {CODE_MINUTES} minutes."
         html = html.replace("Verify your email", "Reset your password")
-    mailer.send(user["email"], f"{code} is your SiteWatch code", text, html)
+    mailer.send(to or user["email"], f"{code} is your SiteWatch code", text, html)
 
 
 def check_code(user, purpose, code):
@@ -183,6 +183,82 @@ def change_password(user, current, new):
     db.exec("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(new), user["id"]))
 
 
+def request_email_change(user, new_email, password):
+    new = norm_email(new_email)
+    if new == user["email"].lower():
+        raise ValueError("That is already your email address.")
+    if not check_password_hash(user["password_hash"], password or ""):
+        raise AuthError("Your password is not right.", "bad_login", 403)
+    if user_by_email(new):
+        raise ValueError("Another account already uses that email address.")
+    db.exec("UPDATE users SET pending_email=? WHERE id=?", (new, user["id"]))
+    send_code(user, "email", to=new)
+    return new
+
+
+def confirm_email_change(user, code):
+    fresh = user_by_id(user["id"])
+    if not fresh["pending_email"]:
+        raise ValueError("There is no email change waiting for a code.")
+    check_code(fresh, "email", code)
+    if user_by_email(fresh["pending_email"]):
+        raise ValueError("Another account already uses that email address.")
+    db.exec("UPDATE users SET email=?, pending_email=NULL WHERE id=?", (fresh["pending_email"], user["id"]))
+    return user_by_id(user["id"])
+
+
+def logout_others(user):
+    """Signs the person out everywhere except the browser that asks (it takes the new version number)."""
+    db.exec("UPDATE users SET session_ver=session_ver+1 WHERE id=?", (user["id"],))
+    return user_by_id(user["id"])["session_ver"]
+
+
+# ---- what each person wants to be alerted about ----------------------------------------
+ALERT_EVENTS = [
+    ("down", "A website goes down", "After two failed checks"), ("up", "A website is back up", "With how long it was down"),
+    ("slow", "A website is slow", "Three slow checks in a row"), ("ssl", "SSL certificate expiring", "From 21 days before"),
+    ("domain", "Domain expiring", "60, 30, 14, 7, 3 and 1 days before"), ("dns", "DNS records changed", "Web server, name servers, mail, SPF, DMARC"),
+    ("report", "Monthly report ready", "Sent on the 1st"),
+]
+
+
+def get_prefs(user):
+    saved = json.loads(user.get("alert_prefs") or "{}")
+    return {k: {"email": saved.get(k, {}).get("email", True), "sms": saved.get(k, {}).get("sms", True)} for k, _, _ in ALERT_EVENTS}
+
+
+def set_prefs(user, prefs):
+    clean = {k: {"email": bool((prefs.get(k) or {}).get("email", True)), "sms": bool((prefs.get(k) or {}).get("sms", True))} for k, _, _ in ALERT_EVENTS}
+    db.exec("UPDATE users SET alert_prefs=? WHERE id=?", (json.dumps(clean), user["id"]))
+    return clean
+
+
+def filter_emails(emails, event):
+    """Drop addresses belonging to people who turned this kind of email off. Unknown addresses always get it."""
+    if not event:
+        return emails
+    out = []
+    for e in emails:
+        u = user_by_email(e)
+        if u and not get_prefs(u)[event]["email"]:
+            continue
+        out.append(e)
+    return out
+
+
+def filter_phones(phones, event):
+    if not event:
+        return phones
+    out = []
+    for p in phones:
+        digits = re.sub(r"\D", "", p)[-9:]
+        u = db.q1("SELECT * FROM users WHERE right(regexp_replace(phone, '\\D', '', 'g'), 9)=?", (digits,)) if len(digits) == 9 else None
+        if u and not get_prefs(u)[event]["sms"]:
+            continue
+        out.append(p)
+    return out
+
+
 def update_profile(user, data):
     sets, args = [], []
     for f in ("first_name", "last_name"):
@@ -218,8 +294,25 @@ def workspace(ws_id):
 
 def memberships(user_id):
     rows = db.q("""SELECT w.*, m.role FROM memberships m JOIN workspaces w ON w.id=m.workspace_id
-                   WHERE m.user_id=? ORDER BY m.created""", (user_id,))
+                   WHERE m.user_id=? AND w.deleted_at IS NULL ORDER BY m.created""", (user_id,))
     return [_ws(r) for r in rows]
+
+
+def site_access(user_id, ws_id):
+    """None when the person can see every website, else the list of website ids they were given."""
+    r = db.q1("SELECT site_access FROM memberships WHERE user_id=? AND workspace_id=?", (user_id, ws_id))
+    return json.loads(r["site_access"]) if r and r["site_access"] else None
+
+
+def clean_access(ws_id, ids):
+    """Keep only websites that belong to this workspace. Empty or None means all websites."""
+    if not ids:
+        return None
+    have = {r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (ws_id,))}
+    keep = [i for i in ids if i in have]
+    if not keep:
+        raise ValueError("Choose at least one website, or give access to all websites.")
+    return json.dumps(keep)
 
 
 def role_in(user_id, ws_id):
@@ -227,7 +320,7 @@ def role_in(user_id, ws_id):
     return r["role"] if r else None
 
 
-COMPANY_FIELDS = ("name", "website", "industry", "size", "country", "phone", "address")
+COMPANY_FIELDS = ("name", "website", "industry", "size", "country", "phone", "address", "timezone")
 
 
 def create_workspace(user, data):
@@ -277,12 +370,13 @@ def public_workspace(ws, role=None):
     return {
         "id": ws["id"], "name": ws["name"], "owner_name": _owner_name(ws), "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
         "country": ws["country"], "phone": ws["phone"], "address": ws["address"], "logo_url": ws["logo_url"],
+        "timezone": ws.get("timezone") or "Africa/Accra", "logo_name": ws.get("logo_name"), "logo_size": ws.get("logo_size"),
         "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"],
         "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
-                 "interval_minutes": plan["interval_minutes"], "sms": plan["sms"] + (ws.get("sms_bonus") or 0),
+                 "interval_minutes": plan["interval_minutes"], "sms": plan["sms"],
                  "history_months": plan["history_months"], "channels": plan["channels"],
                  "clean_reports": plan["clean_reports"], "client_access": plan["client_access"]},
-        "plan_id": ws["plan_id"], "cycle": ws["cycle"], "plan_status": ws["plan_status"], "plan_renews": ws["plan_renews"],
+        "sms_credits": ws.get("sms_bonus") or 0, "plan_id": ws["plan_id"], "cycle": ws["cycle"], "plan_status": ws["plan_status"], "plan_renews": ws["plan_renews"],
         "usage": u,
     }
 
@@ -290,14 +384,16 @@ def public_workspace(ws, role=None):
 # ---- team -----------------------------------------------------------------
 
 def team(ws_id):
-    members = db.q("""SELECT u.id, u.email, u.first_name, u.last_name, u.last_login, m.role, m.created
+    members = db.q("""SELECT u.id, u.email, u.first_name, u.last_name, u.last_login, m.role, m.created, m.site_access
                       FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=? ORDER BY m.created""", (ws_id,))
-    invites = db.q("""SELECT id, email, role, created, expires FROM invitations
+    invites = db.q("""SELECT id, email, role, created, expires, site_access FROM invitations
                       WHERE workspace_id=? AND accepted IS NULL AND expires>? ORDER BY created DESC""", (ws_id, time.time()))
+    for r in members + invites:
+        r["site_access"] = json.loads(r["site_access"]) if r["site_access"] else None
     return {"members": members, "invites": invites}
 
 
-def invite(ws, inviter, email, role):
+def invite(ws, inviter, email, role, site_ids=None):
     email = norm_email(email)
     if role not in ("admin", "member", "viewer"):
         raise ValueError("Choose a role: Admin, Member or Viewer.")
@@ -310,10 +406,11 @@ def invite(ws, inviter, email, role):
              (ws["id"], email, time.time())):
         raise ValueError("That person already has a pending invitation.")
     plans.check_can_add_seat(ws, role)
+    access = clean_access(ws["id"], site_ids)
     token = secrets.token_urlsafe(32)
-    db.run("INSERT INTO invitations(workspace_id, email, role, token_hash, invited_by, created, expires) VALUES (?,?,?,?,?,?,?)",
+    db.run("INSERT INTO invitations(workspace_id, email, role, token_hash, invited_by, created, expires, site_access) VALUES (?,?,?,?,?,?,?,?)",
            (ws["id"], email, role, hashlib.sha256(token.encode()).hexdigest(), inviter["id"], time.time(),
-            time.time() + INVITE_DAYS * 86400))
+            time.time() + INVITE_DAYS * 86400, access))
     send_invite_email(ws, inviter, email, role, token)
     return token
 
@@ -370,8 +467,8 @@ def accept_invite(token, user=None, data=None):
     if not user["email_verified"]:
         db.exec("UPDATE users SET email_verified=1 WHERE id=?", (user["id"],))
     if not role_in(user["id"], inv["workspace_id"]):
-        db.exec("INSERT INTO memberships(workspace_id, user_id, role, created) VALUES (?,?,?,?)",
-                (inv["workspace_id"], user["id"], inv["role"], time.time()))
+        db.exec("INSERT INTO memberships(workspace_id, user_id, role, created, site_access) VALUES (?,?,?,?,?)",
+                (inv["workspace_id"], user["id"], inv["role"], time.time(), inv["site_access"]))
     db.exec("UPDATE invitations SET accepted=? WHERE id=?", (time.time(), inv["id"]))
     return user_by_id(user["id"]), inv["workspace_id"]
 
@@ -390,7 +487,7 @@ def cancel_invite(ws_id, invite_id):
     db.exec("DELETE FROM invitations WHERE id=? AND workspace_id=?", (invite_id, ws_id))
 
 
-def set_role(ws, actor_id, user_id, role):
+def set_role(ws, actor_id, user_id, role, site_ids=False):
     if role not in ("admin", "member", "viewer"):
         raise ValueError("Choose a role: Admin, Member or Viewer.")
     target = role_in(user_id, ws["id"])
@@ -401,6 +498,8 @@ def set_role(ws, actor_id, user_id, role):
     if role == "viewer" and not plans.limits(ws)["client_access"]:
         raise plans.LimitError("Client viewer access is part of the Growth plan and above.")
     db.exec("UPDATE memberships SET role=? WHERE workspace_id=? AND user_id=?", (role, ws["id"], user_id))
+    if site_ids is not False:
+        db.exec("UPDATE memberships SET site_access=? WHERE workspace_id=? AND user_id=?", (clean_access(ws["id"], site_ids), ws["id"], user_id))
 
 
 def remove_member(ws, actor_id, user_id):
@@ -430,3 +529,30 @@ def bootstrap(cfg):
         log.info("Created super admin %s", email)
     elif admin and not admin["is_super"]:
         db.exec("UPDATE users SET is_super=1, email_verified=1 WHERE id=?", (admin["id"],))
+
+
+# ---- deleting a workspace ----------------------------------------------------------------
+
+DELETE_DAYS = 30
+
+
+def delete_workspace(ws_id):
+    """Hide the workspace and stop monitoring now. Its data is removed for good after DELETE_DAYS."""
+    db.exec("UPDATE workspaces SET deleted_at=?, suspended=1, plan_status='lapsed' WHERE id=?", (time.time(), ws_id))
+    db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws_id,))
+
+
+def purge_deleted():
+    """Remove everything belonging to workspaces deleted more than DELETE_DAYS ago (payment records stay for accounting)."""
+    for w in db.q("SELECT id FROM workspaces WHERE deleted_at IS NOT NULL AND deleted_at<? AND name != '[deleted]'", (time.time() - DELETE_DAYS * 86400,)):
+        ids = [r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (w["id"],))]
+        if ids:
+            for table in ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots"):
+                db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (ids,))
+        for r in db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (w["id"],)):
+            storage.remove("invoice/" + r["filename"])
+        db.exec("DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE workspace_id=?)", (w["id"],))
+        for t in ("subscriptions", "sites", "memberships", "invitations"):
+            db.exec(f"DELETE FROM {t} WHERE workspace_id=?", (w["id"],))
+        storage.remove(f"logo/{w['id']}")
+        db.exec("UPDATE workspaces SET name='[deleted]', owner_id=NULL, logo_url=NULL, alert_emails='[]', alert_phones='[]', alert_webhooks='[]' WHERE id=?", (w["id"],))

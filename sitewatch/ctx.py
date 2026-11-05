@@ -15,9 +15,13 @@ SUPPORT_MINUTES = 30
 def load():
     g.user = g.ws = g.role = None
     g.impersonating = None
+    g.site_access = None
     uid = session.get("uid")
     user = accounts.user_by_id(uid) if uid else None
     if not user or user["disabled"]:
+        session.clear()
+        return
+    if session.get("ver", 0) != user["session_ver"]:      # signed out from another device
         session.clear()
         return
     g.user = user
@@ -32,6 +36,7 @@ def load():
     chosen = next((w for w in mine if w["id"] == session.get("ws")), None) or (mine[0] if mine else None)
     if chosen:
         g.ws, g.role = chosen, chosen["role"]
+        g.site_access = accounts.site_access(user["id"], chosen["id"]) if chosen["role"] in ("member", "viewer") else None
         session["ws"] = chosen["id"]
 
 

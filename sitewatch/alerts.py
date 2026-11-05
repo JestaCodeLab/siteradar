@@ -62,7 +62,7 @@ def send_webhook(url, text):
         return False
 
 
-def notify(cfg, site, subject, text, sms_text=None):
+def notify(cfg, site, subject, text, sms_text=None, event=None):
     """Tell the site's workspace about it: email always, chat webhooks and SMS when the plan includes them.
 
     `sms_text` is only passed for outages and recoveries, so text messages are kept for what matters.
@@ -72,7 +72,7 @@ def notify(cfg, site, subject, text, sms_text=None):
         log.warning("ALERT (no workspace) %s | %s", subject, text.replace("\n", " "))
         return False
     plan = plans.limits(ws)
-    to = list(dict.fromkeys(ws["alert_emails"] + list(site.get("alert_to") or [])))
+    to = accounts.filter_emails(list(dict.fromkeys(ws["alert_emails"] + list(site.get("alert_to") or []))), event)
     sent = False
     if to:
         sent |= send_email(cfg, to, subject, text)
@@ -80,6 +80,6 @@ def notify(cfg, site, subject, text, sms_text=None):
         for url in ws["alert_webhooks"]:
             sent |= send_webhook(url, f"*{subject}*\n{text}")
     if sms_text and "sms" in plan["channels"]:
-        sent |= bool(sms.send(ws, sms_text))
+        sent |= bool(sms.send({**ws, "alert_phones": accounts.filter_phones(ws["alert_phones"], event)}, sms_text))
     log.warning("ALERT %s | %s", subject, text.replace("\n", " "))
     return sent

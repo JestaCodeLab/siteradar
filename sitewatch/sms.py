@@ -66,8 +66,8 @@ def _send(numbers, message):
 def send(ws, message):
     """Text every alert number of a workspace, within its monthly quota. Returns how many were sent."""
     numbers = [n for n in (normalise(p) for p in ws.get("alert_phones") or []) if n]
-    left = plans.sms_quota(ws) - plans.sms_used(ws["id"])
-    numbers = numbers[:max(left, 0)]
+    monthly_left = max(plans.sms_quota(ws) - plans.sms_used(ws["id"]), 0)
+    numbers = numbers[:plans.sms_left(ws)]
     if not numbers:
         return 0
     message = message[:300]
@@ -82,4 +82,8 @@ def send(ws, message):
     for n in numbers:
         db.run("INSERT INTO sms_log(workspace_id, ts, phone, message, ok, error) VALUES (?,?,?,?,?,?)",
                (ws["id"], now, n, message, int(ok), err))
+    if ok:                                  # bought credits are only used once the monthly allowance is gone
+        extra = max(len(numbers) - monthly_left, 0)
+        if extra:
+            db.exec("UPDATE workspaces SET sms_bonus=GREATEST(sms_bonus-?,0) WHERE id=?", (extra, ws["id"]))
     return len(numbers) if ok else 0

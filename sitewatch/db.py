@@ -175,6 +175,19 @@ ALTER TABLE payments ADD COLUMN refunded DOUBLE PRECISION;
 CREATE TABLE error_log (id BIGSERIAL PRIMARY KEY, ts DOUBLE PRECISION, source TEXT, text TEXT);
 CREATE INDEX idx_error_log_ts ON error_log(ts);
 """),
+    (4, """
+ALTER TABLE memberships ADD COLUMN site_access TEXT;
+ALTER TABLE invitations ADD COLUMN site_access TEXT;
+"""),
+    (5, """
+ALTER TABLE users ADD COLUMN session_ver INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN alert_prefs TEXT;
+ALTER TABLE users ADD COLUMN pending_email TEXT;
+ALTER TABLE workspaces ADD COLUMN timezone TEXT DEFAULT 'Africa/Accra';
+ALTER TABLE workspaces ADD COLUMN logo_name TEXT;
+ALTER TABLE workspaces ADD COLUMN logo_size INTEGER;
+ALTER TABLE workspaces ADD COLUMN deleted_at DOUBLE PRECISION;
+"""),
 ]
 
 

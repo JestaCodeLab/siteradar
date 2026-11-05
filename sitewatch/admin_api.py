@@ -408,7 +408,7 @@ def blueprint(cfg):
         counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces GROUP BY plan_id")}
         wm = plans.watermark()
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
-                "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS"}
+                "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS", "sms_bundles": billing.sms_bundles()}
 
     @bp.get("/plans")
     def plans_list():
@@ -447,6 +447,8 @@ def blueprint(cfg):
                 db.run(f"UPDATE plans SET {', '.join(sets)} WHERE id=?", (*args, p["id"]))
         if s:
             cur = db.kv_get("platform") or {}
+            if "sms_bundles" in s:
+                cur["sms_bundles"] = [{"qty": int(b["qty"]), "price": float(b["price"])} for b in s["sms_bundles"] if int(b["qty"]) > 0 and float(b["price"]) >= 0]
             for k in ("yearly_discount", "watermark_text", "watermark_strength"):
                 if k in s:
                     cur[k] = s[k] if k == "watermark_text" else float(s[k])

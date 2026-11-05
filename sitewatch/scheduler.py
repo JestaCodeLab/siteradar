@@ -92,6 +92,7 @@ class Scheduler(threading.Thread):
                     self.pool.submit(self._safe, self.send_renewal_reminders)
                     self.pool.submit(self._safe, billing.renew_all, self.cfg)
                     self.pool.submit(self._safe, self.purge_old_data)
+                    self.pool.submit(self._safe, accounts.purge_deleted)
 
                 skey = f"subreport-{today:%Y-%m}"
                 if today.day >= int(self.cfg["report"]["day_of_month"]) and \

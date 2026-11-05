@@ -59,7 +59,26 @@ def switch_plan(cfg, ws, plan_id, cycle="monthly", renews=None):
     sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
 
 
-def checkout(cfg, ws, user, plan_id, cycle):
+def _start(cfg, ws, user, ref, amount, metadata, channels=None):
+    """Open a Paystack transaction (or finish at once in test mode) for a payment row that already exists."""
+    if test_mode():
+        confirm(cfg, ref)
+        return {"done": True}
+    if not configured():
+        raise RuntimeError("Payments are not set up yet. Please contact support.")
+    payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": "GHS", "reference": ref,
+               "callback_url": f"{app_url()}/billing/callback", "metadata": metadata}
+    if channels:
+        payload["channels"] = channels
+    if os.environ.get("PAYSTACK_SUBACCOUNT"):          # payments settle to this subaccount
+        payload["subaccount"] = os.environ["PAYSTACK_SUBACCOUNT"]
+        payload["bearer"] = os.environ.get("PAYSTACK_FEE_BEARER", "account")    # who pays Paystack's fee: account (us) or subaccount
+    data = _call("POST", "/transaction/initialize", json=payload)
+    # the site opens access_code in Paystack's popup; url is the fallback if the popup can't load
+    return {"access_code": data["access_code"], "url": data["authorization_url"], "reference": ref}
+
+
+def checkout(cfg, ws, user, plan_id, cycle, channels=None):
     """Returns {url} to send the customer to, or {done: True} when no payment is needed."""
     plan, amount = quote(plan_id, cycle)
     if amount == 0:
@@ -68,20 +87,7 @@ def checkout(cfg, ws, user, plan_id, cycle):
     ref = "sw_" + secrets.token_hex(10)
     db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
            (ws["id"], ref, plan_id, cycle, amount, "GHS", "pending", "subscription", time.time()))
-    if test_mode():
-        confirm(cfg, ref)
-        return {"done": True}
-    if not configured():
-        raise RuntimeError("Payments are not set up yet. Please contact support.")
-    payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": "GHS", "reference": ref,
-               "callback_url": f"{app_url()}/billing/callback",
-               "metadata": {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}}
-    if os.environ.get("PAYSTACK_SUBACCOUNT"):          # payments settle to this subaccount
-        payload["subaccount"] = os.environ["PAYSTACK_SUBACCOUNT"]
-        payload["bearer"] = os.environ.get("PAYSTACK_FEE_BEARER", "account")    # who pays Paystack's fee: account (us) or subaccount
-    data = _call("POST", "/transaction/initialize", json=payload)
-    # the site opens access_code in Paystack's popup; url is the fallback if the popup can't load
-    return {"access_code": data["access_code"], "url": data["authorization_url"], "reference": ref}
+    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}, channels)
 
 
 def confirm(cfg, reference):
@@ -113,6 +119,9 @@ def confirm(cfg, reference):
                  f"{auth.get('brand', 'Card')} ending {auth.get('last4', '')}", ws["id"]))
     elif data.get("channel") == "mobile_money":
         db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws["id"],))
+    if pay["kind"] == "sms":
+        db.exec("UPDATE workspaces SET sms_bonus=sms_bonus+? WHERE id=?", (int(pay["plan_id"][3:]), ws["id"]))
+        return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
     switch_plan(cfg, ws, pay["plan_id"], pay["cycle"], base + PERIOD[pay["cycle"]])
     _receipt(accounts.workspace(ws["id"]), pay)
     return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
@@ -266,3 +275,54 @@ def refund(reference, amount=None):
     db.exec("UPDATE payments SET refunded=COALESCE(refunded,0)+?, status=? WHERE id=?",
             (amount, "refunded" if amount >= pay["amount"] - (pay["refunded"] or 0) else "success", pay["id"]))
     return amount
+
+
+# ---- SMS top-ups and invoices ---------------------------------------------------------
+
+DEFAULT_BUNDLES = [{"qty": 100, "price": 20}, {"qty": 500, "price": 90}, {"qty": 1000, "price": 160}]
+
+
+def sms_bundles():
+    """Prices are set by a super admin (Plans and pricing). The defaults are placeholders until they are."""
+    return (db.kv_get("platform") or {}).get("sms_bundles") or DEFAULT_BUNDLES
+
+
+def checkout_sms(cfg, ws, user, qty):
+    bundle = next((b for b in sms_bundles() if b["qty"] == int(qty)), None)
+    if not bundle:
+        raise ValueError("That bundle is not available.")
+    plan = plans.limits(ws)
+    if "sms" not in plan["channels"]:
+        raise plans.LimitError("SMS alerts are part of the Growth plan and above.")
+    ref = "sw_" + secrets.token_hex(10)
+    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
+           (ws["id"], ref, f"sms{bundle['qty']}", "once", float(bundle["price"]), "GHS", "pending", "sms", time.time()))
+    return _start(cfg, ws, user, ref, float(bundle["price"]), {"workspace_id": ws["id"], "sms": bundle["qty"]})
+
+
+def invoice_number(pay):
+    return f"INV-{pay['id']:04d}"
+
+
+def describe(pay):
+    if pay["kind"] == "sms":
+        return f"{pay['plan_id'][3:]} SMS alert bundle"
+    plan = plans.get(pay["plan_id"]) or {"name": pay["plan_id"]}
+    return f"{plan['name']} plan, {pay['cycle']}"
+
+
+def invoices(ws_id):
+    rows = db.q("SELECT * FROM payments WHERE workspace_id=? AND status IN ('success','refunded') ORDER BY COALESCE(paid, created) DESC", (ws_id,))
+    return [{"reference": p["reference"], "number": invoice_number(p), "date": p["paid"] or p["created"], "description": describe(p), "amount": p["amount"]} for p in rows]
+
+
+def invoice_html(ws, reference):
+    from .report import env
+    pay = db.q1("SELECT * FROM payments WHERE reference=? AND workspace_id=? AND status IN ('success','refunded')", (reference, ws["id"]))
+    if not pay:
+        return None, None
+    owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
+    html_text = env.get_template("invoice.html").render(
+        number=invoice_number(pay), company=ws["name"], email=owner["email"] if owner else "", logo=ws["logo_url"], reference=reference,
+        date=time.strftime("%d %B %Y", time.localtime(pay["paid"] or pay["created"])), description=describe(pay), amount=f"{pay['amount']:,.2f}", method=pay["method"])
+    return html_text, invoice_number(pay)

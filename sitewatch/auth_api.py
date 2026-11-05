@@ -36,6 +36,7 @@ def blueprint(cfg):
         session.clear()
         session.permanent = True
         session["uid"] = user["id"]
+        session["ver"] = user["session_ver"]
         if ws_id:
             session["ws"] = ws_id
 
@@ -161,6 +162,35 @@ def blueprint(cfg):
         user = accounts.update_profile(g.user, body())
         return jsonify(user=accounts.public_user(user))
 
+    @bp.post("/account/email")
+    @login_required
+    def email_change():
+        d = body()
+        new = accounts.request_email_change(g.user, d.get("email"), d.get("password"))
+        return jsonify(pending_email=new)
+
+    @bp.post("/account/email/confirm")
+    @login_required
+    def email_confirm():
+        user = accounts.confirm_email_change(g.user, body().get("code"))
+        return jsonify(user=accounts.public_user(user))
+
+    @bp.post("/account/sessions/logout-others")
+    @login_required
+    def logout_others():
+        session["ver"] = accounts.logout_others(g.user)
+        return jsonify(ok=True)
+
+    @bp.get("/account/alert-prefs")
+    @login_required
+    def prefs_get():
+        return jsonify(prefs=accounts.get_prefs(g.user), events=[{"id": k, "label": l, "sub": sub} for k, l, sub in accounts.ALERT_EVENTS])
+
+    @bp.put("/account/alert-prefs")
+    @login_required
+    def prefs_set():
+        return jsonify(prefs=accounts.set_prefs(g.user, body().get("prefs") or {}))
+
     @bp.post("/account/password")
     @login_required
     def password():
@@ -203,7 +233,7 @@ def blueprint(cfg):
             raise ValueError("Use a PNG, JPG or WebP image.")
         storage.put(f"logo/{ws_id}", data, mime)
         url = f"{cfg['public_url'].rstrip('/')}/api/logos/{ws_id}?v={int(time.time())}"
-        db.exec("UPDATE workspaces SET logo_url=? WHERE id=?", (url, ws_id))
+        db.exec("UPDATE workspaces SET logo_url=?, logo_name=?, logo_size=? WHERE id=?", (url, (f.filename or "logo")[:80], len(data), ws_id))
         return url
 
     @bp.post("/onboarding/logo")
@@ -246,6 +276,18 @@ def blueprint(cfg):
         ws = accounts.update_workspace(g.ws["id"], d)
         return jsonify(accounts.public_workspace(ws, g.role))
 
+    @bp.post("/account/workspace/delete")
+    @workspace_required
+    @need("owner")
+    def workspace_delete():
+        if g.impersonating:
+            raise accounts.AuthError("Not available in a support session.", "forbidden", 403)
+        if (body().get("confirm") or "").strip() != g.ws["name"]:
+            raise ValueError("Type the workspace name exactly to confirm.")
+        accounts.delete_workspace(g.ws["id"])
+        session.pop("ws", None)
+        return jsonify(ok=True)
+
     @bp.post("/account/logo")
     @workspace_required
     @need("admin")
@@ -263,7 +305,7 @@ def blueprint(cfg):
     @workspace_required
     @need("admin")
     def team_invite():
-        accounts.invite(g.ws, g.user, body().get("email"), body().get("role") or "member")
+        accounts.invite(g.ws, g.user, body().get("email"), body().get("role") or "member", body().get("site_ids"))
         return jsonify(accounts.team(g.ws["id"])), 201
 
     @bp.post("/team/invites/<int:invite_id>/resend")
@@ -284,7 +326,7 @@ def blueprint(cfg):
     @workspace_required
     @need("admin")
     def team_role(user_id):
-        accounts.set_role(g.ws, g.user["id"], user_id, body().get("role"))
+        accounts.set_role(g.ws, g.user["id"], user_id, body().get("role"), body().get("site_ids") if "site_ids" in body() else False)
         return jsonify(ok=True)
 
     @bp.delete("/team/members/<int:user_id>")
@@ -307,8 +349,13 @@ def blueprint(cfg):
     @need("admin")
     def billing_info():
         ws = g.ws
+        used = db.q1("""SELECT COALESCE(SUM(i.size),0) n FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                        WHERE s.workspace_id=?""", (ws["id"],))["n"]
+        last = db.q1("SELECT method FROM payments WHERE workspace_id=? AND status='success' AND kind IN ('subscription','renewal','retry') ORDER BY paid DESC LIMIT 1", (ws["id"],))
         return jsonify(workspace=accounts.public_workspace(ws, g.role), catalogue=plans.public(),
-                       payments=billing.history(ws["id"]), card=ws["paystack_card"], comped=ws["comped"],
+                       payments=billing.history(ws["id"]), invoices=billing.invoices(ws["id"]), bundles=billing.sms_bundles(),
+                       card=ws["paystack_card"], last_method=last["method"] if last else None, comped=ws["comped"],
+                       storage={"used_mb": round(used / 1048576, 1), "limit_mb": plans.limits(ws)["storage_mb"]},
                        test_mode=billing.test_mode(), grace_days=billing.GRACE_DAYS)
 
     @bp.post("/billing/checkout")
@@ -316,10 +363,40 @@ def blueprint(cfg):
     @need("owner")
     def billing_checkout():
         d = body()
+        channels = {"card": ["card"], "mobile_money": ["mobile_money"]}.get(d.get("channel"))
         try:
-            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly"))
+            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", channels))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
+
+    @bp.post("/billing/sms-topup")
+    @workspace_required
+    @need("owner")
+    def billing_sms():
+        try:
+            return jsonify(billing.checkout_sms(cfg, g.ws, g.user, body().get("qty")))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+
+    @bp.get("/billing/invoices/<reference>.pdf")
+    @workspace_required
+    @need("admin")
+    def billing_invoice(reference):
+        html_text, number = billing.invoice_html(g.ws, reference)
+        if not html_text:
+            abort(404)
+        import tempfile
+        from . import report
+        with tempfile.TemporaryDirectory() as tmp:
+            hp = os.path.join(tmp, "invoice.html")
+            open(hp, "w").write(html_text)
+            try:
+                pdf = report.to_pdf(hp, os.path.join(tmp, "invoice.pdf"))
+                data = open(pdf, "rb").read()
+            except Exception as e:           # no headless browser on this server: serve the printable page instead
+                log.warning("Invoice PDF unavailable (%s)", e)
+                return Response(html_text, mimetype="text/html")
+        return Response(data, mimetype="application/pdf", headers={"Content-Disposition": f'attachment; filename="{number}.pdf"'})
 
     @bp.get("/billing/verify")
     @workspace_required

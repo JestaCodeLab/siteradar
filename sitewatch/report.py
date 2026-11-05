@@ -215,6 +215,7 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
         except Exception as e:
             log.warning("PDF export unavailable (%s); sending HTML only.", e)
     to = site.get("report_to") or (accounts.workspace(site.get("workspace_id")) or {}).get("alert_emails") or []
+    to = accounts.filter_emails(to, "report")
     if email and to:
         attach = []
         if paths.get("pdf"):

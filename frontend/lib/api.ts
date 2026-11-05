@@ -47,6 +47,7 @@ export interface SitesResponse {
     ssl_expiring: { name: string; days: number; expires: string | null }[]; domains_expiring: { name: string; days: number; expires: string | null }[]; errors: Record<string, string | null>;
     slow_threshold_ms: number; ssl_warning_days: number; check_interval_minutes: number; latest_check: number | null;
   };
+  setup: { snippet: boolean; team: boolean };
 }
 
 export interface Issue {
@@ -123,7 +124,7 @@ export interface ActivityEvent {
 }
 
 export interface SettingsData {
-  alerts: { emails: string[]; phones: string[]; webhooks: string[]; channels: ("email" | "chat" | "sms")[]; sms_quota: number; sms_used: number };
+  alerts: { emails: string[]; phones: string[]; webhooks: string[]; channels: ("email" | "chat" | "sms")[]; sms_quota: number; sms_used: number; sms_credits?: number };
   monitoring: {
     check_interval_minutes: number; failures_before_alert: number; timeout_seconds: number; slow_threshold_ms: number;
     ssl_warning_days: number; audit_daily_at: string; audit_max_pages: number; report_day_of_month: number;
@@ -161,14 +162,14 @@ export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currenc
 
 export interface Workspace {
   id: number; name: string; owner_name?: string | null; website: string | null; industry: string | null; size: string | null; country: string | null;
-  phone: string | null; address: string | null; logo_url: string | null; role: Role | null; onboarded: boolean; suspended: boolean;
-  plan: { id: string; name: string; sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
+  phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; suspended: boolean;
+  plan: { id: string; name: string; sites: number; members: number; storage_mb?: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
   plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; plan_renews: number | null;
-  usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number };
+  usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number }; sms_credits?: number;
 }
 
-export interface User { id: number; email: string; first_name: string; last_name: string; phone: string; is_super: boolean; email_verified: boolean }
+export interface User { id: number; pending_email?: string | null; email: string; first_name: string; last_name: string; phone: string; is_super: boolean; email_verified: boolean }
 
 export interface Me {
   authenticated: boolean; user: User | null;
@@ -179,10 +180,15 @@ export interface Me {
 }
 
 export interface TeamData {
-  members: { id: number; email: string; first_name: string; last_name: string; last_login: number | null; role: Role; created: number }[];
-  invites: { id: number; email: string; role: Role; created: number; expires: number }[];
+  members: { id: number; email: string; first_name: string; last_name: string; last_login: number | null; role: Role; created: number; site_access: string[] | null }[];
+  invites: { id: number; email: string; role: Role; created: number; expires: number; site_access: string[] | null }[];
   plan: Workspace["plan"]; usage: Workspace["usage"]; role: Role;
 }
 
 export interface Payment { reference: string; plan_id: string; cycle: string; amount: number; currency: string; status: string; channel: string | null; created: number; paid: number | null }
-export interface BillingData { workspace: Workspace; catalogue: Catalogue; payments: Payment[]; card: string | null; comped: boolean; test_mode: boolean; grace_days: number }
+export interface Invoice { reference: string; number: string; date: number; description: string; amount: number }
+export interface BillingData {
+  workspace: Workspace; catalogue: Catalogue; payments: Payment[]; invoices: Invoice[]; bundles: { qty: number; price: number }[];
+  card: string | null; last_method: string | null; comped: boolean; storage: { used_mb: number; limit_mb: number };
+  test_mode: boolean; grace_days: number;
+}

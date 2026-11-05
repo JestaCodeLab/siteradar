@@ -1,100 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import useSWR from "swr";
-import { fetcher, type SitesResponse } from "@/lib/api";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Check, ChevronsUpDown, Clock, CreditCard, Globe, LayoutGrid, Receipt, Settings, Users } from "lucide-react";
+import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { Icon } from "./ui";
 
 const row = "flex min-h-11 items-center gap-2.5 rounded-lg px-2.5 text-sm";
-const sub = "flex min-h-10 items-center gap-2.5 rounded-lg pl-9 pr-2.5 text-sm";
-const idle = "text-nav-text hover:bg-nav-active/60";
-const active = "bg-nav-active font-medium text-white";
+const on = "bg-nav-active text-white";
 
-type GroupId = "sites" | "subs";
-
-function Group({ title, icon, open, current, onToggle, children }: {
-  title: string; icon: React.ReactNode; open: boolean; current: boolean; onToggle: () => void; children: React.ReactNode;
+function Item({ href, label, Icon: Glyph, badge, current, strong, onClose }: {
+  href: string; label: string; Icon: React.ComponentType<{ size?: number; "aria-hidden"?: boolean }>; badge?: number; current: boolean; strong?: boolean; onClose: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <button onClick={onToggle} aria-expanded={open}
-        className={`${row} w-full text-left font-semibold ${current && !open ? "bg-nav-active/70 text-white" : "text-white hover:bg-nav-active/40"}`}>
-        {icon}
-        <span className="flex-1">{title}</span>
-        {open ? <Icon.chevronDown /> : <Icon.chevronRight />}
+    <Link href={href} onClick={onClose} aria-current={current ? "page" : undefined}
+      className={`${row} ${current ? `${on} font-semibold` : strong ? "font-semibold text-white hover:bg-nav-active/40" : "font-medium text-nav-text hover:bg-nav-active/40"}`}>
+      <Glyph size={18} aria-hidden />
+      <span className="flex-1">{label}</span>
+      {badge !== undefined && <span className={`text-xs ${current ? "text-nav-text" : "text-nav-muted"}`}>{badge}</span>}
+    </Link>
+  );
+}
+
+function WorkspaceSwitcher({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const { me, ws, mutate } = useMe();
+  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) close(); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [open, close]);
+  if (!ws) return null;
+  const initials = ws.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} aria-label="Switch workspace"
+        className="flex min-h-14 w-full items-center gap-2.5 rounded-[10px] border border-[#222b3d] bg-[#151c2c] px-2.5 py-2 text-left">
+        {ws.logo_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={ws.logo_url} alt="" className="size-8 shrink-0 rounded-lg bg-white object-contain" />
+          : <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#26324a] text-xs font-semibold text-white">{initials}</span>}
+        <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-white">{ws.name}</span><span className="block text-xs text-[#8fb0ff]">{ws.plan.name} plan</span></span>
+        <ChevronsUpDown size={16} aria-hidden="true" />
       </button>
-      {open && <div className="flex flex-col gap-0.5">{children}</div>}
+      {open && (
+        <ul role="listbox" aria-label="Workspaces" className="absolute left-0 right-0 top-[calc(100%+6px)] z-10 overflow-hidden rounded-xl border border-[#222b3d] bg-[#151c2c] p-1.5 shadow-xl">
+          {me?.workspaces.map((w) => (
+            <li key={w.id} role="option" aria-selected={w.id === ws.id}>
+              <button onClick={async () => { close(); onClose(); if (w.id !== ws.id) { await send("POST", "/api/auth/switch", { workspace_id: w.id }); await mutate(); router.push("/overview"); } }}
+                className="flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm text-white hover:bg-nav-active">
+                <span className="flex-1 truncate">{w.name}</span>{w.id === ws.id && <Check size={16} aria-hidden="true" />}</button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
 
-export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
+function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
   const path = usePathname();
-  const { ws, user, isAdmin, canWrite } = useMe();
-  const { data } = useSWR<SitesResponse>("/api/sites", fetcher, { refreshInterval: 60000 });
-  // Collapsed by default. Opening one group closes the other.
-  const [group, setGroup] = useState<GroupId | null>(null);
-  const toggle = (id: GroupId) => setGroup((g) => (g === id ? null : id));
-
+  const tab = useSearchParams().get("tab") ?? "company";
+  const { ws, isAdmin } = useMe();
   const is = (href: string) => path === href || path.startsWith(href + "/");
-  const sitesCurrent = is("/websites");
-  const subsCurrent = is("/subscriptions");
+  const settings = path === "/settings";
 
   return (
     <>
       {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside aria-label="Sidebar"
-        className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col overflow-y-auto bg-nav text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="px-3.5 pb-3 pt-5">
-          <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
-            <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#2f6bff]"><Icon.pulse /></span>
-            <span className="flex min-w-0 flex-col">
-              <span className="text-[17px] font-semibold leading-tight text-white">SiteWatch</span>
-              <span className="truncate text-xs text-nav-muted">{ws?.name}</span>
-            </span>
-          </Link>
-        </div>
+        className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+        <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
+          <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#2f6bff]"><Icon.pulse /></span>
+          <span className="text-[17px] font-semibold text-white">SiteWatch</span>
+        </Link>
 
-        <nav aria-label="Main" className="flex flex-1 flex-col gap-2 px-3.5 pt-2">
-          <Link href="/overview" onClick={onClose} className={`${row} font-semibold ${path === "/overview" ? active : "text-white hover:bg-nav-active/40"}`}>
-            <Icon.grid />Overview
-          </Link>
+        <WorkspaceSwitcher onClose={onClose} />
 
-          <Group title="Websites" icon={<Icon.globe />} open={group === "sites"} current={sitesCurrent} onToggle={() => toggle("sites")}>
-            {data?.sites.map((s) => (
-              <Link key={s.id} href={`/websites/${s.id}`} onClick={onClose} className={`${sub} ${is(`/websites/${s.id}`) ? active : idle}`}>
-                <span className={`size-2 shrink-0 rounded-full ${s.status === "down" || s.status === "warn" ? "bg-[#ff6b5b]" : s.status === "unknown" || s.status === "paused" ? "bg-nav-muted" : "bg-[#4fd08f]"}`} />
-                <span className="truncate">{s.name}</span>
-                {(s.status === "down" || s.status === "warn") && <span className="sr-only">(down)</span>}
-              </Link>
-            ))}
-            {canWrite && <Link href="/websites/new" onClick={onClose} className={`${sub} font-medium text-[#8fb0ff] hover:bg-nav-active/60`}>
-              <Icon.plus /> Add website
-            </Link>}
-          </Group>
-
-          <Group title="Subscriptions" icon={<Icon.receipt />} open={group === "subs"} current={subsCurrent} onToggle={() => toggle("subs")}>
-            <Link href="/subscriptions" onClick={onClose} className={`${sub} ${is("/subscriptions") && !is("/subscriptions/reports") ? active : idle}`}>All subscriptions</Link>
-            <Link href="/subscriptions/reports" onClick={onClose} className={`${sub} ${is("/subscriptions/reports") ? active : idle}`}>Monthly reports</Link>
-          </Group>
+        <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
+          <Item href="/overview" label="Overview" Icon={LayoutGrid} current={path === "/overview"} strong onClose={onClose} />
+          <Item href="/websites" label="Websites" Icon={Globe} badge={ws?.usage.sites} current={is("/websites")} strong onClose={onClose} />
+          <Item href="/subscriptions" label="Subscriptions" Icon={Receipt} current={is("/subscriptions")} strong onClose={onClose} />
+          <span className="mx-2.5 mb-1.5 mt-[18px] text-[11px] font-semibold uppercase tracking-[0.08em] text-nav-muted">Workspace</span>
+          <Item href="/settings?tab=team" label="Team" Icon={Users} current={settings && tab === "team"} onClose={onClose} />
+          {isAdmin && <Item href="/settings?tab=billing" label="Billing and plan" Icon={CreditCard} current={settings && tab === "billing"} onClose={onClose} />}
+          <Item href="/settings" label="Settings" Icon={Settings} current={settings && tab !== "team" && tab !== "billing"} onClose={onClose} />
+          <Item href="/activity" label="Activity logs" Icon={Clock} current={is("/activity")} onClose={onClose} />
         </nav>
 
         {ws && (
-          <div className="mx-3.5 mt-4 rounded-lg bg-nav-active/50 p-3 text-[13px]">
-            <div className="flex items-center justify-between"><span className="font-semibold text-white">{ws.plan.name} plan</span>
-              {isAdmin && ws.plan_id !== "scale" && <Link href="/settings?tab=billing" onClick={onClose} className="font-semibold text-[#8fb0ff]">Upgrade</Link>}</div>
-            <p className="mt-1 text-nav-muted">{ws.usage.sites} of {ws.plan.sites} website{ws.plan.sites === 1 ? "" : "s"} used</p>
+          <div className="flex flex-col gap-3 rounded-xl border border-[#222b3d] bg-[#151c2c] p-3.5">
+            <span className="text-[13px] font-semibold text-white">Your plan usage</span>
+            {[["Websites", ws.usage.sites, ws.plan.sites], ["Team members", ws.usage.seats, ws.plan.members]].map(([label, used, of]) => (
+              <div key={label as string} className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-xs"><span>{label}</span><span className="font-semibold text-white">{used} of {of}</span></div>
+                <div className="h-1.5 rounded-[3px] bg-[#26324a]"><div className="h-1.5 rounded-[3px] bg-[#4fd08f]" style={{ width: `${Math.min(100, ((used as number) / Math.max(of as number, 1)) * 100)}%` }} /></div>
+              </div>
+            ))}
+            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#2f6bff] text-[13px] font-semibold text-white">Manage plan</Link>}
           </div>
         )}
-        <div className="mt-4 flex flex-col gap-1 border-t border-[#222b3d] px-3.5 py-3.5">
-          {user?.is_super && <Link href="/admin" onClick={onClose} className={`${row} ${idle}`}><Icon.shield />Admin area</Link>}
-          <Link href="/settings" onClick={onClose} className={`${row} ${is("/settings") ? active : idle}`}><Icon.settings />Settings</Link>
-          <Link href="/activity" onClick={onClose} className={`${row} ${is("/activity") ? active : idle}`}><Icon.activity />Activity logs</Link>
-        </div>
       </aside>
     </>
   );
+}
+
+export function Sidebar(props: { open: boolean; onClose: () => void }) {
+  return <Suspense><Nav {...props} /></Suspense>;
 }

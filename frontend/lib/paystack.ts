@@ -25,7 +25,12 @@ export type CheckoutResult = "done" | "paid" | "cancelled" | "pending";
  * Start a plan purchase. Free plans and test mode finish straight away ("done"). Otherwise Paystack's popup opens on
  * this page; when the person pays we confirm it with the server ("paid") or they close it ("cancelled").
  */
-export async function checkout(path: string, body: { plan: string; cycle: string }): Promise<CheckoutResult> {
+export async function checkout(path: string, body: { plan: string; cycle: string; channel?: string }): Promise<CheckoutResult> {
+  return payFor(path, body);
+}
+
+/** Same as checkout, for any payment endpoint (plans, a card or mobile money for the next period, SMS bundles). */
+export async function payFor(path: string, body: object): Promise<CheckoutResult> {
   const r = await send<{ done?: boolean; access_code?: string; reference?: string; url?: string }>("POST", path, body);
   if (r.done) return "done";
   if (!r.access_code || !r.reference) throw new Error("Payments are not available right now.");

@@ -20,8 +20,15 @@ def blueprint(cfg):
     running_health = set()
     running_shots = set()
 
+    def allowed(site_id):
+        """People invited to selected websites only see those; everyone else sees all of them."""
+        return g.site_access is None or site_id in g.site_access
+
     def site_or_404(site_id):
-        return sites.get(g.ws["id"], site_id) or abort(404, "Unknown website")
+        s = sites.get(g.ws["id"], site_id)
+        if not s or not allowed(site_id):
+            abort(404, "Unknown website")
+        return s
 
     @bp.before_request
     def guard():
@@ -52,7 +59,7 @@ def blueprint(cfg):
     def activity():
         limit = min(max(int(request.args.get("limit", 50)), 1), 200)
         ws_id = g.ws["id"]
-        names = {x["id"]: x["name"] for x in db.q("SELECT id, name FROM sites WHERE workspace_id=?", (ws_id,))}
+        names = {x["id"]: x["name"] for x in db.q("SELECT id, name FROM sites WHERE workspace_id=?", (ws_id,)) if allowed(x["id"])}
         ids = list(names)
         sub_ids = [str(x["id"]) for x in db.q("SELECT id FROM subscriptions WHERE workspace_id=?", (ws_id,))]
         events = []
@@ -96,7 +103,7 @@ def blueprint(cfg):
         plan = plans.limits(ws)
         return jsonify(
             alerts={"emails": ws["alert_emails"], "phones": ws["alert_phones"], "webhooks": ws["alert_webhooks"],
-                    "channels": plan["channels"], "sms_quota": plans.sms_quota(ws), "sms_used": plans.sms_used(ws["id"])},
+                    "channels": plan["channels"], "sms_quota": plans.sms_quota(ws), "sms_used": plans.sms_used(ws["id"]), "sms_credits": ws.get("sms_bonus") or 0},
             monitoring={"check_interval_minutes": plan["interval_minutes"], "failures_before_alert": cfg["failures_before_alert"],
                         "timeout_seconds": cfg["timeout_seconds"], "slow_threshold_ms": cfg["slow_threshold_ms"],
                         "ssl_warning_days": cfg["ssl_warning_days"], "audit_daily_at": cfg["audit"]["daily_at"],
@@ -175,7 +182,7 @@ def blueprint(cfg):
 
     @bp.get("/sites")
     def list_sites():
-        cards = [site_card(s) for s in sites.list_ws(g.ws["id"])]
+        cards = [site_card(s) for s in sites.list_ws(g.ws["id"]) if allowed(s["id"])]
         resp = [c["response_ms"] for c in cards if c["status"] != "down" and c["response_ms"]]
         return jsonify(
             sites=cards,
@@ -194,11 +201,18 @@ def blueprint(cfg):
                 "ssl_warning_days": cfg["ssl_warning_days"],
                 "check_interval_minutes": plans.limits(g.ws)["interval_minutes"],
                 "latest_check": max([c["last_check"] for c in cards if c["last_check"]], default=None),
+            },
+            setup={
+                "snippet": bool(cards) and bool(db.q1("SELECT 1 FROM hits WHERE site_id = ANY(?) LIMIT 1", ([c["id"] for c in cards],))),
+                "team": plans.usage(g.ws["id"])["seats"] > 1,
             })
 
     @bp.post("/sites")
     def add_site():
         site = sites.create(cfg, g.ws, body())
+        if g.site_access is not None:                 # people limited to selected websites keep access to ones they add
+            db.exec("UPDATE memberships SET site_access=? WHERE workspace_id=? AND user_id=?",
+                    (json.dumps([*g.site_access, site["id"]]), g.ws["id"], g.user["id"]))
         # first check right away so the new site shows a status instead of "unknown"
         threading.Thread(target=monitor.check_site, args=(cfg, site), daemon=True).start()
         threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
@@ -237,7 +251,7 @@ def blueprint(cfg):
     def edit_site(site_id):
         site_or_404(site_id)
         sites.update(cfg, site_id, body())
-        return jsonify(site_card(sites.get(g.ws["id"], site_id)))
+        return jsonify(site_card(site_or_404(site_id)))
 
     @bp.delete("/sites/<site_id>")
     def remove_site(site_id):
@@ -370,8 +384,10 @@ def blueprint(cfg):
 
     @bp.get("/subscriptions")
     def list_subscriptions():
-        return jsonify(subscriptions=subscriptions.list_all(g.ws["id"], request.args.get("site") or None),
-                       summary=subscriptions.summary(g.ws["id"]), categories=subscriptions.CATEGORIES)
+        items = subscriptions.list_all(g.ws["id"], request.args.get("site") or None)
+        if g.site_access is not None:
+            items = [i for i in items if i["site_id"] in g.site_access]
+        return jsonify(subscriptions=items, summary=subscriptions.summary(g.ws["id"]), categories=subscriptions.CATEGORIES)
 
     @bp.post("/subscriptions")
     def add_subscription():

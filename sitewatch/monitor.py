@@ -87,7 +87,7 @@ def _handle_incidents(cfg, site, result, now):
             alerts.notify(cfg, site, f"RECOVERED: {site['name']} is back up",
                           f"{site['url']} is responding again (HTTP {result['status_code']}, "
                           f"{result['response_ms']} ms).\nDowntime: {mins:.0f} minutes.\nCause was: {incident['cause']}",
-                          sms_text=f"SiteWatch: {site['name']} is back up after {mins:.0f} min.")
+                          sms_text=f"SiteWatch: {site['name']} is back up after {mins:.0f} min.", event="up")
         return
     if incident:
         return
@@ -99,7 +99,7 @@ def _handle_incidents(cfg, site, result, now):
         alerts.notify(cfg, site, f"DOWN: {site['name']}",
                       f"{site['url']} failed {n} checks in a row.\nReason: {result['error']}\n"
                       f"Dashboard: {os.environ.get('APP_URL', cfg['public_url']).rstrip('/')}/websites/{site['id']}",
-                      sms_text=f"SiteWatch: {site['name']} is DOWN. {result['error']}")
+                      sms_text=f"SiteWatch: {site['name']} is DOWN. {result['error']}", event="down")
 
 
 def _handle_warnings(cfg, site, result):
@@ -108,7 +108,7 @@ def _handle_warnings(cfg, site, result):
         last = db.last_alert(site["id"], kind)
         if not last or time.time() - last["ts"] > 86400:
             db.log_alert(site["id"], kind, subject)
-            alerts.notify(cfg, site, subject, text)
+            alerts.notify(cfg, site, subject, text, event=kind)
 
     days = result["ssl_days_left"]
     if days is not None and days <= cfg["ssl_warning_days"]:

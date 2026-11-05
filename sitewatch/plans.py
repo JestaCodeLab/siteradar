@@ -99,7 +99,13 @@ def check_can_add_seat(ws, role):
 
 
 def sms_quota(ws):
-    return limits(ws)["sms"] + (ws.get("sms_bonus") or 0)
+    """Texts included each month by the plan."""
+    return limits(ws)["sms"]
+
+
+def sms_left(ws):
+    """Texts that can still be sent: what is left of the monthly allowance plus any bought credits."""
+    return max(sms_quota(ws) - sms_used(ws["id"]), 0) + (ws.get("sms_bonus") or 0)
 
 
 class LimitError(ValueError):

@@ -8,7 +8,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type PlanInfo } from "@/lib/api";
 
 type Plan = PlanInfo & { customers: number; audit_pages: number; storage_mb: number; priority_support: boolean };
-interface Resp { plans: Plan[]; yearly_discount: number; watermark_text: string; watermark_strength: number; methods: string[]; currency: string }
+interface Resp { plans: Plan[]; yearly_discount: number; watermark_text: string; watermark_strength: number; methods: string[]; currency: string; sms_bundles: { qty: number; price: number }[] }
 
 const fmtStorage = (mb: number) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
 const fmtMonths = (n: number) => `${n} month${n === 1 ? "" : "s"}`;
@@ -44,7 +44,7 @@ const STRENGTH = [[8, "Light (8%)"], [15, "Medium (15%)"], [25, "Strong (25%)"]]
 
 export default function AdminPlans() {
   const { data, error, mutate } = useSWR<Resp>("/api/admin/plans", fetcher);
-  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; wmText: string; wmStrength: number } | null>(null);
+  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; wmText: string; wmStrength: number; bundles: { qty: number; price: number }[] } | null>(null);
   const [typing, setTyping] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,7 +52,7 @@ export default function AdminPlans() {
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
-  const base = { plans: data.plans, discount: String(data.yearly_discount), wmText: data.watermark_text, wmStrength: data.watermark_strength };
+  const base = { plans: data.plans, discount: String(data.yearly_discount), wmText: data.watermark_text, wmStrength: data.watermark_strength, bundles: data.sms_bundles };
   const cur = draft ?? base;
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
   const edit = (patch: Partial<typeof cur>) => setDraft({ ...cur, ...patch });
@@ -64,7 +64,7 @@ export default function AdminPlans() {
     setBusy(true); setMsg(null);
     try {
       await send("PUT", "/api/admin/plans", {
-        settings: { yearly_discount: disc, watermark_text: cur.wmText, watermark_strength: cur.wmStrength },
+        settings: { yearly_discount: disc, watermark_text: cur.wmText, watermark_strength: cur.wmStrength, sms_bundles: cur.bundles },
         plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
           history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, channels: p.channels, clean_reports: p.clean_reports,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
@@ -90,6 +90,10 @@ export default function AdminPlans() {
               <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
           </div>
           <label className="flex items-start gap-3 text-sm"><input type="checkbox" disabled className="mt-1 size-4" /><span className="flex flex-col"><span className="font-medium">Free trials</span><span className="text-[13px] text-[#5B6472]">Off. Customers pay when they choose a paid plan, and can always stay on the Free plan.</span></span></label>
+          <div className="flex flex-col gap-2"><span className="text-sm font-medium">SMS bundle prices (GHS) <span className="font-normal text-[#5B6472]">shown on the customer Billing page</span></span>
+            <div className="flex flex-wrap gap-3">{cur.bundles.map((b, i) => (
+              <label key={b.qty} className="flex items-center gap-2 text-sm"><span className="w-20">{b.qty.toLocaleString()} SMS</span>
+                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={`${aInput} !w-28`} /></label>))}</div></div>
           <div className="flex flex-col gap-2"><span className="text-sm font-medium">Payment methods offered</span>
             <div className="flex flex-wrap gap-2">{data.methods.map((m) => <span key={m} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#E3F4EC] px-3 text-[13px] font-semibold text-[#0B7A4B]"><Check size={14} strokeWidth={3} aria-hidden="true" />{m}</span>)}</div></div>
         </AdminCard>

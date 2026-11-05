@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { fetcher, send, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
+import { ThemeToggle } from "./theme";
 import { Icon } from "./ui";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
@@ -154,9 +155,10 @@ function Profile() {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
-  const { me, user, isAdmin, mutate } = useMe();
+  const { user, ws, role, isAdmin, mutate } = useMe();
   const name = user ? `${user.first_name} ${user.last_name}`.trim() : "Account";
-  const initials = name.split(/[\s._-]+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "T";
+  const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "A";
+  const roleName = role ? role[0].toUpperCase() + role.slice(1) : "";
 
   async function logout() {
     await send("POST", "/api/auth/logout").catch(() => {});
@@ -164,39 +166,47 @@ function Profile() {
     router.replace("/login");
   }
 
-  const item = "flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm hover:bg-soft";
+  const item = "flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-soft";
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu"
         className="flex min-h-11 items-center gap-2 rounded-lg px-1.5 hover:bg-soft">
         <span className="flex size-8 items-center justify-center rounded-full bg-nav text-xs font-semibold text-white">{initials}</span>
-        <span className="hidden max-w-32 truncate text-sm font-medium sm:block">{name}</span>
+        <span className="hidden max-w-36 truncate text-sm font-medium sm:block">{name}</span>
         <Icon.chevronDown className="hidden text-muted sm:block" />
       </button>
       {open && (
-        <div role="menu" className={`${panel} w-60 p-1.5`}>
-          <div className="border-b border-line-soft px-3 pb-2.5 pt-2">
-            <p className="text-xs text-muted">Signed in as</p>
-            <p className="truncate text-sm font-semibold">{name}</p>
-            <p className="truncate text-xs text-muted">{user?.email}</p>
+        <div role="menu" className={`${panel} w-[260px] p-1.5`}>
+          <div className="border-b border-line-soft px-3 pb-3 pt-2.5">
+            <p className="text-sm font-semibold">{name}</p>
+            <p className="truncate text-[13px] text-muted">{user?.email}</p>
+            <p className="mt-1 text-xs font-semibold text-brand-ink">{roleName}{ws ? ` · ${ws.name}` : ""}</p>
           </div>
-          {(me?.workspaces.length ?? 0) > 1 && (
-            <div className="border-b border-line-soft py-1.5">
-              <p className="px-3 pb-1 pt-1 text-xs text-muted">Switch workspace</p>
-              {me?.workspaces.map((w) => (
-                <button key={w.id} role="menuitem" onClick={async () => { await send("POST", "/api/auth/switch", { workspace_id: w.id }); await mutate(); close(); router.push("/overview"); }}
-                  className={`${item} ${w.id === me.workspace?.id ? "font-semibold" : ""}`}>{w.name}</button>
-              ))}
-            </div>
+          <Link role="menuitem" href="/settings?tab=profile" onClick={close} className={item}>My profile and security</Link>
+          <Link role="menuitem" href="/settings?tab=company" onClick={close} className={item}>Company settings</Link>
+          {isAdmin && <Link role="menuitem" href="/settings?tab=billing" onClick={close} className={item}>Billing and plan</Link>}
+          {user?.is_super && (
+            <Link role="menuitem" href="/admin" onClick={close} className="flex min-h-11 items-center justify-between rounded-lg bg-[#f5f1ff] px-3 text-sm font-semibold text-[#4a33b0]">
+              Super admin<span className="text-[11px] uppercase tracking-[0.06em]">Staff only</span></Link>
           )}
-          <div className="pt-1.5">
-            <Link role="menuitem" href="/settings" onClick={close} className={item}><Icon.user />Profile settings</Link>
-            {isAdmin && <Link role="menuitem" href="/settings?tab=billing" onClick={close} className={item}><Icon.card />Billing</Link>}
-            <button role="menuitem" onClick={logout} className={`${item} text-bad`}><Icon.logout />Log out</button>
-          </div>
+          <button role="menuitem" onClick={logout} className={`${item} w-full text-left text-bad`}>Log out</button>
         </div>
       )}
     </div>
+  );
+}
+
+function PlanPill() {
+  const { ws, isAdmin } = useMe();
+  if (!ws) return <span />;
+  const free = ws.plan_id === "free";
+  const href = isAdmin ? "/settings?tab=billing" : "/overview";
+  return free ? (
+    <Link href={href} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-warn-soft px-3.5 text-sm font-semibold text-warn">
+      <span className="size-2 rounded-full bg-warn" />Free plan{isAdmin && <span className="font-semibold text-brand-ink">Upgrade</span>}</Link>
+  ) : (
+    <Link href={href} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-brand-soft px-3.5 text-sm font-semibold text-brand-ink">
+      <span className="size-2 rounded-full bg-brand" />{ws.plan.name} plan</Link>
   );
 }
 
@@ -216,8 +226,9 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
     <>
       <header className="sticky top-[var(--support-h,0px)] z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
         <button onClick={onMenu} aria-label="Open menu" className={`${iconBtn} lg:hidden`}><Icon.menu /></button>
-        <div className="flex-1" />
+        <div className="flex-1"><PlanPill /></div>
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={iconBtn}><Icon.search /></button>
           <Notifications />
           <Profile />
