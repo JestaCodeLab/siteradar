@@ -99,7 +99,7 @@ def blueprint(cfg):
         late = dt.datetime.now().hour * 60 + dt.datetime.now().minute > h * 60 + m + 60
         ran = state.get("audit") == dt.date.today().isoformat()
         out.append({"name": "Nightly audits", "status": "Delayed" if (late and not ran) else "Operational", "tone": "warn" if (late and not ran) else "ok",
-                    "detail": "Tonight's audits have not started yet." if (late and not ran) else (f"Last run {state['audit']}." if state.get("audit") else "Waiting for the first run.")})
+                    "detail": "Tonight's audits have not started yet." if (late and not ran) else (f"Last run {dt.date.fromisoformat(state['audit']).strftime('%-d %b %Y')}." if state.get("audit") else "Waiting for the first run.")})
         shots = db.q1("SELECT COUNT(*) n FROM assets WHERE key LIKE 'shot/%' AND ts>?", (now - 86400,))["n"]
         out.append({"name": "Homepage preview worker", "status": "Operational", "tone": "ok", "detail": f"{shots} previews taken in the last 24 hours."})
         codes = db.q1("SELECT COUNT(*) n FROM email_codes WHERE created>?", (now - 86400,))["n"]

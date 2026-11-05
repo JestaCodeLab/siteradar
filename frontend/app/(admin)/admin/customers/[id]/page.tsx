@@ -8,6 +8,7 @@ import { Globe, History, StickyNote } from "lucide-react";
 import { Avatar, AdminCard, EmptyState, Pill, aBtn, aInput, money, shortDate, statusTone, whenAgo } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
+import { fmtDateTime } from "@/lib/format";
 import { useMe } from "@/lib/me";
 import type { CustomerRow } from "../page";
 
@@ -186,14 +187,14 @@ export default function CustomerPage() {
             <textarea id="note" name="text" rows={3} placeholder="Only admins see notes" className="w-full rounded-lg border border-[#C9CFD8] px-3.5 py-3 text-sm" />
             <div><button disabled={busy} className={`${aBtn.primary}`}>Save note</button></div></form>
           {data.notes.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState compact Icon={StickyNote} title="No notes yet" text="Notes you save are only visible to admins." /></div>}
-          {data.notes.map((n, i) => <div key={i} className="border-t border-[#EDEFF3] pt-3 text-sm leading-relaxed"><b>{n.admin}</b> · {shortDate(n.ts)}<br />{n.text}</div>)}
+          {data.notes.map((n, i) => <div key={i} className="border-t border-[#EDEFF3] pt-3 text-sm leading-relaxed"><b>{n.admin}</b> · {fmtDateTime(n.ts)}<br />{n.text}</div>)}
         </AdminCard>
         <AdminCard label="Audit trail" className="min-w-0 flex-[1_1_340px] !pb-2">
           <h2 className="mb-2 text-lg font-semibold">Audit trail</h2>
           {data.audit.map((a, i) => (
             <div key={i} className="flex gap-3 border-t border-[#EDEFF3] py-3"><span style={{ background: dot[a.tone] ?? dot.muted }} className="mt-1.5 size-2 shrink-0 rounded-full" />
               <span className="flex-1 text-sm leading-snug">{a.text}</span>
-              <span className="whitespace-nowrap text-xs text-[#5B6472]">{new Date(a.ts * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>))}
+              <span className="max-w-[120px] text-right text-xs leading-snug text-[#5B6472]">{fmtDateTime(a.ts)}</span></div>))}
         </AdminCard>
       </div>
     </>

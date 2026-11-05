@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { fmtAgo, fmtDateTs } from "@/lib/format";
 
 export const tones = {
   ok: "bg-[#E3F4EC] text-[#0B7A4B]", warn: "bg-[#FFF1D6] text-[#8A5A00]", bad: "bg-[#FBE7E5] text-[#B3261E]",
@@ -72,15 +73,8 @@ export function Tabs<T extends string>({ items, value, onChange }: { items: { id
 }
 
 export const money = (n: number) => `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
-export const shortDate = (ts: number | null | undefined) => (ts ? new Date(ts * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "—");
-export function whenAgo(ts: number) {
-  const s = Date.now() / 1000 - ts;
-  if (s < 3600) return `${Math.max(1, Math.round(s / 60))} min ago`;
-  if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
-  if (s < 172800) return "Yesterday";
-  if (s < 86400 * 7) return `${Math.round(s / 86400)} days ago`;
-  return shortDate(ts);
-}
+export const shortDate = fmtDateTs;
+export const whenAgo = (ts: number) => fmtAgo(ts);
 
 export function BackLink({ href, children }: { href: string; children: ReactNode }) {
   return <Link href={href} className="font-medium text-[#4A33B0]">{children}</Link>;

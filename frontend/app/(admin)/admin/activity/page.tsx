@@ -8,6 +8,7 @@ import { Clock } from "lucide-react";
 import { AdminCard, AdminHeader, EmptyState, Tabs } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
+import { dayLabel, fmtTime } from "@/lib/format";
 
 interface Ev { ts: number; type: string; tone: string; title: string; detail: string; workspace_id: number | null; workspace: string | null }
 interface Resp { events: Ev[]; more: boolean; next: number | null }
@@ -18,13 +19,6 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 const dot: Record<string, string> = { ok: "#0B7A4B", bad: "#B3261E", warn: "#E5A526", purple: "#6B4FE0", muted: "#8A93A3" };
 const chip: Record<string, string> = { accounts: "bg-[#E3F4EC] text-[#0B7A4B]", billing: "bg-[#E5ECFF] text-[#1F4FD8]", team: "bg-[#EFEAFF] text-[#4A33B0]", websites: "bg-[#FFF1D6] text-[#8A5A00]", admin: "bg-[#EFEAFF] text-[#4A33B0]", messages: "bg-[#E8EBF0] text-[#3F4857]" };
-
-const day = (ts: number) => {
-  const d = new Date(ts * 1000), t = new Date();
-  const y = new Date(t.getTime() - 86400000);
-  return d.toDateString() === t.toDateString() ? "Today" : d.toDateString() === y.toDateString() ? "Yesterday" : d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-};
-const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 function Feed() {
   const router = useRouter();
@@ -46,7 +40,7 @@ function Feed() {
   const events = [...(data?.events ?? []), ...(extra?.events ?? [])];
   const more = extra ? extra.more : data?.more;
   const groups: { label: string; items: Ev[] }[] = [];
-  for (const e of events) { const l = day(e.ts); const g = groups[groups.length - 1]; if (g && g.label === l) g.items.push(e); else groups.push({ label: l, items: [e] }); }
+  for (const e of events) { const l = dayLabel(e.ts); const g = groups[groups.length - 1]; if (g && g.label === l) g.items.push(e); else groups.push({ label: l, items: [e] }); }
 
   return (
     <>
@@ -69,7 +63,7 @@ function Feed() {
                           {e.detail && <span className="mt-0.5 block whitespace-pre-line text-[13px] leading-snug text-[#5B6472]">{e.detail}</span>}
                           {e.workspace && e.workspace_id && <Link href={`/admin/customers/${e.workspace_id}`} className="mt-0.5 inline-block text-[13px] font-medium text-[#4A33B0]">{e.workspace}</Link>}
                         </span>
-                        <span className="whitespace-nowrap text-xs text-[#5B6472]">{time(e.ts)}</span>
+                        <span className="whitespace-nowrap text-xs text-[#5B6472]">{fmtTime(e.ts)}</span>
                       </li>))}
                   </ul>
                 </div>))}

@@ -7,6 +7,7 @@ import { Camera, ClipboardCheck, Gauge, Globe, Mail, MessageSquare, ShieldCheck,
 import { AdminCard, EmptyState, AdminHeader, aBtn, aInput, tones, type Tone } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
+import { fmtWhen } from "@/lib/format";
 
 interface Health {
   services: { name: string; status: string; tone: Tone | "ok" | "warn" | "bad"; detail: string }[];
@@ -21,12 +22,6 @@ const ICONS: Record<string, LucideIcon> = {
 };
 const iconTone = { ok: "bg-[#E3F4EC] text-[#0B7A4B]", warn: "bg-[#FFF1D6] text-[#8A5A00]", bad: "bg-[#FBE7E5] text-[#B3261E]" } as const;
 const dot = { ok: "#0B7A4B", warn: "#8A5A00", bad: "#B3261E" } as const;
-const when = (ts: number) => {
-  const d = new Date(ts * 1000), today = new Date();
-  const t = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return d.toDateString() === today.toDateString() ? `${t} today` : `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${t}`;
-};
-
 export default function AdminHealth() {
   const { data, error, mutate } = useSWR<Health>("/api/admin/health", fetcher, { refreshInterval: 30000 });
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
@@ -75,7 +70,7 @@ export default function AdminHealth() {
         {data.errors.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState Icon={ShieldCheck} title="No errors recorded" text="Problems with checks, email, SMS or payments will be listed here when they happen." /></div>}
         {data.errors.map((e, i) => (
           <div key={i} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#EDEFF3] py-3 text-sm">
-            <span className="w-[130px] shrink-0 text-[13px] text-[#5B6472]">{when(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}
+            <span className="w-[190px] shrink-0 text-[13px] text-[#5B6472]">{fmtWhen(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}
       </AdminCard>
 
       <AdminCard label="Announcement" className="flex flex-col gap-3.5">
