@@ -161,7 +161,7 @@ def blueprint(cfg):
             events.append({"ts": p["created"], "tag": "Payment", "tone": "bad", "title": f"Payment from {p['name']} failed", "sub": f"GHS {p['amount']:,.2f}", "href": f"/admin/customers/{p['workspace_id']}"})
         for m in db.q("SELECT ts, detail FROM admin_audit WHERE action='contact' AND ts>? ORDER BY ts DESC LIMIT 10", (week,)):
             first = (m["detail"] or "").splitlines()[0].replace("From:", "").strip()
-            events.append({"ts": m["ts"], "tag": "Message", "tone": "purple", "title": f"New message from {first.split('<')[0].strip() or 'a visitor'}", "sub": "Contact form", "href": "/admin/audit"})
+            events.append({"ts": m["ts"], "tag": "Message", "tone": "purple", "title": f"New message from {first.split('<')[0].strip() or 'a visitor'}", "sub": "Contact form", "href": "/admin/activity?tab=messages"})
         events.sort(key=lambda e: -e["ts"])
         return jsonify(attention=attention(), events=events[:15])
 
@@ -554,6 +554,62 @@ def blueprint(cfg):
         db.kv_set("announcement", None)
         audit("announcement.clear")
         return jsonify(ok=True)
+
+    @bp.get("/activity")
+    def activity():
+        """One feed of what people did on the platform: accounts, billing, team, websites, admin actions and messages."""
+        kind = request.args.get("type", "all")
+        before = float(request.args.get("before") or time.time() + 1)
+        limit = 60
+        ev = []
+
+        def add(ts, typ, tone, title, detail="", ws_id=None, ws=None):
+            ev.append({"ts": ts, "type": typ, "tone": tone, "title": title, "detail": detail, "workspace_id": ws_id, "workspace": ws})
+
+        want = lambda t: kind in ("all", t)
+        if want("accounts"):
+            for u in db.q("SELECT id, email, first_name, last_name, created, last_login FROM users WHERE created<? ORDER BY created DESC LIMIT ?", (before, limit)):
+                add(u["created"], "accounts", "ok", f"{u['first_name']} {u['last_name']} created an account".strip(), u["email"])
+            for u in db.q("SELECT email, first_name, last_name, last_login FROM users WHERE last_login IS NOT NULL AND last_login<? ORDER BY last_login DESC LIMIT ?", (before, limit)):
+                add(u["last_login"], "accounts", "muted", f"{u['first_name']} {u['last_name']} logged in".strip(), u["email"])
+            for w in db.q("SELECT id, name, created FROM workspaces WHERE created<? ORDER BY created DESC LIMIT ?", (before, limit)):
+                add(w["created"], "accounts", "ok", f"Workspace {w['name']} was created", "", w["id"], w["name"])
+        if want("billing"):
+            for p in db.q("""SELECT p.*, w.name wname FROM payments p JOIN workspaces w ON w.id=p.workspace_id WHERE COALESCE(p.paid,p.created)<? ORDER BY COALESCE(p.paid,p.created) DESC LIMIT ?""", (before, limit)):
+                ok = p["status"] in ("success", "refunded")
+                add(p["paid"] or p["created"], "billing", "ok" if ok else "bad" if p["status"] in ("failed", "abandoned") else "warn",
+                    f"{'Payment of' if ok else 'Payment attempt of'} GHS {p['amount']:,.2f} {'received' if ok else p['status']}", f"{p['plan_id'].title()} plan, {p['cycle']}", p["workspace_id"], p["wname"])
+            for a in db.q("""SELECT a.*, w.name wname FROM admin_audit a LEFT JOIN workspaces w ON w.id=a.workspace_id
+                             WHERE a.action IN ('plan.cancel','plan.lapsed') AND a.ts<? ORDER BY a.ts DESC LIMIT ?""", (before, limit)):
+                add(a["ts"], "billing", "bad" if a["action"] == "plan.lapsed" else "warn", a["detail"], "", a["workspace_id"], a["wname"])
+        if want("team"):
+            for i in db.q("""SELECT i.*, w.name wname, u.first_name FROM invitations i JOIN workspaces w ON w.id=i.workspace_id LEFT JOIN users u ON u.id=i.invited_by
+                             WHERE i.created<? ORDER BY i.created DESC LIMIT ?""", (before, limit)):
+                add(i["created"], "team", "purple", f"{i['first_name'] or 'Someone'} invited {i['email']} as {i['role']}", "", i["workspace_id"], i["wname"])
+                if i["accepted"] and i["accepted"] < before:
+                    add(i["accepted"], "team", "ok", f"{i['email']} joined as {i['role']}", "", i["workspace_id"], i["wname"])
+        if want("websites"):
+            for st in db.q("SELECT s.name, s.url, s.created, s.workspace_id, w.name wname FROM sites s JOIN workspaces w ON w.id=s.workspace_id WHERE s.created<? ORDER BY s.created DESC LIMIT ?", (before, limit)):
+                add(st["created"], "websites", "ok", f"Website {st['url'].split('//')[-1]} was added", st["name"], st["workspace_id"], st["wname"])
+            for st in db.q("""SELECT i.site_id, i.started, i.cause, s.name, s.workspace_id, w.name wname FROM incidents i JOIN sites s ON s.id=i.site_id JOIN workspaces w ON w.id=s.workspace_id
+                              WHERE i.started<? ORDER BY i.started DESC LIMIT ?""", (before, limit)):
+                add(st["started"], "websites", "bad", f"{st['name']} went down", st["cause"] or "", st["workspace_id"], st["wname"])
+        if want("admin"):
+            for a in db.q("""SELECT a.*, u.first_name, w.name wname FROM admin_audit a LEFT JOIN users u ON u.id=a.admin_id LEFT JOIN workspaces w ON w.id=a.workspace_id
+                             WHERE a.action NOT IN ('contact','plan.cancel','plan.lapsed') AND a.ts<? ORDER BY a.ts DESC LIMIT ?""", (before, limit)):
+                who = a["first_name"] or "An admin"
+                title = {"support.start": f"{who} started a support session", "support.stop": f"{who} ended a support session", "support.mode": f"{who} changed the support session",
+                         "note": f"{who} added an internal note", "customer.update": f"{who} updated an account", "payment.link": f"{who} sent a payment link",
+                         "payment.retry": f"{who} retried a payment", "payment.refund": f"{who} refunded a payment", "plans.save": f"{who} changed plans and pricing",
+                         "announcement": f"{who} published a banner", "announcement.clear": f"{who} removed the banner"}.get(a["action"], f"{who}: {a['action']}")
+                add(a["ts"], "admin", "purple", title, a["detail"] if a["action"] != "plans.save" else "", a["workspace_id"], a["wname"])
+        if want("messages"):
+            for m in db.q("SELECT ts, detail FROM admin_audit WHERE action='contact' AND ts<? ORDER BY ts DESC LIMIT ?", (before, limit)):
+                first = (m["detail"] or "").splitlines()[0].replace("From:", "").strip()
+                add(m["ts"], "messages", "purple", f"Message from {first.split('<')[0].strip() or 'a visitor'}", "\n".join((m["detail"] or "").splitlines()[1:])[:300])
+        ev.sort(key=lambda e: -e["ts"])
+        page = ev[:limit]
+        return jsonify(events=page, more=len(ev) > limit, next=page[-1]["ts"] if page else None)
 
     @bp.get("/audit")
     def audit_log():

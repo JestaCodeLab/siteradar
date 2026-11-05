@@ -92,7 +92,7 @@ export default function AdminHealth() {
         </form>
       </AdminCard>
 
-      <p className="text-sm text-[#5B6472]">Also: <Link href="/admin/audit" className="font-semibold text-[#4A33B0]">Audit trail and contact messages</Link></p>
+      <p className="text-sm text-[#5B6472]">Also: <Link href="/admin/activity" className="font-semibold text-[#4A33B0]">Activity logs</Link></p>
     </>
   );
 }
