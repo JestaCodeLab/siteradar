@@ -142,7 +142,7 @@ def _receipt(ws, pay):
     renews = time.strftime("%d %B %Y", time.localtime(ws["plan_renews"]))
     body = (f"<p>Thank you. Your <b>{html.escape(plan['name'])}</b> plan ({pay['cycle']}) is active.</p>"
             f"<p>Amount paid: <b>GHS {pay['amount']:,.2f}</b><br>Reference: {pay['reference']}<br>Next renewal: {renews}</p>")
-    mailer.send(owner["email"], f"Payment received: SiteWatch {plan['name']}",
+    mailer.send(owner["email"], f"Payment received: SiteRadar {plan['name']}",
                 f"Payment of GHS {pay['amount']:,.2f} received for the {plan['name']} plan. Next renewal: {renews}.",
                 mailer.layout("Payment received", body, ("Open billing", app_url() + "/billing")))
 
@@ -197,12 +197,12 @@ def _renew(cfg, ws, now):
         db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)",
                 (now, ws["id"], "plan.lapsed", "Plan lapsed after a failed renewal"))
         sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
-        _notify_owner(ws, "Your SiteWatch plan has ended",
+        _notify_owner(ws, "Your SiteRadar plan has ended",
                       "We could not renew your plan, so your account is now on Free limits. Your data is safe. Upgrade any time to restore it.")
         return
     if left > 0 and ws["paystack_auth"] is None and not db.kv_get(flag):
         db.kv_set(flag, True)
-        _notify_owner(ws, "Your SiteWatch plan renews soon", "Open billing to pay for the next period by card or mobile money.")
+        _notify_owner(ws, "Your SiteRadar plan renews soon", "Open billing to pay for the next period by card or mobile money.")
         return
     if left <= 0 and ws["paystack_auth"] and configured() and not db.kv_get(flag):
         db.kv_set(flag, True)
@@ -216,7 +216,7 @@ def _renew(cfg, ws, now):
         confirm(cfg, ref)
     elif left <= 0 and ws["plan_status"] == "past_due" and not db.kv_get(flag + ":due"):
         db.kv_set(flag + ":due", True)
-        _notify_owner(ws, "Payment needed to keep your SiteWatch plan",
+        _notify_owner(ws, "Payment needed to keep your SiteRadar plan",
                       f"Your plan period has ended. Pay within {GRACE_DAYS} days to keep your plan.")
 
 
@@ -237,7 +237,7 @@ def send_payment_link(ws):
     plan = plans.get(ws["plan_id"])
     body = (f"<p>We could not take payment for your <b>{html.escape(plan['name'])}</b> plan. "
             "Open Billing to pay by card or mobile money and keep your plan.</p>")
-    mailer.send(owner["email"], "Payment needed to keep your SiteWatch plan",
+    mailer.send(owner["email"], "Payment needed to keep your SiteRadar plan",
                 f"We could not take payment for your {plan['name']} plan. Open {app_url()}/settings?tab=billing to pay.",
                 mailer.layout("Payment needed", body, ("Open billing", app_url() + "/settings?tab=billing")))
     return owner["email"]

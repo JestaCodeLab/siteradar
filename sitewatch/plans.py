@@ -79,7 +79,7 @@ def limits(ws):
 def watermark():
     """Text and strength (percent) of the Free plan report watermark, set by the super admin."""
     v = db.kv_get("platform") or {}
-    return {"text": v.get("watermark_text") or "Made with SiteWatch", "strength": int(v.get("watermark_strength", 8))}
+    return {"text": v.get("watermark_text") or "Made with SiteRadar", "strength": int(v.get("watermark_strength", 8))}
 
 
 def check_can_add_site(ws):

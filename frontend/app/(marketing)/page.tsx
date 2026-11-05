@@ -18,7 +18,7 @@ const features = [
 ];
 
 const steps = [
-  { n: "1", title: "Add your websites", text: "Paste the address of each site. SiteWatch starts checking straight away and takes a picture of the homepage." },
+  { n: "1", title: "Add your websites", text: "Paste the address of each site. SiteRadar starts checking straight away and takes a picture of the homepage." },
   { n: "2", title: "Install one line", text: "Optional: paste a tiny script on each site to see visitors and real page speed." },
   { n: "3", title: "Relax, we will tell you", text: "Get alerts when something needs attention and a report at the start of every month." },
 ];
@@ -70,7 +70,7 @@ export default function Home() {
       <Section>
         <div className="mx-auto mb-12 flex max-w-[720px] flex-col gap-3 text-center">
           <h2 className="text-[34px] font-semibold leading-tight">Everything a website can quietly go wrong with, watched in one place</h2>
-          <p className="text-[17px] leading-relaxed text-ink-2">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record is missing. SiteWatch checks all of it every day.</p>
+          <p className="text-[17px] leading-relaxed text-ink-2">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record is missing. SiteRadar checks all of it every day.</p>
         </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {features.map(({ Icon, title, text }) => (
@@ -104,8 +104,8 @@ export default function Home() {
             <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams", "Discord"].map((c) => <span key={c} className="rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-ink">{c}</span>)}</div>
           </div>
           <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-3">
-            <div className="rounded-xl border border-line bg-soft p-4 text-sm"><p className="mb-1 text-xs text-muted">SMS · SiteWatch · 14:02</p>DOWN: shop.example.com has failed 2 checks in a row. We will text you when it is back.</div>
-            <div className="rounded-xl border border-line bg-soft p-4 text-sm"><p className="mb-1 text-xs text-muted">SMS · SiteWatch · 14:21</p>UP: shop.example.com is back after 19 minutes.</div>
+            <div className="rounded-xl border border-line bg-soft p-4 text-sm"><p className="mb-1 text-xs text-muted">SMS · SiteRadar · 14:02</p>DOWN: shop.example.com has failed 2 checks in a row. We will text you when it is back.</div>
+            <div className="rounded-xl border border-line bg-soft p-4 text-sm"><p className="mb-1 text-xs text-muted">SMS · SiteRadar · 14:21</p>UP: shop.example.com is back after 19 minutes.</div>
             <div className="rounded-xl border border-line bg-soft p-4 text-sm"><p className="mb-1 text-xs text-muted">Email · 30 days before expiry</p>Your domain example.com expires on 31 Jan 2027. Renew it with your registrar before then.</div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function Home() {
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-5">
             <h2 className="text-[34px] font-semibold leading-tight">A monthly report your clients will actually read</h2>
-            <p className="text-[17px] leading-relaxed text-ink-2">On the 1st of every month SiteWatch emails a clean PDF for each website: uptime, incidents, speed, visitors, domain and DNS health, and a short list of what to do next, in plain language.</p>
+            <p className="text-[17px] leading-relaxed text-ink-2">On the 1st of every month SiteRadar emails a clean PDF for each website: uptime, incidents, speed, visitors, domain and DNS health, and a short list of what to do next, in plain language.</p>
             <ul className="flex flex-col gap-3 text-[15px]">
               {["Send it to your client, your team, or both", "Your company logo on every report, and no watermark on paid plans", "Track domains, hosting and tool subscriptions with their invoices"].map((t) => <li key={t} className="flex gap-3"><span className="mt-2 size-2 shrink-0 rounded-full bg-ok" />{t}</li>)}
             </ul>

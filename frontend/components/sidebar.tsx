@@ -77,7 +77,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
         className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <Link href="/overview" onClick={onClose} className="flex items-center gap-2.5 px-2">
           <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#2f6bff]"><Icon.pulse /></span>
-          <span className="text-[17px] font-semibold text-white">SiteWatch</span>
+          <span className="text-[17px] font-semibold text-white">SiteRadar</span>
         </Link>
 
         <WorkspaceSwitcher onClose={onClose} />

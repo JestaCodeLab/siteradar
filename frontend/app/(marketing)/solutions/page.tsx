@@ -11,7 +11,7 @@ const audiences: { reverse: boolean; tag: string; title: string; text: string; p
     points: ["One workspace for all client sites, with team access and read-only viewers for clients", "Your logo on every monthly PDF report, with no watermark on paid plans", "Per-site alert recipients, so the right person hears first"],
     rows: [["Client A · shop.example.com", "Responding in 1.1 s · SSL 74 days", "g", "Up"], ["Client B · studio.example.org", "Domain expires in 21 days", "w", "Renew"], ["Client C · clinic.example.com", "DMARC record missing", "b", "Fix"]] },
   { reverse: true, tag: "Businesses and online shops", title: "Catch problems before they cost you a sale",
-    text: "A slow page, an expired certificate or a broken checkout loses customers quietly. SiteWatch watches your site around the clock and tells you in plain words what to fix first.",
+    text: "A slow page, an expired certificate or a broken checkout loses customers quietly. SiteRadar watches your site around the clock and tells you in plain words what to fix first.",
     points: ["Text message when the site goes down, and again when it is back", "Speed scores for phones and desktops, with the biggest improvements listed", "Visitor numbers and top pages without cookies or banners"],
     rows: [["Uptime this month", "99.97% with 1 short incident", "g", "Healthy"], ["Mobile speed", "Largest content takes 4.6 s to appear", "w", "Slow"], ["Sitemap", "553 pages listed, none broken", "g", "Good"]] },
   { reverse: false, tag: "Churches, schools and organisations", title: "A website that is always there for the people who rely on it",

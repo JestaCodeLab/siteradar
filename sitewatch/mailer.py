@@ -18,7 +18,7 @@ def configured():
 
 
 def sender():
-    return os.environ.get("MAIL_FROM") or "SiteWatch <onboarding@resend.dev>"
+    return os.environ.get("MAIL_FROM") or "SiteRadar <onboarding@resend.dev>"
 
 
 def send(to, subject, text, html=None, attachments=(), reply_to=None):
@@ -46,7 +46,7 @@ def send(to, subject, text, html=None, attachments=(), reply_to=None):
         return False
 
 
-def layout(heading, body, button=None, footer="You are receiving this because of your SiteWatch account."):
+def layout(heading, body, button=None, footer="You are receiving this because of your SiteRadar account."):
     """Plain, responsive email shell. `body` is already-safe HTML."""
     btn = ""
     if button:
@@ -56,7 +56,7 @@ def layout(heading, body, button=None, footer="You are receiving this because of
     return f"""<!doctype html><html><body style="margin:0;background:#F3F4F6;font-family:Arial,Helvetica,sans-serif;color:#12151C">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:12px;border:1px solid #E2E5EA">
-<tr><td style="padding:28px 32px 8px;font-size:15px;font-weight:700;color:#1F4FD8">SiteWatch</td></tr>
+<tr><td style="padding:28px 32px 8px;font-size:15px;font-weight:700;color:#1F4FD8">SiteRadar</td></tr>
 <tr><td style="padding:0 32px 8px"><h1 style="font-size:22px;margin:8px 0 12px">{_html.escape(heading)}</h1>
 <div style="font-size:15px;line-height:1.6;color:#3F4857">{body}</div>{btn}</td></tr>
 <tr><td style="padding:16px 32px 28px;font-size:12px;color:#8A93A3">{_html.escape(footer)}</td></tr>
@@ -66,6 +66,6 @@ def layout(heading, body, button=None, footer="You are receiving this because of
 def code_email(first_name, code, minutes=15):
     body = (f"<p>Hi {_html.escape(first_name or 'there')}, use this code to verify your email address.</p>"
             f'<p style="font-size:34px;letter-spacing:8px;font-weight:700;font-family:monospace;margin:18px 0;color:#12151C">{code}</p>'
-            f"<p>It expires in {minutes} minutes. If you did not create a SiteWatch account, ignore this email.</p>")
-    return (f"Your SiteWatch code is {code}\n\nIt expires in {minutes} minutes.",
+            f"<p>It expires in {minutes} minutes. If you did not create a SiteRadar account, ignore this email.</p>")
+    return (f"Your SiteRadar code is {code}\n\nIt expires in {minutes} minutes.",
             layout("Verify your email", body))

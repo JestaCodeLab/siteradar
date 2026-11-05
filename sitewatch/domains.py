@@ -9,7 +9,7 @@ import tldextract
 log = logging.getLogger("sitewatch.domains")
 _extract = tldextract.TLDExtract(suffix_list_urls=())      # bundled list, no network call
 _bootstrap = {"ts": 0, "map": {}}
-UA = {"User-Agent": "SiteWatch/1.0 (domain expiry check)", "Accept": "application/rdap+json, application/json"}
+UA = {"User-Agent": "SiteRadar/1.0 (domain expiry check)", "Accept": "application/rdap+json, application/json"}
 
 
 def registrable(url_or_host):

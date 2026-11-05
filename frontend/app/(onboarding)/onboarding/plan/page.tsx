@@ -69,7 +69,7 @@ export default function PlanStep() {
         {plan === "free" ? (
           <div className="min-w-0 flex-[2_1_420px] rounded-2xl border border-line bg-surface p-6">
             <p className="mb-1 text-base font-semibold">Free plan: no card needed</p>
-            <p className="text-[15px] leading-relaxed text-ink-2">One website, email alerts, and a monthly report that carries a light SiteWatch watermark. Upgrade any time from Billing to remove the watermark and add more websites.</p>
+            <p className="text-[15px] leading-relaxed text-ink-2">One website, email alerts, and a monthly report that carries a light SiteRadar watermark. Upgrade any time from Billing to remove the watermark and add more websites.</p>
           </div>
         ) : (
           <div className="min-w-0 flex-[2_1_420px] rounded-2xl border border-line bg-surface p-6">

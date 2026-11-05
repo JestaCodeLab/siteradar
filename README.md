@@ -1,4 +1,4 @@
-# SiteWatch
+# SiteRadar
 
 Self-hosted website monitoring for your own sites and your clients':
 
@@ -29,7 +29,7 @@ WordPress: paste it with a plugin like *WPCode* (Header section). Shopify/Wix/Sq
 
 ## Run it 24/7
 
-Monitoring only works while SiteWatch is running, so host it on an always-on machine — a small VPS (Hetzner, DigitalOcean, TransIP ~€5/month) is plenty for dozens of sites.
+Monitoring only works while SiteRadar is running, so host it on an always-on machine — a small VPS (Hetzner, DigitalOcean, TransIP ~€5/month) is plenty for dozens of sites.
 
 ```bash
 docker build -t sitewatch .
@@ -42,7 +42,7 @@ Put it behind HTTPS (e.g. Caddy: `monitor.yourdomain.com { reverse_proxy localho
 
 ## Database (Postgres)
 
-SiteWatch stores everything in Postgres. Set `DATABASE_URL` (Railway's Postgres plugin provides it) and the
+SiteRadar stores everything in Postgres. Set `DATABASE_URL` (Railway's Postgres plugin provides it) and the
 tables are created on first start. Moving an existing install from SQLite:
 
 ```bash
@@ -89,7 +89,7 @@ Websites are stored in the database; `sites:` in `config.yaml` only seeds the fi
 
 ## Multi-tenant platform (branch `multitenant`)
 
-SiteWatch is now a subscription product: each customer has a workspace with its own websites, subscriptions, team and plan.
+SiteRadar is now a subscription product: each customer has a workspace with its own websites, subscriptions, team and plan.
 
 - **Services on Railway**: web (`python -m sitewatch serve --no-scheduler`), worker (`python -m sitewatch worker`), Postgres. Vercel runs `frontend/`.
 - **Environment**: see `.env.example` (DATABASE_URL, SECRET_KEY, APP_URL, ADMIN_EMAIL/ADMIN_PASSWORD, RESEND_API_KEY, MAIL_FROM, CLOUDINARY_URL, PAYSTACK_SECRET_KEY).

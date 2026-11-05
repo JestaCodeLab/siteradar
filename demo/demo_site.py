@@ -1,4 +1,4 @@
-"""A small fake website with deliberate problems, for testing SiteWatch locally.
+"""A small fake website with deliberate problems, for testing SiteRadar locally.
 
   python demo/demo_site.py 9000          # start it
   touch demo/DOWN                        # make it return 503 (simulate outage)

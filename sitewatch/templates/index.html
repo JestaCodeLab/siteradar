@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SiteWatch</title><meta http-equiv="refresh" content="120">
+<title>SiteRadar</title><meta http-equiv="refresh" content="120">
 {% include "_style.html" %}
 </head><body><div class="wrap">
 <header style="display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap">
-  <div><h1>SiteWatch</h1><div class="muted">{{ sites|length }} website{{ 's' if sites|length != 1 }} monitored · checks every {{ cfg.check_interval_minutes }} min</div></div>
+  <div><h1>SiteRadar</h1><div class="muted">{{ sites|length }} website{{ 's' if sites|length != 1 }} monitored · checks every {{ cfg.check_interval_minutes }} min</div></div>
   <div class="small muted">Updated {{ now }}</div>
 </header>
 

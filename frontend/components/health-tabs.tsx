@@ -57,7 +57,7 @@ export function DomainTab({ site }: { site: SiteDetail }) {
       {d.status !== "ok" && (
         <Card className="flex flex-col gap-2 p-5">
           <CardTitle>Expiry date not available</CardTitle>
-          <p className="text-sm leading-relaxed text-muted">{d.error} Add the renewal date as a subscription instead and SiteWatch will remind you from there.</p>
+          <p className="text-sm leading-relaxed text-muted">{d.error} Add the renewal date as a subscription instead and SiteRadar will remind you from there.</p>
           <div><Link href={`/subscriptions/new?site=${site.id}`} className={btn.primary}>Add domain subscription</Link></div>
         </Card>
       )}
@@ -119,7 +119,7 @@ export function DnsTab({ id }: { id: string }) {
           info="A score out of 100 for how well the domain's DNS is set up: web records, name servers, and email protection (SPF, DKIM, DMARC). Checks that do not apply, such as email checks on a domain without email, are left out."
           value={dns.score ?? "—"} note={problems ? `${problems} to fix` : "Nothing urgent"} />
         <Tile label="Recent changes" icon={FileText} tone={dns.history.length ? "warn" : "muted"}
-          info="SiteWatch saves the DNS records every night and alerts the team when the web server, name servers, mail servers, SPF or DMARC change. An unexpected change can mean a hijack or a hosting mistake."
+          info="SiteRadar saves the DNS records every night and alerts the team when the web server, name servers, mail servers, SPF or DMARC change. An unexpected change can mean a hijack or a hosting mistake."
           value={dns.history.length} note={dns.history.length ? `Latest ${fmtAgo(dns.history[0].ts)}` : "No changes recorded"} />
       </section>
 
@@ -178,7 +178,7 @@ export function SitemapTab({ id }: { id: string }) {
     <div className="flex flex-col gap-5">
       <section className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
         <Tile label="Pages listed" icon={FileText} info="How many page addresses the sitemap tells search engines about. A sudden drop can mean pages were removed or the sitemap broke." value={s.total.toLocaleString()} note={s.added == null ? "First check" : `+${s.added} / −${s.removed} since last check`} />
-        <Tile label="Pages checked" icon={Link2} info="SiteWatch visits an evenly spread sample of up to 50 pages from the sitemap each night to confirm they load." value={s.checked} note={s.redirects ? `${s.redirects} redirect` + (s.redirects === 1 ? "" : "s") : "No redirects"} />
+        <Tile label="Pages checked" icon={Link2} info="SiteRadar visits an evenly spread sample of up to 50 pages from the sitemap each night to confirm they load." value={s.checked} note={s.redirects ? `${s.redirects} redirect` + (s.redirects === 1 ? "" : "s") : "No redirects"} />
         <Tile label="Pages with errors" icon={TriangleAlert} tone={s.broken.length ? "bad" : "ok"} info="Sampled pages that returned an error or did not answer. Search engines treat these as dead ends, so remove or fix them." value={s.broken.length} note={s.broken.length ? "Need fixing" : "All loaded fine"} />
       </section>
 

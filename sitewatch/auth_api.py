@@ -75,7 +75,7 @@ def blueprint(cfg):
             raise ValueError("Tell us your name and how we can help.")
         to = os.environ.get("CONTACT_TO") or os.environ.get("ADMIN_EMAIL")
         text = f"From: {name} <{email}>\nCompany: {d.get('company') or '-'}\nTopic: {d.get('topic') or '-'}\n\n{message}"
-        ok = mailer.send(to, f"SiteWatch enquiry from {name}", text, reply_to=email) if to else False
+        ok = mailer.send(to, f"SiteRadar enquiry from {name}", text, reply_to=email) if to else False
         db.exec("INSERT INTO admin_audit(ts, action, detail) VALUES (?,?,?)", (time.time(), "contact", text[:2000]))
         return jsonify(sent=True, emailed=ok)
 

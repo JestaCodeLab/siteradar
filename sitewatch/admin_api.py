@@ -452,7 +452,7 @@ def blueprint(cfg):
             for k in ("yearly_discount", "watermark_text", "watermark_strength"):
                 if k in s:
                     cur[k] = s[k] if k == "watermark_text" else float(s[k])
-            cur["watermark_text"] = (cur.get("watermark_text") or "Made with SiteWatch")[:60]
+            cur["watermark_text"] = (cur.get("watermark_text") or "Made with SiteRadar")[:60]
             db.kv_set("platform", cur)
         audit("plans.save", None, json.dumps(d)[:900])
         return jsonify(plans_payload())

@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </section>
         )}
         <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line bg-surface px-4 py-4 text-[13px] text-muted lg:px-6">
-          <span>© {new Date().getFullYear()} SiteWatch. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
           <span>Powered by <span className="font-medium text-ink-2">Upplause Consulting</span></span>
         </footer>
       </div>

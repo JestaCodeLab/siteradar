@@ -41,7 +41,7 @@ export default function NewWebsitePage() {
   return (
     <>
       <Crumbs items={[{ label: "Overview", href: "/overview" }, { label: "Add website" }]} />
-      <PageHeader title="Add website" subtitle="SiteWatch starts checking it right away and takes a picture of the homepage." />
+      <PageHeader title="Add website" subtitle="SiteRadar starts checking it right away and takes a picture of the homepage." />
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-5">
           {atLimit && (

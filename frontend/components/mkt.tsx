@@ -9,7 +9,7 @@ export function Logo({ dark = false }: { dark?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <span className={`flex size-[34px] items-center justify-center rounded-[9px] ${dark ? "bg-[#2f6bff]" : "bg-brand"}`}><Icon.pulse /></span>
-      <span className={`text-[19px] font-semibold ${dark ? "text-white" : ""}`}>SiteWatch</span>
+      <span className={`text-[19px] font-semibold ${dark ? "text-white" : ""}`}>SiteRadar</span>
     </span>
   );
 }
@@ -25,7 +25,7 @@ export function MktHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-4 px-5 lg:px-10">
-        <Link href="/" aria-label="SiteWatch home"><Logo /></Link>
+        <Link href="/" aria-label="SiteRadar home"><Logo /></Link>
         <nav aria-label="Main" className="hidden gap-1 md:flex">
           {links.map((l) => (
             <Link key={l.href} href={l.href} aria-current={path === l.href ? "page" : undefined}
@@ -69,7 +69,7 @@ export function MktFooter() {
           </div>
         </div>
         <div className="flex flex-wrap justify-between gap-x-6 gap-y-2 border-t border-[#222b3d] pt-6 text-sm text-nav-muted">
-          <span>© {new Date().getFullYear()} SiteWatch. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
           <span>Powered by <span className="font-medium text-nav-text">Upplause Consulting</span></span>
         </div>
       </div>

@@ -82,7 +82,7 @@ export default function CompanyStep() {
         </fieldset>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Websites you will monitor" htmlFor="sites"><select id="sites" name="sites" className={input}>{siteCounts.map((c) => <option key={c}>{c}</option>)}</select></Field>
-          <Field label="People who will use SiteWatch" htmlFor="team"><select id="team" name="team" className={input}>{teamSizes.map((c) => <option key={c}>{c}</option>)}</select></Field>
+          <Field label="People who will use SiteRadar" htmlFor="team"><select id="team" name="team" className={input}>{teamSizes.map((c) => <option key={c}>{c}</option>)}</select></Field>
           <Field label="Country" htmlFor="country"><select id="country" name="country" defaultValue={ws?.country ?? "Ghana"} className={input}>{countries.map((c) => <option key={c}>{c}</option>)}</select></Field>
         </div>
         <FormError message={error} />

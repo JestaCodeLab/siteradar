@@ -107,9 +107,9 @@ def send_code(user, purpose, to=None):
            (user["id"], purpose, _hash_code(user["id"], purpose, code), now, now + CODE_MINUTES * 60))
     text, html = mailer.code_email(user["first_name"], code, CODE_MINUTES)
     if purpose == "reset":
-        text = f"Your SiteWatch password reset code is {code}\n\nIt expires in {CODE_MINUTES} minutes."
+        text = f"Your SiteRadar password reset code is {code}\n\nIt expires in {CODE_MINUTES} minutes."
         html = html.replace("Verify your email", "Reset your password")
-    mailer.send(to or user["email"], f"{code} is your SiteWatch code", text, html)
+    mailer.send(to or user["email"], f"{code} is your SiteRadar code", text, html)
 
 
 def check_code(user, purpose, code):
@@ -419,11 +419,11 @@ def send_invite_email(ws, inviter, email, role, token):
     base = os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
     url = f"{base}/invite/{token}"
     who = f"{inviter['first_name']} {inviter['last_name']}".strip()
-    text = (f"{who} invited you to join {ws['name']} on SiteWatch as {role}.\n\nAccept the invitation: {url}\n\n"
+    text = (f"{who} invited you to join {ws['name']} on SiteRadar as {role}.\n\nAccept the invitation: {url}\n\n"
             f"The link works for {INVITE_DAYS} days.")
     import html
-    body = f"<p><b>{html.escape(who)}</b> invited you to join <b>{html.escape(ws['name'])}</b> on SiteWatch as <b>{role}</b>.</p>"
-    mailer.send(email, f"{who} invited you to {ws['name']} on SiteWatch", text,
+    body = f"<p><b>{html.escape(who)}</b> invited you to join <b>{html.escape(ws['name'])}</b> on SiteRadar as <b>{role}</b>.</p>"
+    mailer.send(email, f"{who} invited you to {ws['name']} on SiteRadar", text,
                 mailer.layout("You are invited", body, ("Accept invitation", url)))
 
 

@@ -27,7 +27,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     <div className="min-h-screen bg-bg">
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex min-h-[68px] max-w-[1100px] flex-wrap items-center justify-between gap-4 px-5 py-2">
-          <Link href="/" aria-label="SiteWatch home"><Logo /></Link>
+          <Link href="/" aria-label="SiteRadar home"><Logo /></Link>
           <ol className="flex items-center gap-2 text-sm" aria-label="Progress">
             {steps.map(([k, label], i) => (
               <li key={k} aria-current={i === current ? "step" : undefined} className="flex items-center gap-2">

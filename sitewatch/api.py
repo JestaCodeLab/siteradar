@@ -127,7 +127,7 @@ def blueprint(cfg):
     @bp.post("/settings/test-alert")
     @need("admin")
     def test_alert():
-        ok = alerts.notify(cfg, {"workspace_id": g.ws["id"]}, "SiteWatch test alert", "If you can read this, alerts are working.")
+        ok = alerts.notify(cfg, {"workspace_id": g.ws["id"]}, "SiteRadar test alert", "If you can read this, alerts are working.")
         return jsonify(sent=ok, to=g.ws["alert_emails"]), (200 if ok else 502)
 
     # ---- websites --------------------------------------------------------

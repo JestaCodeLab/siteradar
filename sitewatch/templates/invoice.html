@@ -8,11 +8,11 @@ td{padding:14px 0;border-bottom:1px solid #EDEFF3}.num{text-align:right;font-fam
 </style></head><body>
 <div class="row"><div>{% if logo %}<img src="{{ logo }}" alt="" style="max-height:48px;max-width:200px;margin-bottom:12px;display:block">{% endif %}
 <h1>Invoice</h1><div class="muted">{{ number }}</div></div>
-<div style="text-align:right"><b>SiteWatch</b><div class="muted">Upplause Consulting</div></div></div>
+<div style="text-align:right"><b>SiteRadar</b><div class="muted">Upplause Consulting</div></div></div>
 <div class="row" style="margin-top:32px"><div><div class="muted">Billed to</div><b>{{ company }}</b><div class="muted">{{ email }}</div></div>
 <div style="text-align:right"><div class="muted">Date</div><b>{{ date }}</b><div style="margin-top:8px"><span class="tag">Paid</span></div></div></div>
 <table><tr><th>Description</th><th class="num">Amount</th></tr>
 <tr><td>{{ description }}</td><td class="num">GHS {{ amount }}</td></tr>
 <tr><td style="border:0;text-align:right;font-weight:600">Total paid</td><td class="num" style="border:0;font-weight:700">GHS {{ amount }}</td></tr></table>
-<p class="muted" style="margin-top:40px;font-size:12px">Payment reference {{ reference }}{% if method %} · {{ method }}{% endif %}. Thank you for using SiteWatch.</p>
+<p class="muted" style="margin-top:40px;font-size:12px">Payment reference {{ reference }}{% if method %} · {{ method }}{% endif %}. Thank you for using SiteRadar.</p>
 </body></html>

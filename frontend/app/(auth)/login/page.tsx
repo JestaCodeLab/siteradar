@@ -37,7 +37,7 @@ export default function LoginPage() {
         <FormError message={error} />
         <button type="submit" disabled={busy} className={`${btn.primary} min-h-12 text-[15px]`}>{busy ? "Logging in…" : "Log in"}</button>
       </form>
-      <p className="text-sm text-muted">New to SiteWatch? <Link href="/signup" className="font-semibold text-brand">Create an account</Link></p>
+      <p className="text-sm text-muted">New to SiteRadar? <Link href="/signup" className="font-semibold text-brand">Create an account</Link></p>
     </AuthShell>
   );
 }

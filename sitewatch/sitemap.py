@@ -9,7 +9,7 @@ from urllib.parse import urljoin, urlparse
 import requests
 
 log = logging.getLogger("sitewatch.sitemap")
-UA = {"User-Agent": "Mozilla/5.0 (compatible; SiteWatch-Sitemap/1.0)"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; SiteRadar-Sitemap/1.0)"}
 MAX_URLS = 5000
 SAMPLE = 50
 

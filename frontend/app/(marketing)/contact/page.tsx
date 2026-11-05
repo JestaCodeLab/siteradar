@@ -24,7 +24,7 @@ export default function Contact() {
       <div className="flex flex-wrap gap-x-16 gap-y-12">
         <div className="flex min-w-0 flex-[1_1_380px] flex-col gap-5">
           <h1 className="text-[40px] font-semibold leading-[1.1] lg:text-[48px]">Talk to us</h1>
-          <p className="text-lg leading-relaxed text-ink-2">Questions about plans, migrating many websites, or something you would like SiteWatch to check? Send a message and a person will reply, usually within one working day.</p>
+          <p className="text-lg leading-relaxed text-ink-2">Questions about plans, migrating many websites, or something you would like SiteRadar to check? Send a message and a person will reply, usually within one working day.</p>
           <p className="rounded-xl border border-line bg-surface p-5 text-[15px] leading-relaxed text-ink-2">Already a customer? Log in and write to us from inside your account so we can see your workspace and answer faster.</p>
         </div>
         <div className="min-w-0 flex-[1_1_480px]">

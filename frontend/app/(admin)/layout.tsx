@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside aria-label="Admin" className={`fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col gap-5 bg-[#16122B] px-3.5 py-5 text-sm text-[#CFC8EA] transition-transform lg:translate-x-0 ${menu ? "translate-x-0" : "-translate-x-full"}`}>
         <Link href="/admin" onClick={() => setMenu(false)} className="flex items-center gap-2.5 px-2">
           <span className="flex size-[34px] items-center justify-center rounded-[9px] bg-[#6B4FE0]"><Activity size={20} strokeWidth={2.2} color="#fff" aria-hidden="true" /></span>
-          <span className="flex flex-col"><span className="text-[17px] font-semibold leading-[1.1] text-white">SiteWatch</span>
+          <span className="flex flex-col"><span className="text-[17px] font-semibold leading-[1.1] text-white">SiteRadar</span>
             <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#B6A6FF]">Super admin</span></span>
         </Link>
         <nav aria-label="Admin" className="flex flex-1 flex-col gap-1">
@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <AdminTopbar user={user} env={summary?.env ?? "Production"} onMenu={() => setMenu(true)} />
         <main className="min-w-0 flex-1 p-4 lg:p-6"><div className="mx-auto flex max-w-[1400px] flex-col gap-6">{children}</div></main>
         <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-[#E2E5EA] bg-white px-4 py-4 text-[13px] text-[#5B6472] lg:px-6">
-          <span>© {new Date().getFullYear()} SiteWatch. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
           <span>Powered by <span className="font-medium text-[#3F4857]">Upplause Consulting</span></span>
         </footer>
       </div>

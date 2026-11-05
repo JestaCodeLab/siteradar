@@ -62,13 +62,13 @@ def main(argv=None):
         app = create_app(cfg)
         try:
             from waitress import serve
-            print(f"SiteWatch running on http://{args.host}:{args.port}")
+            print(f"SiteRadar running on http://{args.host}:{args.port}")
             serve(app, host=args.host, port=args.port, threads=8)
         except ImportError:
             app.run(host=args.host, port=args.port, threaded=True)
     elif args.cmd == "worker":
         from .scheduler import Scheduler
-        print("SiteWatch worker running (checks, audits, reports)")
+        print("SiteRadar worker running (checks, audits, reports)")
         worker = Scheduler(cfg)
         worker.start()
         worker.join()
@@ -95,7 +95,7 @@ def main(argv=None):
         for site in cfg["sites"]:
             print(f"{site['name']}:\n  <script defer src=\"{cfg['public_url']}/t.js\" data-site=\"{site['id']}\"></script>\n")
     elif args.cmd == "test-alert":
-        ok = alerts.notify(cfg, cfg["sites"][0] if cfg["sites"] else {}, "SiteWatch test alert",
+        ok = alerts.notify(cfg, cfg["sites"][0] if cfg["sites"] else {}, "SiteRadar test alert",
                            "If you can read this, alerts are working.")
         print("Sent." if ok else "No channel delivered the alert — check the alerts section of config.yaml.")
 

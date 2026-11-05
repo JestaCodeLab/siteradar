@@ -79,7 +79,7 @@ export function BillingPanel() {
       {note && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${note.ok ? "bg-ok-soft text-ok" : "bg-bad-soft text-bad"}`}>{note.text}</p>}
       {!ws.plan.clean_reports && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-soft px-5 py-4">
-          <span className="max-w-[760px] text-[15px] leading-relaxed text-brand-ink"><b>Reports on the Free plan carry a light SiteWatch watermark.</b> Upgrade to a paid plan to remove it and to add more websites, team members and alert channels.</span>
+          <span className="max-w-[760px] text-[15px] leading-relaxed text-brand-ink"><b>Reports on the Free plan carry a light SiteRadar watermark.</b> Upgrade to a paid plan to remove it and to add more websites, team members and alert channels.</span>
           <Link href="/pricing" className="inline-flex min-h-11 items-center rounded-lg border border-brand-ink/30 bg-surface px-4 text-sm font-semibold text-brand-ink">Compare plans</Link>
         </div>
       )}
@@ -90,8 +90,8 @@ export function BillingPanel() {
           <div className="flex flex-wrap items-baseline gap-2.5"><span className="text-[28px] font-semibold">{ws.plan.name}</span>
             <span className="text-base text-muted">{free ? "GHS 0, for ever" : currentPlan ? `${ghs(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month)} / ${ws.cycle === "yearly" ? "year" : "month"}` : ""}</span></div>
           <p className="text-sm leading-relaxed text-muted">
-            {free ? "One website with email alerts and a monthly report that carries a light SiteWatch watermark."
-              : data.comped ? "Complimentary plan from SiteWatch."
+            {free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark."
+              : data.comped ? "Complimentary plan from SiteRadar."
               : `Billed ${ws.cycle}. Your plan renews on ${fmtDateTs(ws.plan_renews)}.${ws.cycle === "monthly" && currentPlan ? ` Switching to yearly billing would cost ${ghs(yearlyTotal)} a year instead of ${ghs(monthlyYear)}.` : ""}`}</p>
           {!free && !data.comped && isOwner && (
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">

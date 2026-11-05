@@ -21,7 +21,7 @@ export function planFeatures(p: PlanInfo): string[] {
     channelLabel(p),
   ];
   if (p.sms) out.push(`${p.sms} SMS alerts a month`);
-  out.push(p.clean_reports ? "Monthly reports without the watermark" : "Monthly report with a light SiteWatch watermark");
+  out.push(p.clean_reports ? "Monthly reports without the watermark" : "Monthly report with a light SiteRadar watermark");
   out.push("Your logo on every report");
   if (p.client_access) out.push("Read-only viewer access for clients");
   out.push(`${p.history_months} month${p.history_months === 1 ? "" : "s"} of history`);

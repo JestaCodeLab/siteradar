@@ -12,7 +12,7 @@ const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth:
 const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 
 const faq = [
-  ["Is the Free plan really free?", "Yes, for ever, with no card. It covers one website with email alerts and a monthly report. The report carries a light SiteWatch watermark, which disappears on any paid plan."],
+  ["Is the Free plan really free?", "Yes, for ever, with no card. It covers one website with email alerts and a monthly report. The report carries a light SiteRadar watermark, which disappears on any paid plan."],
   ["How do I pay for a paid plan?", "By card or by mobile money through Paystack, at the time you choose the plan. Cards renew automatically. With mobile money we email you a payment link before each renewal, which you approve on your phone."],
   ["How much do I save by paying yearly?", "Yearly billing is cheaper than paying month by month. You pay once for the year and can switch back to monthly when it renews."],
   ["Can I change plan later?", "Yes, any time from Billing. Upgrades apply straight away. Moving down to Free applies straight away too, and websites above the Free limit are paused, not deleted."],

@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 from . import db
 
 log = logging.getLogger("sitewatch.audit")
-UA = "Mozilla/5.0 (compatible; SiteWatch-Audit/1.0)"
+UA = "Mozilla/5.0 (compatible; SiteRadar-Audit/1.0)"
 SEVERITY_WEIGHT = {"high": 15, "medium": 7, "low": 3}
 CATEGORIES = ["SEO", "Performance", "Security", "Accessibility", "Best practices"]
 

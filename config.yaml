@@ -1,4 +1,4 @@
-# SiteWatch platform config. Secrets and per-environment values come from environment variables (see .env.example).
+# SiteRadar platform config. Secrets and per-environment values come from environment variables (see .env.example).
 public_url: https://api.monitor.upplauseconsulting.com     # where this API is reachable (tracking script, logo URLs)
 
 data_dir: data

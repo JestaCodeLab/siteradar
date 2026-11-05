@@ -23,7 +23,7 @@ export default function DoneStep() {
         <p className="text-[16px] leading-relaxed text-ink-2">
           {ws ? <>Your workspace <b>{ws.name}</b> is on the <b>{ws.plan.name}</b> plan. {paid
             ? <>Your plan renews on {ws.plan_renews ? new Date(ws.plan_renews * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "its next date"}. We emailed your receipt.</>
-            : "Reports carry a light SiteWatch watermark. You can upgrade any time from Billing."}</> : "Setting up your workspace…"}
+            : "Reports carry a light SiteRadar watermark. You can upgrade any time from Billing."}</> : "Setting up your workspace…"}
         </p>
       </div>
       <Link href="/overview" className="inline-flex min-h-12 items-center rounded-lg bg-brand px-8 text-[15px] font-semibold text-white hover:bg-brand-ink">Go to my dashboard</Link>

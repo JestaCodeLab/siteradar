@@ -32,7 +32,7 @@ def _delta(now, before):
 
 
 def brand(site):
-    """Company name and logo for the report header; plans without clean reports get a small SiteWatch credit."""
+    """Company name and logo for the report header; plans without clean reports get a small SiteRadar credit."""
     ws = accounts.workspace(site.get("workspace_id"))
     if not ws:
         return {"name": "", "logo": None, "watermark": False}
