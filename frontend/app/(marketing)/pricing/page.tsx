@@ -2,22 +2,30 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { CtaBand, Section } from "@/components/mkt";
-import { Icon } from "@/components/ui";
+import { Check } from "lucide-react";
+import { Container, CtaBand, eyebrow, Rings } from "@/components/mkt";
 import type { PlanInfo } from "@/lib/api";
 import { ghs } from "@/lib/me";
-import { channelLabel, planFeatures, priceLine, usePlans } from "@/lib/plans";
+import { usePlans } from "@/lib/plans";
 
+const TAGLINE: Record<string, string> = { free: "Try SiteRadar on one site", starter: "For a small business or freelancer", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
+const CTA: Record<string, string> = { free: "Start free", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
 const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth: "50", scale: "100" };
 const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 
+function bullets(p: PlanInfo): string[] {
+  const out = [`${p.sites} website${p.sites === 1 ? "" : "s"}`, p.members > 1 ? `${p.members} team members` : "Email alerts"];
+  out.push(p.id === "free" ? "Monthly report (watermarked)" : p.id === "starter" ? "Reports with your logo, no watermark" : p.id === "growth" ? "SMS alerts" : "Checks every minute");
+  return out;
+}
+
 const faq = [
-  ["Is the Free plan really free?", "Yes, for ever, with no card. It covers one website with email alerts and a monthly report. The report carries a light SiteRadar watermark, which disappears on any paid plan."],
-  ["How do I pay for a paid plan?", "By card or by mobile money through Paystack, at the time you choose the plan. Cards renew automatically. With mobile money we email you a payment link before each renewal, which you approve on your phone."],
-  ["How much do I save by paying yearly?", "Yearly billing is cheaper than paying month by month. You pay once for the year and can switch back to monthly when it renews."],
-  ["Can I change plan later?", "Yes, any time from Billing. Upgrades apply straight away. Moving down to Free applies straight away too, and websites above the Free limit are paused, not deleted."],
-  ["What happens if I reach my website limit?", "Your existing sites keep running. You will not be able to add another until you upgrade or remove one."],
-  ["What if a renewal payment fails?", "Your plan stays active for 7 days while we ask you to pay. After that the workspace drops to Free limits. Nothing is deleted, and upgrading again restores everything."],
+  ["Is the Free plan really free?", "Yes. It is free for ever and you do not need a card to sign up."],
+  ["Will I get woken up by a blip?", "No. Alerts only fire after two failed checks in a row, and you hear again when the site is back."],
+  ["Do I need a cookie banner for the analytics?", "No. The tracking script is tiny and cookieless, and installing it is optional."],
+  ["Can my clients see their own site?", "Yes. Invite them as read-only viewers, or simply send them the monthly PDF report."],
+  ["How do I pay?", "By card or mobile money through Paystack. Cards renew automatically. With mobile money we email you a payment link before each renewal."],
+  ["What if a renewal payment fails?", "Your plan stays active for 7 days while we ask you to pay. After that the account drops to Free limits. Nothing is deleted, and upgrading again restores everything."],
 ];
 
 export default function Pricing() {
@@ -25,81 +33,70 @@ export default function Pricing() {
   const [yearly, setYearly] = useState(false);
   const plans = cat?.plans ?? [];
   const disc = cat?.yearly_discount ?? 20;
-  const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold ${on ? "bg-brand text-white" : "text-ink-2 hover:bg-soft"}`;
+  const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold ${on ? "bg-[#F97316] text-[#0F172A]" : "text-[#CBD5E1] hover:text-white"}`;
 
-  const rows: [string, (p: PlanInfo) => string][] = [
-    ["Websites", (p) => String(p.sites)], ["Team members", (p) => String(p.members)],
-    ["Check interval", (p) => `${p.interval_minutes} minute${p.interval_minutes === 1 ? "" : "s"}`],
-    ["Alert channels", (p) => (p.channels.includes("chat") ? "Email and chat" : "Email")],
-    ["SMS alerts per month", (p) => (p.sms ? String(p.sms) : "No")],
-    ["Monthly PDF report", (p) => (p.clean_reports ? "Clean" : "Watermarked")], ["Your logo on reports", () => "Yes"],
-    ["Client viewer access", (p) => (p.client_access ? "Yes" : "No")],
-    ["Pages crawled in each audit", (p) => AUDIT_PAGES[p.id] ?? "50"],
-    ["History kept", (p) => `${p.history_months} month${p.history_months === 1 ? "" : "s"}`],
+  const rows: [string, (p: PlanInfo) => string, boolean?][] = [
+    ["Websites", (p) => String(p.sites), true], ["Team members", (p) => String(p.members), true],
+    ["Check frequency", (p) => `Every ${p.interval_minutes} minute${p.interval_minutes === 1 ? "" : "s"}`],
+    ["Email alerts", () => "Included"], ["Chat alerts (Slack, Teams, Discord)", (p) => (p.channels.includes("chat") ? "Included" : "Not included")],
+    ["SMS alerts", (p) => (p.sms ? `${p.sms} a month` : "Not included")],
+    ["Monthly PDF report", (p) => (p.clean_reports ? "Your logo, no watermark" : "Watermarked")],
+    ["Client viewer access", (p) => (p.client_access ? "Included" : "Not included")],
+    ["Pages crawled in each audit", (p) => AUDIT_PAGES[p.id] ?? "50", true], ["History kept", (p) => `${p.history_months} month${p.history_months === 1 ? "" : "s"}`],
     ["Support", (p) => SUPPORT[p.id] ?? "Email"],
   ];
 
   return (
     <>
-      <Section tone="soft" className="!py-14 lg:!py-20">
-        <div className="mx-auto flex max-w-[760px] flex-col items-center gap-5 text-center">
-          <h1 className="text-[44px] font-bold leading-[1.04] tracking-[-0.035em] lg:text-[64px]">Start free, upgrade when you grow</h1>
-          <p className="text-lg leading-relaxed text-ink-2">Prices in Ghana cedis. Every plan includes the same checks and the subscriptions tracker. You choose how many websites and people.</p>
-          <div role="group" aria-label="Billing period" className="mt-2 inline-flex gap-1 rounded-xl border border-line bg-surface p-1">
+      <section className="relative overflow-hidden bg-[#0F172A] text-white">
+        <Rings className="-right-[260px] -top-[180px] size-[900px]" />
+        <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
+          <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
+          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-[-0.035em]">Start free, upgrade when you grow.</h1>
+          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Simple plans in Ghana cedis. The Free plan is free for ever, and no card is needed.</p>
+          <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
-            <button aria-pressed={yearly} onClick={() => setYearly(true)} className={tab(yearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${yearly ? "bg-white/20" : "bg-ok-soft text-ok"}`}>Save {disc}%</span></button>
+            <button aria-pressed={yearly} onClick={() => setYearly(true)} className={tab(yearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${yearly ? "bg-[#0F172A]/15" : "bg-[#F97316]/20 text-[#FDBA74]"}`}>Save {disc}%</span></button>
           </div>
-        </div>
-      </Section>
+        </Container>
+      </section>
 
-      <Section className="!pt-4">
-        <div className="-mt-20 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <Container className="relative -mt-24">
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
           {plans.map((p) => {
-            const popular = p.id === "growth", free = p.price_month === 0;
+            const pop = p.id === "growth", free = p.price_month === 0;
             return (
-              <div key={p.id} className={`relative flex flex-col gap-4 rounded-2xl bg-surface p-6 shadow-sm ${popular ? "border-2 border-brand" : "border border-line"}`}>
-                {popular && <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-white">Most popular</span>}
-                <div><h2 className="text-xl font-bold tracking-[-0.015em]">{p.name}</h2><p className="mt-1 min-h-10 text-sm text-ink-2">{p.tagline}</p></div>
-                <div>
-                  <p className="text-[34px] font-semibold leading-none">{priceLine(p, yearly)} <span className="text-sm font-normal text-muted">{free ? "for ever" : "/ month"}</span></p>
-                  <p className="mt-1.5 text-[13px] text-muted">{free ? "No card needed" : yearly ? `Billed ${ghs(p.price_year)} a year` : "Billed monthly"}</p>
-                </div>
-                <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`}
-                  className={`flex min-h-12 items-center justify-center rounded-lg text-[15px] font-semibold ${popular ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] hover:bg-soft"}`}>
-                  {free ? "Get started free" : `Choose ${p.name}`}
-                </Link>
-                <ul className="flex flex-col gap-2.5 text-sm">{planFeatures(p).map((f) => <li key={f} className="flex gap-2.5"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f}</li>)}</ul>
+              <div key={p.id} className={`flex flex-col gap-4 rounded-[20px] ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] p-[27px] shadow-[0_20px_40px_rgba(124,45,18,0.15)]" : "border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_40px_rgba(15,23,42,0.08)]"}`}>
+                <div className="flex flex-col gap-1"><span className={`text-base font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</span><span className="text-sm text-[#475569]">{TAGLINE[p.id] ?? p.tagline}</span></div>
+                <div><span className="font-mono text-[40px] font-semibold tracking-[-0.03em]">{free ? "GHS 0" : ghs(yearly ? Math.round(p.price_year_month) : p.price_month)}</span><span className="text-[15px] text-[#475569]"> / month</span>
+                  {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">Billed {ghs(p.price_year)} a year</div>}</div>
+                <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold text-[#0F172A] ${pop ? "bg-[#F97316] hover:bg-[#FB923C]" : "border-[1.5px] border-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
+                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{bullets(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
               </div>
             );
           })}
         </div>
-      </Section>
+      </Container>
 
-      <Section tone="soft">
-        <h2 className="mb-8 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Compare the plans</h2>
-        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead><tr className="border-b border-line bg-soft"><th className="px-5 py-3.5"><span className="sr-only">Feature</span></th>{plans.map((p) => <th key={p.id} className="px-5 py-3.5 font-semibold">{p.name}</th>)}</tr></thead>
-            <tbody>{rows.map(([label, fn]) => (
-              <tr key={label} className="border-b border-line-soft last:border-0"><th scope="row" className="px-5 py-3.5 font-medium">{label}</th>{plans.map((p) => <td key={p.id} className="px-5 py-3.5 text-ink-2">{fn(p)}</td>)}</tr>
-            ))}</tbody>
+      <Container className="flex flex-col gap-6 pb-12 pt-24">
+        <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Compare plans</h2>
+        <div className="overflow-x-auto rounded-2xl border border-[#EFE4D8] bg-white">
+          <table className="w-full min-w-[720px] border-collapse text-[15px]">
+            <thead><tr className="bg-[#FFF7ED] text-left"><th scope="col" className="px-5 py-4 font-bold">Feature</th>{plans.map((p) => <th key={p.id} scope="col" className={`px-5 py-4 font-bold ${p.id === "growth" ? "text-[#9A3412]" : ""}`}>{p.name}</th>)}</tr></thead>
+            <tbody>{rows.map(([label, fn, mono]) => (
+              <tr key={label} className="border-t border-[#EFE4D8]"><th scope="row" className="px-5 py-3.5 text-left font-medium">{label}</th>{plans.map((p) => <td key={p.id} className={`px-5 py-3.5 ${mono ? "font-mono" : ""} ${fn(p) === "Not included" ? "text-[#475569]" : ""}`}>{fn(p)}</td>)}</tr>))}</tbody>
           </table>
         </div>
-        <p className="mt-5 text-center text-sm text-muted">Prices are in Ghana cedis. Need more than 50 websites? <Link href="/contact" className="font-semibold text-brand">Talk to us.</Link></p>
-      </Section>
+      </Container>
 
-      <Section>
-        <h2 className="mb-8 text-center text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">Questions</h2>
-        <div className="mx-auto flex max-w-[800px] flex-col gap-3">
-          {faq.map(([q, a]) => (
-            <details key={q} className="group rounded-xl border border-line p-5">
-              <summary className="flex min-h-8 items-center justify-between gap-4 text-base font-semibold">{q}<Icon.chevronDown className="shrink-0 transition-transform group-open:rotate-180" /></summary>
-              <p className="mt-3 text-[15px] leading-relaxed text-ink-2">{a}</p>
-            </details>
-          ))}
+      <Container className="flex flex-wrap gap-12 pb-24 pt-12">
+        <h2 className="min-w-[280px] flex-[1_1_280px] text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Questions</h2>
+        <div className="flex min-w-0 flex-[2_1_520px] flex-col border-b border-[#EFE4D8]">
+          {faq.map(([q, a]) => <div key={q} className="border-t border-[#EFE4D8] py-5"><h3 className="mb-1.5 text-lg font-bold">{q}</h3><p className="text-[#475569]">{a}</p></div>)}
         </div>
-      </Section>
-      <CtaBand title="Start with the Free plan" text="Add your first website in a couple of minutes. Upgrade whenever you need more." />
+      </Container>
+
+      <CtaBand title="Need more than 50 websites?" text="Tell us about your portfolio and we will put a plan together." primary={{ href: "/contact", label: "Contact us" }} />
     </>
   );
 }

@@ -2,41 +2,73 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Icon } from "./ui";
+import { useEffect, useRef, useState } from "react";
+import { Building2, ChevronDown, Menu, Users, X } from "lucide-react";
 import { Logo } from "./logo";
 
 export { Logo } from "./logo";
 
-const links = [
-  { href: "/", label: "Home" }, { href: "/solutions", label: "Solutions" },
-  { href: "/pricing", label: "Pricing" }, { href: "/contact", label: "Contact" },
+/* Marketing palette (the brand kit). The site is always light. */
+export const C = { ink: "#0F172A", slate: "#475569", body: "#334155", orange: "#F97316", burnt: "#C2410C", deep: "#9A3412", soft: "#FFEDD5", cream: "#FFF7ED", page: "#FBF8F4", line: "#EFE4D8" };
+
+export const btnOrange = "inline-flex items-center justify-center rounded-xl bg-[#F97316] px-6 py-[15px] text-base font-bold text-[#0F172A] hover:bg-[#FB923C]";
+export const btnOutlineDark = "inline-flex items-center justify-center rounded-xl border border-[#475569] px-6 py-[15px] text-base font-semibold text-white hover:bg-white/10";
+export const btnOutline = "inline-flex items-center justify-center rounded-xl border-[1.5px] border-[#0F172A] px-6 py-3.5 text-base font-bold text-[#0F172A] hover:bg-[#0F172A] hover:text-white";
+export const eyebrow = "text-[13px] font-bold uppercase tracking-[0.08em]";
+
+const solutions = [
+  { href: "/solutions/agencies", label: "Agencies", Icon: Users, text: "For digital marketing agencies, web development agencies and consultants managing multiple clients." },
+  { href: "/solutions/businesses", label: "Businesses", Icon: Building2, text: "For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence." },
 ];
 
 export function MktHeader() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMenu(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [menu]);
+  const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] ${path === href ? "bg-[#FFEDD5] font-semibold text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
+  const inSolutions = path.startsWith("/solutions");
+
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-surface">
-      <div className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-4 px-5 lg:px-10">
-        <Link href="/" aria-label="SiteRadar home"><Logo height={52} /></Link>
-        <nav aria-label="Main" className="hidden gap-1 md:flex">
-          {links.map((l) => (
-            <Link key={l.href} href={l.href} aria-current={path === l.href ? "page" : undefined}
-              className={`flex min-h-11 items-center rounded-lg px-4 text-[15px] ${path === l.href ? "bg-brand-soft font-semibold text-brand-ink" : "font-medium text-ink-2 hover:bg-soft"}`}>{l.label}</Link>
-          ))}
-        </nav>
-        <div className="hidden items-center gap-2 md:flex">
-          <Link href="/login" className="flex min-h-11 items-center px-4 text-[15px] font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-11 items-center rounded-lg bg-brand px-5 text-[15px] font-semibold text-white hover:bg-brand-hover">Get started free</Link>
+    <header className="sticky top-0 z-30 border-b border-[#EFE4D8] bg-white">
+      <nav aria-label="Main" className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 py-3">
+        <Link href="/" aria-label="SiteRadar home"><Logo height={50} /></Link>
+        <div className="hidden items-center gap-1 md:flex">
+          <Link href="/" className={link("/")}>Home</Link>
+          <div ref={ref} className="relative">
+            <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="true"
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-[15px] ${inSolutions ? "bg-[#FFEDD5] font-semibold text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`}>Solutions<ChevronDown size={16} aria-hidden="true" className={menu ? "rotate-180" : ""} /></button>
+            {menu && (
+              <div className="absolute left-0 top-[calc(100%+8px)] z-30 flex w-[360px] flex-col gap-1 rounded-[14px] border border-[#EFE4D8] bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
+                {solutions.map(({ href, label, Icon, text }) => (
+                  <Link key={href} href={href} onClick={() => setMenu(false)} className="flex gap-3 rounded-[10px] p-3 hover:bg-[#FFF7ED]">
+                    <span className="flex size-10 flex-none items-center justify-center rounded-[10px] bg-[#FFEDD5] text-[#C2410C]"><Icon size={20} aria-hidden="true" /></span>
+                    <span className="flex flex-col gap-0.5"><span className="text-[15px] font-bold text-[#0F172A]">{label}</span><span className="text-[13px] leading-snug text-[#475569]">{text}</span></span>
+                  </Link>))}
+              </div>)}
+          </div>
+          <Link href="/pricing" className={link("/pricing")}>Pricing</Link>
+          <Link href="/contact" className={link("/contact")}>Contact</Link>
         </div>
-        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-soft md:hidden"><Icon.menu /></button>
-      </div>
+        <div className="hidden items-center gap-2.5 md:flex">
+          <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
+          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-[#0F172A] hover:bg-[#FB923C]">Get started free</Link>
+        </div>
+        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#FFF7ED] md:hidden">{open ? <X size={22} /> : <Menu size={22} />}</button>
+      </nav>
       {open && (
-        <div className="flex flex-col gap-1 border-t border-line px-5 py-3 md:hidden">
-          {links.map((l) => <Link key={l.href} href={l.href} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-medium hover:bg-soft">{l.label}</Link>)}
+        <div className="flex flex-col gap-1 border-t border-[#EFE4D8] px-6 py-3 md:hidden">
+          {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
+            <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-medium text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
           <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-11 items-center justify-center rounded-lg bg-brand font-semibold text-white">Get started free</Link>
+          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-[#0F172A]">Get started free</Link>
         </div>
       )}
     </header>
@@ -44,52 +76,63 @@ export function MktHeader() {
 }
 
 export function MktFooter() {
-  const col = "flex min-h-9 items-center text-[15px] hover:text-white";
+  const col = "text-[#CBD5E1] hover:text-white";
   return (
-    <footer className="bg-nav px-5 pb-7 pt-16 text-nav-text lg:px-10">
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-12">
-        <div className="flex flex-wrap justify-between gap-x-16 gap-y-12">
-          <div className="flex max-w-[360px] flex-1 basis-72 flex-col gap-4">
-            <Logo dark />
-            <p className="text-[15px] leading-relaxed">Website monitoring, domain and DNS health, analytics and monthly reports for the people who look after websites.</p>
+    <footer className="bg-[#0F172A] text-[#CBD5E1]">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-12 px-6 pb-8 pt-16">
+        <div className="flex flex-wrap justify-between gap-10">
+          <div className="flex max-w-[360px] flex-col gap-4">
+            <Link href="/" aria-label="SiteRadar home"><Logo dark height={52} /></Link>
+            <p className="text-[15px]">Website monitoring, domain and DNS health, analytics and monthly reports for the people who look after websites.</p>
           </div>
-          <div className="flex flex-wrap gap-x-[72px] gap-y-10">
-            <div className="flex flex-col"><span className="mb-2 text-sm font-semibold text-white">Product</span>
-              <Link href="/solutions" className={col}>Solutions</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started free</Link></div>
-            <div className="flex flex-col"><span className="mb-2 text-sm font-semibold text-white">Company</span>
-              <Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link></div>
-            <div className="flex flex-col"><span className="mb-2 text-sm font-semibold text-white">Account</span>
-              <Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
+          <div className="flex flex-wrap gap-16">
+            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
+              <Link href="/solutions/agencies" className={col}>For agencies</Link><Link href="/solutions/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started free</Link></div>
+            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link></div>
+            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>
         </div>
-        <div className="flex flex-wrap justify-between gap-x-6 gap-y-2 border-t border-[#222b3d] pt-6 text-sm text-nav-muted">
+        <div className="flex flex-wrap justify-between gap-3 border-t border-[#1E293B] pt-6 text-sm text-[#94A3B8]">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <span className="font-medium text-nav-text">Upplause Consulting</span></span>
+          <span>Powered by <b className="text-[#E2E8F0]">Upplause Consulting</b></span>
         </div>
       </div>
     </footer>
   );
 }
 
-export function Section({ children, tone = "plain", className = "" }: { children: React.ReactNode; tone?: "plain" | "soft" | "dark"; className?: string }) {
-  const bg = { plain: "bg-surface", soft: "bg-bg", dark: "bg-nav text-nav-text" }[tone];
-  return <section className={`${bg} px-5 py-16 lg:px-10 lg:py-24 ${className}`}><div className="mx-auto max-w-[1200px]">{children}</div></section>;
-}
-
-export const ctaPrimary = "inline-flex min-h-12 items-center justify-center rounded-lg bg-brand px-6 text-base font-semibold text-white hover:bg-brand-hover";
-export const ctaSecondary = "inline-flex min-h-12 items-center justify-center rounded-lg border border-[#c9cfd8] bg-surface px-6 text-base font-semibold hover:bg-soft";
-
-export function CtaBand({ title, text, secondary }: { title: string; text: string; secondary?: { href: string; label: string } }) {
+/** Decorative radar rings drawn behind dark and orange sections. */
+export function Rings({ className = "", color = "#F97316", opacity = 1 }: { className?: string; color?: string; opacity?: number }) {
   return (
-    <Section tone="dark">
-      <div className="mx-auto flex max-w-[720px] flex-col items-center gap-5 text-center">
-        <h2 className="text-white text-[36px] font-bold leading-[1.1] tracking-[-0.03em] lg:text-[46px]">{title}</h2>
-        <p className="text-[17px] leading-relaxed">{text}</p>
-        <div className="flex flex-wrap justify-center gap-3 pt-2">
-          <Link href="/signup" className={ctaPrimary}>Get started free</Link>
-          {secondary && <Link href={secondary.href} className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#3a4560] px-6 text-base font-semibold text-white hover:bg-nav-active">{secondary.label}</Link>}
-        </div>
-      </div>
-    </Section>
+    <svg viewBox="0 0 800 800" aria-hidden="true" className={`pointer-events-none absolute ${className}`} style={{ opacity }}>
+      <g fill="none" stroke={color} strokeWidth="2"><circle cx="400" cy="400" r="120" strokeOpacity="0.22" /><circle cx="400" cy="400" r="220" strokeOpacity="0.16" /><circle cx="400" cy="400" r="320" strokeOpacity="0.11" /><circle cx="400" cy="400" r="400" strokeOpacity="0.07" /><path d="M400 400L640 160" strokeOpacity="0.25" /></g>
+      <circle cx="560" cy="300" r="6" fill="#FBA23C" fillOpacity="0.7" /><circle cx="250" cy="520" r="5" fill="#F97316" fillOpacity="0.5" /><circle cx="470" cy="640" r="4" fill="#FBA23C" fillOpacity="0.45" />
+    </svg>
   );
 }
+
+export function CtaBand({ title, text, primary, secondary }: { title: string; text: string; primary: { href: string; label: string }; secondary?: { href: string; label: string } }) {
+  return (
+    <section className="bg-white px-6 pb-24">
+      <div className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
+        <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] size-[420px]"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
+        <div className="relative flex max-w-[640px] flex-col gap-2">
+          <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] text-[#0F172A]">{title}</h2>
+          <p className="text-lg text-[#1E293B]">{text}</p>
+        </div>
+        <div className="relative flex flex-wrap gap-3">
+          <Link href={primary.href} className="rounded-xl bg-[#0F172A] px-6 py-4 text-base font-bold text-white hover:bg-[#1E293B]">{primary.label}</Link>
+          {secondary && <Link href={secondary.href} className="rounded-xl border-[1.5px] border-[#0F172A] px-6 py-4 text-base font-bold text-[#0F172A] hover:bg-[#0F172A] hover:text-white">{secondary.label}</Link>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`mx-auto max-w-[1200px] px-6 ${className}`}>{children}</div>;
+}
+
+export const h2 = "text-[clamp(30px,3.6vw,44px)] font-bold leading-[1.1] tracking-[-0.03em]";
+export const card = "flex flex-col gap-2.5 rounded-2xl border border-[#EFE4D8] bg-white p-6";
+export const iconTile = "flex size-11 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#C2410C]";
