@@ -132,6 +132,12 @@ RULES = {
 EXPOSED_PATHS = ["/.git/HEAD", "/.env", "/wp-config.php.bak", "/.DS_Store", "/backup.zip", "/phpinfo.php"]
 
 
+def _plan_pages(cfg, site):
+    from . import accounts, plans
+    ws = accounts.workspace((site or {}).get("workspace_id"))
+    return plans.limits(ws)["audit_pages"] if ws else int(cfg["audit"]["max_pages"])
+
+
 class Auditor:
     def __init__(self, cfg, site):
         self.cfg, self.site = cfg, site
@@ -164,7 +170,7 @@ class Auditor:
 
     # -- crawl ----------------------------------------------------------
     def crawl(self):
-        max_pages = int(self.cfg["audit"]["max_pages"])
+        max_pages = _plan_pages(self.cfg, self.site)
         queue, seen = deque([self.norm(self.base)]), {self.norm(self.base)}
         while queue and len(self.pages) < max_pages:
             url = queue.popleft()

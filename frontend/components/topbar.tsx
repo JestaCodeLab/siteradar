@@ -214,7 +214,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
+      <header className="sticky top-[var(--support-h,0px)] z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
         <button onClick={onMenu} aria-label="Open menu" className={`${iconBtn} lg:hidden`}><Icon.menu /></button>
         <div className="flex-1" />
         <div className="flex items-center gap-1">

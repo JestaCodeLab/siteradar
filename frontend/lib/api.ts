@@ -18,7 +18,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const fetcher = <T,>(path: string) => request<T>(path);
-export const send = <T,>(method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown) =>
+export const send = <T,>(method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown) =>
   request<T>(path, {
     method,
     headers: body === undefined || body instanceof FormData ? undefined : { "Content-Type": "application/json" },
@@ -160,7 +160,7 @@ export interface PlanInfo {
 export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currency: string }
 
 export interface Workspace {
-  id: number; name: string; website: string | null; industry: string | null; size: string | null; country: string | null;
+  id: number; name: string; owner_name?: string | null; website: string | null; industry: string | null; size: string | null; country: string | null;
   phone: string | null; address: string | null; logo_url: string | null; role: Role | null; onboarded: boolean; suspended: boolean;
   plan: { id: string; name: string; sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
@@ -175,6 +175,7 @@ export interface Me {
   workspaces: { id: number; name: string; role: Role; logo_url: string | null }[];
   workspace: Workspace | null;
   support: { until: number; reason: string; mode: "view" | "edit" } | null;
+  announcement: string | null;
 }
 
 export interface TeamData {

@@ -219,6 +219,14 @@ def add_invoice(cfg, sub_id, file_storage, period=None):
         raise ValueError("The PDF is larger than 4 MB.")
     if not data.startswith(b"%PDF"):
         raise ValueError("Only PDF files can be uploaded.")
+    from . import accounts, plans
+    ws_id = db.q1("SELECT workspace_id FROM subscriptions WHERE id=?", (sub_id,))["workspace_id"]
+    ws = accounts.workspace(ws_id)
+    used = db.q1("""SELECT COALESCE(SUM(i.size),0) n FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                    WHERE s.workspace_id=?""", (ws_id,))["n"]
+    cap = plans.limits(ws)["storage_mb"] * 1024 * 1024
+    if used + len(data) > cap:
+        raise plans.LimitError(f"Your plan includes {plans.limits(ws)['storage_mb']} MB of invoice storage and it is full. Upgrade to store more.")
     period = period or dt.date.today().strftime("%Y-%m")
     if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
         raise ValueError("Period must look like 2026-10.")

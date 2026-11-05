@@ -1,32 +1,87 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import useSWR from "swr";
-import { Card, CardTitle, ErrorState, PageHeader, Skeleton, Tile } from "@/components/ui";
-import { fetcher } from "@/lib/api";
-import { fmtAgo } from "@/lib/format";
+import { AdminCard, AdminHeader, aBtn, aInput, tones, type Tone } from "@/components/admin/ui";
+import { ErrorState, Skeleton } from "@/components/ui";
+import { fetcher, send } from "@/lib/api";
 
-interface Health { database: boolean; worker: { last_beat: number | null; ok: boolean; sites: number | null }; checks_last_hour: number; failed_checks_last_hour: number; open_incidents: number;
-  sms_sent_24h: number; sms_wallet: number | null; sms_failed_24h: number; integrations: Record<string, boolean> }
-const names: Record<string, string> = { email: "Email (Resend)", storage: "File storage (Cloudinary)", payments: "Payments (Paystack)", sms: "SMS (FlockText)", pagespeed: "Google PageSpeed" };
+interface Health {
+  services: { name: string; status: string; tone: Tone | "ok" | "warn" | "bad"; detail: string }[];
+  volume: { label: string; value: string; pct: number; tone?: string }[];
+  messages: { k: string; v: string }[];
+  errors: { ts: number; source: string; text: string }[];
+  announcement: { message: string; audience: string } | null;
+}
+const dot = { ok: "#0B7A4B", warn: "#8A5A00", bad: "#B3261E" } as const;
+const when = (ts: number) => {
+  const d = new Date(ts * 1000), today = new Date();
+  const t = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === today.toDateString() ? `${t} today` : `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${t}`;
+};
 
 export default function AdminHealth() {
   const { data, error, mutate } = useSWR<Health>("/api/admin/health", fetcher, { refreshInterval: 30000 });
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
-  if (!data) return <Skeleton className="h-64" />;
-  const dot = (ok: boolean) => <span className={`inline-block size-2.5 rounded-full ${ok ? "bg-ok" : "bg-bad"}`} />;
+  if (!data) return <Skeleton className="h-96" />;
+
+  async function publish(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = new FormData(e.currentTarget); setNote(null);
+    try { await send("POST", "/api/admin/announcement", { message: f.get("message"), audience: f.get("audience") }); await mutate(); setNote({ ok: true, text: "Banner published. Customers see it at the top of their dashboard." }); (e.target as HTMLFormElement).reset(); }
+    catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not publish." }); }
+  }
+  async function clear() { await send("DELETE", "/api/admin/announcement"); await mutate(); setNote({ ok: true, text: "Banner removed." }); }
+
   return (
     <>
-      <PageHeader title="Platform health" subtitle="Is the machinery that monitors your customers' websites working?" />
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="flex items-center gap-4 p-5">{dot(data.database)}<div><p className="font-semibold">Database</p><p className="text-sm text-muted">{data.database ? "Reachable" : "Not reachable"}</p></div></Card>
-        <Card className="flex items-center gap-4 p-5">{dot(data.worker.ok)}<div><p className="font-semibold">Monitoring worker</p>
-          <p className="text-sm text-muted">{data.worker.last_beat ? `Last heartbeat ${fmtAgo(data.worker.last_beat)} · ${data.worker.sites ?? 0} sites` : "No heartbeat yet. Is the worker service running?"}</p></div></Card>
+      <AdminHeader title="Platform health" subtitle="Is the machinery that monitors your customers' websites working?" />
+      <section aria-label="Services" className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+        {data.services.map((s) => (
+          <div key={s.name} className="flex flex-col gap-2 rounded-xl border border-[#E2E5EA] bg-white p-[18px]">
+            <div className="flex items-center justify-between gap-2"><span className="text-[15px] font-semibold">{s.name}</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px] text-xs font-semibold ${tones[s.tone as Tone]}`}><span style={{ background: dot[s.tone as keyof typeof dot] }} className="size-2 rounded-full" />{s.status}</span></div>
+            <span className="text-[13px] leading-snug text-[#5B6472]">{s.detail}</span>
+          </div>))}
+      </section>
+
+      <div className="flex flex-wrap items-stretch gap-5">
+        <AdminCard label="Checks" className="flex min-w-0 flex-[1.4_1_420px] flex-col gap-4">
+          <h2 className="text-lg font-semibold">Monitoring volume</h2>
+          {data.volume.map((v) => (
+            <div key={v.label} className="flex flex-col gap-1.5"><div className="flex justify-between text-sm"><span>{v.label}</span><span className="font-mono font-medium">{v.value}</span></div>
+              <div className="h-2 rounded bg-[#E8EBF0]"><div className="h-2 rounded" style={{ width: `${Math.max(v.pct > 0 ? 2 : 0, v.pct)}%`, background: v.tone === "warn" ? "#E5A526" : "#6B4FE0" }} /></div></div>))}
+        </AdminCard>
+        <AdminCard label="Messages sent" className="min-w-0 flex-[1_1_300px]">
+          <h2 className="mb-3 text-lg font-semibold">Messages sent today</h2>
+          <dl className="flex flex-col">{data.messages.map((m) => <div key={m.k} className="flex justify-between gap-4 border-t border-[#EDEFF3] py-3 text-sm first:border-0"><dt className="text-[#5B6472]">{m.k}</dt><dd className="font-mono font-medium">{m.v}</dd></div>)}</dl>
+        </AdminCard>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Tile label="Checks, last hour" value={data.checks_last_hour} /><Tile label="Failed checks, last hour" value={data.failed_checks_last_hour} />
-        <Tile label="Open incidents" value={data.open_incidents} /><Tile label="FlockText credits left" value={data.sms_wallet ?? "—"} note={data.sms_wallet === null ? "Not connected" : data.sms_wallet < 200 ? "Top up soon" : undefined} tone={data.sms_wallet !== null && data.sms_wallet < 200 ? "warn" : "muted"} /><Tile label="SMS sent / failed (24h)" value={`${data.sms_sent_24h} / ${data.sms_failed_24h}`} tone={data.sms_failed_24h ? "warn" : "muted"} /></div>
-      <Card className="p-5"><CardTitle>Integrations</CardTitle>
-        <ul className="flex flex-col">{Object.entries(data.integrations).map(([k, on]) => <li key={k} className="flex items-center justify-between border-t border-line-soft py-3 text-sm first:border-0"><span>{names[k] ?? k}</span><span className="flex items-center gap-2">{dot(on)}{on ? "Connected" : "Not configured"}</span></li>)}</ul></Card>
+
+      <AdminCard label="Recent errors" className="!pb-2">
+        <h2 className="mb-2 text-lg font-semibold">Recent errors</h2>
+        {data.errors.length === 0 && <p className="border-t border-[#EDEFF3] py-6 text-sm text-[#5B6472]">No errors recorded. Good.</p>}
+        {data.errors.map((e, i) => (
+          <div key={i} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#EDEFF3] py-3 text-sm">
+            <span className="w-[130px] shrink-0 text-[13px] text-[#5B6472]">{when(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}
+      </AdminCard>
+
+      <AdminCard label="Announcement" className="flex flex-col gap-3.5">
+        <h2 className="text-lg font-semibold">Message all customers</h2>
+        <p className="text-sm text-[#5B6472]">Shows as a banner at the top of every dashboard. Use it for planned maintenance or news.</p>
+        {data.announcement && <p className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#EFEAFF] px-4 py-3 text-sm text-[#4A33B0]"><span><b>Live now:</b> {data.announcement.message} <span className="opacity-70">({data.announcement.audience})</span></span><button onClick={clear} className="font-semibold underline">Remove</button></p>}
+        {note && <p role="status" className={`rounded-lg px-4 py-3 text-sm ${note.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{note.text}</p>}
+        <form onSubmit={publish} className="flex flex-col gap-4">
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-[3_1_320px] flex-col gap-2"><label htmlFor="msg" className="text-sm font-medium">Message</label><input id="msg" name="message" required maxLength={300} placeholder="Planned maintenance on Saturday 14 Nov, 02:00 to 03:00" className={aInput} /></div>
+            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="aud" className="text-sm font-medium">Show to</label><select id="aud" name="audience" className={aInput}><option value="everyone">Everyone</option><option value="paying">Paying customers</option><option value="free">Free plan only</option></select></div>
+          </div>
+          <div><button className={aBtn.primary}>Publish banner</button></div>
+        </form>
+      </AdminCard>
+
+      <p className="text-sm text-[#5B6472]">Also: <Link href="/admin/audit" className="font-semibold text-[#4A33B0]">Audit trail and contact messages</Link></p>
     </>
   );
 }

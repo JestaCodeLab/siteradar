@@ -13,7 +13,7 @@ const cols = "grid grid-cols-[minmax(210px,2fr)_96px_minmax(250px,2.4fr)_92px_92
 const mono = "font-mono text-sm";
 
 export default function OverviewPage() {
-  const { canWrite } = useMe();
+  const { canWrite, me } = useMe();
   const { data, error, mutate, isLoading } = useSWR<SitesResponse>("/api/sites", fetcher, { refreshInterval: 60000 });
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
@@ -24,7 +24,9 @@ export default function OverviewPage() {
       <PageHeader
         title="Overview"
         subtitle={s ? `${s.total} sites monitored · last check ${fmtAgo(s.latest_check)} · checks run every ${s.check_interval_minutes} minutes` : "Loading…"}
-        actions={canWrite ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : undefined}
+        actions={canWrite ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : (
+          <div className="flex flex-col items-end gap-1"><span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>
+            <span className="text-xs text-muted">{me?.support ? "Disabled in view-only mode" : "View-only access"}</span></div>)}
       />
 
       <section aria-label="Summary" className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-4">

@@ -208,6 +208,7 @@ def _ws(r):
         w[f] = json.loads(w.get(f) or "[]")
     for f in ("onboarded", "suspended", "comped"):
         w[f] = bool(w[f])
+    w["limits_override"] = json.loads(w.get("limits_override") or "{}")
     return w
 
 
@@ -265,14 +266,19 @@ def update_workspace(ws_id, data):
     return workspace(ws_id)
 
 
+def _owner_name(ws):
+    o = user_by_id(ws["owner_id"]) if ws.get("owner_id") else None
+    return f"{o['first_name']} {o['last_name']}".strip() if o else None
+
+
 def public_workspace(ws, role=None):
     plan = plans.limits(ws)
     u = plans.usage(ws["id"])
     return {
-        "id": ws["id"], "name": ws["name"], "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
+        "id": ws["id"], "name": ws["name"], "owner_name": _owner_name(ws), "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
         "country": ws["country"], "phone": ws["phone"], "address": ws["address"], "logo_url": ws["logo_url"],
         "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"],
-        "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"],
+        "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
                  "interval_minutes": plan["interval_minutes"], "sms": plan["sms"] + (ws.get("sms_bonus") or 0),
                  "history_months": plan["history_months"], "channels": plan["channels"],
                  "clean_reports": plan["clean_reports"], "client_access": plan["client_access"]},

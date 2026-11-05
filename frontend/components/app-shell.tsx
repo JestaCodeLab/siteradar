@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Eye } from "lucide-react";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { Skeleton } from "./ui";
@@ -14,18 +15,34 @@ function mmss(sec: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function SupportBanner({ until, reason, mode, workspace }: { until: number; reason: string; mode: string; workspace: string }) {
+function SupportBanner({ until, reason, mode, workspace, owner }: { until: number; reason: string; mode: "view" | "edit"; workspace: string; owner: string }) {
   const router = useRouter();
   const { mutate } = useMe();
+  const ref = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(0);
   useEffect(() => { const tick = () => setNow(Date.now() / 1000); const t = setInterval(tick, 1000); const first = setTimeout(tick, 0); return () => { clearInterval(t); clearTimeout(first); }; }, []);
-  const left = now ? until - now : 0;
   useEffect(() => { if (now && until - now <= 0) { mutate().then(() => router.replace("/admin")); } }, [now, until, mutate, router]);
+  // the sidebar and top bar sit below the banner, whatever height it wraps to
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    const set = () => document.documentElement.style.setProperty("--support-h", `${el.offsetHeight}px`);
+    set(); const ro = new ResizeObserver(set); ro.observe(el);
+    return () => { ro.disconnect(); document.documentElement.style.removeProperty("--support-h"); };
+  }, []);
+  const full = mode === "edit";
   async function exit() { await send("POST", "/api/admin/support/stop").catch(() => {}); await mutate(); router.replace("/admin"); }
+  async function toggleMode() { await send("POST", "/api/admin/support/mode", { mode: full ? "view" : "edit" }); await mutate(); }
   return (
-    <div role="status" className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 bg-[#5b3fd1] px-4 py-2.5 text-sm text-white lg:px-6">
-      <span><b>Viewing {workspace}</b> · {mode === "edit" ? "Full access" : "View only"} · Reason: {reason} · ends in {now ? mmss(left) : "…"} · the customer is not notified</span>
-      <button onClick={exit} className="min-h-9 rounded-lg bg-white/15 px-3.5 font-semibold hover:bg-white/25">Exit session</button>
+    <div ref={ref} role="status" style={{ background: full ? "#8A5A00" : "#4A33B0" }} className="relative z-[60] flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-4 py-2.5 text-white lg:px-6">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold"><Eye size={18} aria-hidden="true" />Viewing {workspace} as {owner}</span>
+        <span className="rounded-full bg-white/[0.18] px-2.5 py-0.5 text-[13px] font-semibold">{full ? "Full access" : "View only"}</span>
+        <span className="text-[13px] opacity-90">Reason: {reason} · session ends in <span className="font-mono">{now ? mmss(until - now) : "…"}</span> · the customer is not notified</span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={toggleMode} className="min-h-11 rounded-lg border border-white/50 px-4 text-[13px] font-semibold hover:bg-white/10">{full ? "Back to view only" : "Switch to full access"}</button>
+        <button onClick={exit} className="min-h-11 rounded-lg bg-white px-[18px] text-[13px] font-semibold text-[#12151C]">Exit session</button>
+      </div>
     </div>
   );
 }
@@ -44,12 +61,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!me?.authenticated || !ws) return <div className="p-8"><Skeleton className="h-10 w-64" /></div>;
   void mutate;
+  const owner = ws.owner_name ?? "the owner";
 
   return (
     <div className="min-h-screen">
+      {me.support && <SupportBanner {...me.support} workspace={ws.name} owner={owner} />}
       <Sidebar open={menu} onClose={() => setMenu(false)} />
       <div className="flex min-h-screen flex-col lg:pl-64">
-        {me.support && <SupportBanner {...me.support} workspace={ws.name} />}
+        {me.announcement && <p role="status" className="bg-[#EFEAFF] px-4 py-2.5 text-sm text-[#4A33B0] lg:px-6">{me.announcement}</p>}
         <Topbar onMenu={() => setMenu(true)} />
         {ws.plan_status === "past_due" && (
           <p role="alert" className="bg-warn-soft px-4 py-2.5 text-sm text-warn lg:px-6">Your last payment did not go through. <Link href="/settings?tab=billing" className="font-semibold underline">Update billing</Link> to keep your {ws.plan.name} plan.</p>
@@ -61,6 +80,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="min-w-0 flex-1 px-4 py-5 lg:px-6">
           <div className="mx-auto flex max-w-[1400px] flex-col gap-5">{children}</div>
         </main>
+        {me.support && (
+          <section aria-label="What this session can do" className="mx-4 mb-5 flex flex-col gap-2 rounded-xl border border-line bg-surface px-6 py-5 lg:mx-6">
+            <h2 className="text-base font-semibold">What this session can do</h2>
+            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-sm leading-relaxed text-ink-2">
+              <li>{me.support.mode === "edit" ? "You can edit websites, subscriptions and settings for this workspace." : "You can look at everything the customer sees. Nothing can be changed."}</li>
+              <li>Passwords, email address, payment method and deleting the workspace are never available in a support session.</li>
+              <li>Every page you open is recorded in the audit trail.</li>
+            </ul>
+          </section>
+        )}
         <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line bg-surface px-4 py-4 text-[13px] text-muted lg:px-6">
           <span>© {new Date().getFullYear()} SiteWatch. All rights reserved.</span>
           <span>Powered by <span className="font-medium text-ink-2">Upplause Consulting</span></span>

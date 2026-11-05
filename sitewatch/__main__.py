@@ -41,6 +41,8 @@ def main(argv=None):
     cfg = load(args.config)
     db.init(cfg)
     storage.init(cfg)
+    from . import errorlog
+    errorlog.install()
     accounts.bootstrap(cfg)
     sites.init(cfg)
 

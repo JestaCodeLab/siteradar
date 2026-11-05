@@ -4,15 +4,26 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
-import { btn, Card, CardTitle, ErrorState, Field, input, PageHeader, Skeleton } from "@/components/ui";
-import { fetcher, send, type Payment, type TeamData, type Workspace } from "@/lib/api";
-import { fmtAgo } from "@/lib/format";
-import { ghs, useMe } from "@/lib/me";
-import { StatusPill, type CustomerRow } from "../page";
+import { Avatar, AdminCard, Pill, aBtn, aInput, money, shortDate, statusTone, whenAgo } from "@/components/admin/ui";
+import { ErrorState, Skeleton } from "@/components/ui";
+import { fetcher, send } from "@/lib/api";
+import { useMe } from "@/lib/me";
+import type { CustomerRow } from "../page";
 
-interface Detail { customer: CustomerRow; workspace: Workspace; notes: string | null; sms_bonus: number; card: string | null; team: Pick<TeamData, "members" | "invites">;
-  payments: Payment[]; sites: { id: string; name: string; url: string; paused: boolean }[]; sms_30d: number; audit: { ts: number; action: string; detail: string }[] }
-
+interface Detail {
+  customer: CustomerRow & { cycle: string; comped: boolean; plan_status: string };
+  limits_override: Record<string, number>; base_limits: Record<string, number>;
+  billing: { k: string; v: string }[]; usage: { label: string; text: string; pct: number }[];
+  sites: { id: string; name: string; url: string; paused: boolean; status: string; last_check: number | null }[];
+  team: { members: { id: number; email: string; first_name: string; last_name: string; role: string }[]; invites: { id: number; email: string }[] };
+  payments: { reference: string; plan_id: string; cycle: string; amount: number; status: string; method: string | null; created: number; paid: number | null; refunded: number | null }[];
+  failed: { ts: number; amount: number; plan_id: string } | null;
+  notes: { ts: number; admin: string; text: string }[]; audit: { ts: number; text: string; tone: string }[];
+  grace_days: number; plans: { id: string; name: string }[];
+}
+type Panel = null | "support" | "plan" | "free" | "limits" | "refund";
+const dot: Record<string, string> = { purple: "#6B4FE0", bad: "#B3261E", ok: "#0B7A4B", muted: "#5B6472" };
+const LIMIT_FIELDS: [string, string][] = [["sites", "Websites"], ["members", "Team members"], ["sms", "SMS per month"], ["interval_minutes", "Check every (min)"], ["history_months", "History (months)"], ["audit_pages", "Audit pages"], ["storage_mb", "Invoice storage (MB)"]];
 const reasons = ["Support request from the customer", "Billing or payment question", "Investigating a bug", "Other"];
 
 export default function CustomerPage() {
@@ -20,80 +31,168 @@ export default function CustomerPage() {
   const router = useRouter();
   const { mutate: refreshMe } = useMe();
   const { data, error, mutate } = useSWR<Detail>(`/api/admin/customers/${id}`, fetcher);
-  const [dialog, setDialog] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [panel, setPanel] = useState<Panel>(null);
+  const [mode, setMode] = useState<"view" | "edit">("view");
+  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
-  const c = data.customer, ws = data.workspace;
+  const c = data.customer;
+  const owner = c.owner;
 
-  async function patch(body: object) { setErr(null); try { await send("PATCH", `/api/admin/customers/${id}`, body); await mutate(); } catch (e) { setErr(e instanceof Error ? e.message : "Could not save."); } }
+  async function run(fn: () => Promise<unknown>, ok?: string) {
+    setBusy(true); setNote(null);
+    try { await fn(); await mutate(); if (ok) setNote({ ok: true, text: ok }); setPanel(null); }
+    catch (e) { setNote({ ok: false, text: e instanceof Error ? e.message : "Something went wrong." }); }
+    setBusy(false);
+  }
+  const patch = (body: object, ok?: string) => run(() => send("PATCH", `/api/admin/customers/${id}`, body), ok);
 
   async function startSupport(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault(); const f = new FormData(e.currentTarget); setBusy(true); setErr(null);
-    try {
-      await send("POST", `/api/admin/customers/${id}/support`, { reason: `${f.get("reason")}: ${f.get("detail")}`, mode: f.get("mode") });
+    e.preventDefault(); const f = new FormData(e.currentTarget);
+    await run(async () => {
+      await send("POST", `/api/admin/customers/${id}/support`, { reason: `${f.get("reason")}: ${f.get("detail")}`, mode });
       await refreshMe(); router.push("/overview");
-    } catch (x) { setErr(x instanceof Error ? x.message : "Could not start the session."); setBusy(false); }
+    });
   }
+
+  const radio = (on: boolean) => `min-h-[72px] rounded-xl p-3 px-4 text-left ${on ? "border-2 border-[#6B4FE0] bg-[#F5F1FF]" : "border border-[#C9CFD8] bg-white"}`;
+  const refundable = data.payments.filter((p) => p.status === "success" && (p.refunded ?? 0) < p.amount);
 
   return (
     <>
-      <div className="text-sm text-muted"><Link href="/admin/customers" className="font-semibold text-brand">Customers</Link> / {c.name}</div>
-      <PageHeader title={c.name} subtitle={<span className="flex flex-wrap items-center gap-2"><span className="capitalize">{c.plan_id} plan</span><StatusPill c={c} />
-        {c.owner && <span>· Owner {c.owner.name} · {c.owner.email}</span>}<span>· joined {fmtAgo(c.created)}</span></span>}
-        actions={<button onClick={() => { setDialog(true); setErr(null); }} className={btn.primary}>Log in as owner</button>} />
-      {err && <p role="alert" className="rounded-lg bg-bad-soft px-4 py-3 text-sm text-bad">{err}</p>}
+      <nav aria-label="Breadcrumb" className="flex gap-2 text-sm text-[#5B6472]"><Link href="/admin/customers" className="font-medium text-[#4A33B0]">Customers</Link><span aria-hidden="true">/</span><span>{c.name}</span></nav>
 
-      {dialog && (
-        <Card className="max-w-2xl p-5">
-          <form onSubmit={startSupport} className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">Support session for {c.name}</h2>
-            <p className="text-sm text-ink-2">You will see exactly what the customer sees, with a purple banner on every page. The session ends after 30 minutes. It is written to the audit trail with your name and reason. The customer is not notified.</p>
-            <Field label="Reason" htmlFor="reason"><select id="reason" name="reason" className={input}>{reasons.map((r) => <option key={r}>{r}</option>)}</select></Field>
-            <Field label="What are you helping with?" hint="required, at least a few words" htmlFor="detail"><input id="detail" name="detail" required minLength={5} className={input} /></Field>
-            <fieldset className="flex flex-col gap-2"><legend className="mb-1 text-sm font-medium">Access</legend>
-              <label className="flex gap-3 rounded-lg border border-[#c9cfd8] p-3 text-sm"><input type="radio" name="mode" value="view" defaultChecked className="mt-1" /><span><b>View only (recommended)</b><br /><span className="text-muted">Look around. Nothing can be changed.</span></span></label>
-              <label className="flex gap-3 rounded-lg border border-[#c9cfd8] p-3 text-sm"><input type="radio" name="mode" value="edit" className="mt-1" /><span><b>Full access</b><br /><span className="text-muted">Can edit websites and settings, as an admin would. Not passwords or payment details.</span></span></label></fieldset>
-            <div className="flex justify-end gap-3"><button type="button" onClick={() => setDialog(false)} className={btn.secondary}>Cancel</button><button disabled={busy} className={btn.primary}>{busy ? "Starting…" : "Start session"}</button></div>
-          </form>
-        </Card>)}
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <Avatar name={c.name} size={56} />
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-2.5"><h1 className="text-[28px] font-semibold">{c.name}</h1><Pill className="!text-[13px]">{c.plan_name}</Pill><Pill tone={statusTone(c.status)} className="!text-[13px]">{c.status}</Pill></div>
+            <span className="text-sm text-[#5B6472]">{owner ? `Owner ${owner.name} · ${owner.email}${owner.phone ? ` · ${owner.phone}` : ""} · ` : ""}joined {shortDate(c.created)}</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          <button onClick={() => setPanel(panel === "support" ? null : "support")} className={aBtn.primary}>Log in as owner</button>
+          <button onClick={() => setPanel(panel === "plan" ? null : "plan")} className={aBtn.secondary}>Change plan</button>
+          <button onClick={() => confirm(c.suspended ? "Reactivate this account?" : "Suspend this account? Monitoring stops and the customer cannot open their data.") && patch({ suspended: !c.suspended })} className={c.suspended ? aBtn.secondary : aBtn.danger}>{c.suspended ? "Reactivate" : "Suspend"}</button>
+        </div>
+      </header>
 
-      {c.plan_status === "past_due" && <p className="rounded-xl bg-warn-soft px-5 py-3.5 text-sm text-warn">Payment is overdue. The workspace keeps working for 7 days after the plan period ends, then drops to Free limits.</p>}
+      {note && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${note.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{note.text}</p>}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Card className="flex flex-col gap-4 p-5"><CardTitle>Plan and billing</CardTitle>
-          <dl className="grid grid-cols-2 gap-y-2 text-sm"><dt className="text-muted">Plan</dt><dd className="capitalize">{ws.plan_id} ({ws.cycle})</dd><dt className="text-muted">Status</dt><dd>{ws.plan_status}</dd>
-            <dt className="text-muted">Renews</dt><dd>{ws.plan_renews ? new Date(ws.plan_renews * 1000).toLocaleDateString("en-GB") : "—"}</dd><dt className="text-muted">Card on file</dt><dd>{data.card ?? "None"}</dd></dl>
-          <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); patch({ plan_id: f.get("plan_id"), cycle: f.get("cycle"), extend_days: Number(f.get("days")) || undefined }); }} className="flex flex-wrap items-end gap-3 border-t border-line pt-4">
-            <Field label="Set plan" htmlFor="plan_id"><select id="plan_id" name="plan_id" defaultValue={ws.plan_id} className={input}>{["free", "starter", "growth", "scale"].map((p) => <option key={p}>{p}</option>)}</select></Field>
-            <Field label="Cycle" htmlFor="cycle"><select id="cycle" name="cycle" defaultValue={ws.cycle} className={input}><option>monthly</option><option>yearly</option></select></Field>
-            <Field label="Free days" hint="optional" htmlFor="days"><input id="days" name="days" type="number" min={1} className={`${input} !w-28`} /></Field>
-            <button className={btn.secondary}>Apply</button></form>
-          <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-            <button onClick={() => patch({ comped: !c.comped })} className={btn.secondary}>{c.comped ? "Remove complimentary" : "Mark complimentary"}</button>
-            <button onClick={() => confirm(c.suspended ? "Reactivate this account?" : "Suspend this account? Monitoring stops and customers cannot sign in to its data.") && patch({ suspended: !c.suspended })} className={c.suspended ? btn.secondary : btn.danger}>{c.suspended ? "Reactivate" : "Suspend"}</button>
-            <form onSubmit={(e) => { e.preventDefault(); patch({ sms_bonus: Number(new FormData(e.currentTarget).get("sms")) }); }} className="flex items-center gap-2"><label htmlFor="sms" className="text-sm">Extra SMS/month</label><input id="sms" name="sms" type="number" min={0} defaultValue={data.sms_bonus} className={`${input} !w-24`} /><button className={btn.secondary}>Set</button></form></div>
-        </Card>
+      {panel === "support" && (
+        <form role="dialog" aria-label="Log in as owner" onSubmit={startSupport} className="flex flex-col gap-[18px] rounded-[14px] border-2 border-[#6B4FE0] bg-white p-[22px]">
+          <div className="flex max-w-[720px] flex-col gap-1"><span className="text-[17px] font-semibold">Log in as {owner?.name ?? "the owner"}</span>
+            <span className="text-sm leading-relaxed text-[#5B6472]">You will see exactly what {owner?.name.split(" ")[0] ?? "they"} see{owner ? "s" : ""}, with a purple banner on every page. The session ends after 30 minutes. It is written to the audit trail with your name and reason. The customer is not notified.</span></div>
+          <div className="flex flex-wrap gap-[18px]">
+            <div className="flex flex-[1_1_220px] flex-col gap-2"><label htmlFor="why" className="text-sm font-medium">Reason</label><select id="why" name="reason" className={aInput}>{reasons.map((r) => <option key={r}>{r}</option>)}</select></div>
+            <div className="flex flex-[2_1_320px] flex-col gap-2"><label htmlFor="what" className="text-sm font-medium">What are you helping with? <span className="text-[#B3261E]">Required</span></label>
+              <input id="what" name="detail" required minLength={5} placeholder="For example: report shows the wrong month" className={aInput} /></div>
+          </div>
+          <div className="flex flex-col gap-2.5"><span id="acc" className="text-sm font-medium">Access</span>
+            <div role="radiogroup" aria-labelledby="acc" className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+              <button type="button" role="radio" aria-checked={mode === "view"} onClick={() => setMode("view")} className={radio(mode === "view")}><span className="block text-[15px] font-semibold">View only (recommended)</span><span className="mt-0.5 block text-[13px] leading-snug text-[#5B6472]">Look around. Nothing can be changed.</span></button>
+              <button type="button" role="radio" aria-checked={mode === "edit"} onClick={() => setMode("edit")} className={radio(mode === "edit")}><span className="block text-[15px] font-semibold">Full access</span><span className="mt-0.5 block text-[13px] leading-snug text-[#5B6472]">Can edit websites and settings. Not passwords, payment details or deleting the workspace.</span></button>
+            </div></div>
+          <div className="flex flex-wrap justify-end gap-2.5"><button type="button" onClick={() => setPanel(null)} className={`${aBtn.secondary} !min-h-[46px] !px-5`}>Cancel</button><button disabled={busy} className={`${aBtn.primary} !min-h-[46px] !px-[22px]`}>{busy ? "Starting…" : "Start session"}</button></div>
+        </form>
+      )}
 
-        <Card className="flex flex-col gap-3 p-5"><CardTitle>Usage</CardTitle>
-          {[["Websites", `${ws.usage.sites} of ${ws.plan.sites}`], ["Team seats", `${ws.usage.seats} of ${ws.plan.members}`], ["SMS this month", `${ws.usage.sms} of ${ws.plan.sms}`], ["SMS, last 30 days", String(data.sms_30d)]].map(([k, v]) => (
-            <div key={k} className="flex justify-between border-t border-line-soft pt-3 text-sm first:border-0 first:pt-0"><span className="text-muted">{k}</span><span className="font-mono">{v}</span></div>))}
-        </Card>
+      {panel === "plan" && (
+        <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); patch({ plan_id: f.get("plan_id"), cycle: f.get("cycle"), extend_days: Number(f.get("days")) || undefined }, "Plan updated."); }}
+          className="flex flex-wrap items-end gap-4 rounded-[14px] border-2 border-[#6B4FE0] bg-white p-[22px]">
+          <label className="flex flex-col gap-1.5 text-sm font-medium">Plan<select name="plan_id" defaultValue={c.plan_id} className={`${aInput} !w-44`}>{data.plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">Billing<select name="cycle" defaultValue={c.cycle} className={`${aInput} !w-36`}><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">Active for (days, optional)<input name="days" type="number" min={1} className={`${aInput} !w-40`} /></label>
+          <button disabled={busy} className={aBtn.primary}>Apply plan</button><button type="button" onClick={() => setPanel(null)} className={aBtn.secondary}>Cancel</button>
+          <p className="w-full text-[13px] text-[#5B6472]">This sets the plan without taking payment. Sites above a lower plan&apos;s limit are paused, not deleted.</p>
+        </form>
+      )}
 
-        <Card className="p-5"><CardTitle>Websites</CardTitle>
-          {data.sites.length === 0 ? <p className="text-sm text-muted">None yet.</p> : <ul className="flex flex-col">{data.sites.map((s) => <li key={s.id} className="flex justify-between gap-3 border-t border-line-soft py-2.5 text-sm first:border-0"><span className="font-semibold">{s.name}</span><span className="truncate font-mono text-muted">{s.url}{s.paused ? " · paused" : ""}</span></li>)}</ul>}</Card>
-        <Card className="p-5"><CardTitle>Team</CardTitle>
-          <ul className="flex flex-col">{data.team.members.map((m) => <li key={m.id} className="flex justify-between gap-3 border-t border-line-soft py-2.5 text-sm first:border-0"><span>{m.first_name} {m.last_name} <span className="text-muted">{m.email}</span></span><span className="capitalize">{m.role}</span></li>)}
-            {data.team.invites.map((i) => <li key={i.id} className="flex justify-between gap-3 border-t border-line-soft py-2.5 text-sm"><span className="text-muted">{i.email}</span><span>invite pending</span></li>)}</ul></Card>
+      {data.failed && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FBE7E5] px-5 py-4">
+          <span className="max-w-[680px] text-sm leading-relaxed text-[#B3261E]"><b>Payment failed on {shortDate(data.failed.ts)}.</b> The workspace keeps working for {data.grace_days} days after the plan period ends, then drops to the Free plan.</span>
+          <span className="flex gap-2">
+            <button disabled={busy} onClick={() => run(() => send("POST", `/api/admin/customers/${id}/payment-link`), "Payment link sent to the owner.")} className="inline-flex min-h-11 items-center rounded-lg border border-[#B3261E] bg-white px-4 text-sm font-semibold text-[#B3261E]">Send payment link</button>
+            <button disabled={busy} onClick={() => run(async () => { const r = await send<{ result: string }>("POST", `/api/admin/customers/${id}/retry-payment`); setNote({ ok: r.result !== "failed", text: r.result === "charged" ? "Payment collected." : r.result === "link" ? "No saved card, so a payment link was emailed instead." : "The charge failed again." }); })} className="inline-flex min-h-11 items-center rounded-lg bg-[#B3261E] px-4 text-sm font-semibold text-white">Retry payment</button></span>
+        </div>
+      )}
 
-        <Card className="p-5"><CardTitle>Internal notes</CardTitle>
-          <form onSubmit={(e) => { e.preventDefault(); patch({ notes: new FormData(e.currentTarget).get("notes") }); }} className="flex flex-col gap-3"><textarea name="notes" rows={4} defaultValue={data.notes ?? ""} aria-label="Internal notes" className={`${input} py-2.5`} /><button className={`${btn.secondary} w-fit`}>Save note</button></form></Card>
-        <Card className="p-5"><CardTitle>Audit trail</CardTitle>
-          {data.audit.length === 0 ? <p className="text-sm text-muted">Nothing recorded yet.</p> : <ul className="flex flex-col">{data.audit.map((a, i) => <li key={i} className="border-t border-line-soft py-2.5 text-sm first:border-0"><span className="font-semibold">{a.action}</span> <span className="text-muted">· {fmtAgo(a.ts)}</span><span className="block text-muted">{a.detail}</span></li>)}</ul>}</Card>
-        <Card className="overflow-x-auto p-5 lg:col-span-2"><CardTitle>Payments</CardTitle>
-          {data.payments.length === 0 ? <p className="text-sm text-muted">No payments.</p> : <table className="w-full min-w-[480px] text-left text-sm"><tbody>{data.payments.map((p) => <tr key={p.reference} className="border-t border-line-soft first:border-0"><td className="py-2.5">{fmtAgo(p.paid ?? p.created)}</td><td className="capitalize">{p.plan_id} · {p.cycle}</td><td className="font-mono">{ghs(p.amount)}</td><td>{p.status}</td><td className="font-mono text-xs text-muted">{p.reference}</td></tr>)}</tbody></table>}</Card>
+      <div className="flex flex-wrap items-stretch gap-5">
+        <AdminCard label="Plan and billing" className="flex min-w-0 flex-[1_1_400px] flex-col gap-3.5">
+          <h2 className="text-lg font-semibold">Plan and billing</h2>
+          <dl className="flex flex-col">{data.billing.map((b) => <div key={b.k} className="flex justify-between gap-4 border-t border-[#EDEFF3] py-2.5 text-sm"><dt className="text-[#5B6472]">{b.k}</dt><dd className="text-right font-medium">{b.v}</dd></div>)}</dl>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setPanel(panel === "free" ? null : "free")} className={aBtn.small}>Give a free period</button>
+            <button onClick={() => setPanel(panel === "limits" ? null : "limits")} className={aBtn.small}>Set custom limits</button>
+            <button onClick={() => setPanel(panel === "refund" ? null : "refund")} className={aBtn.small} disabled={refundable.length === 0}>Issue refund</button>
+            <button onClick={() => patch({ comped: !c.comped }, c.comped ? "Complimentary status removed." : "Marked complimentary.")} className={aBtn.small}>{c.comped ? "Remove complimentary" : "Mark complimentary"}</button>
+          </div>
+          {panel === "free" && (
+            <form onSubmit={(e) => { e.preventDefault(); patch({ free_days: Number(new FormData(e.currentTarget).get("days")) }, "Free period added."); }} className="flex flex-wrap items-end gap-3 rounded-xl bg-[#F5F1FF] p-4">
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Extra days on the current plan<input name="days" type="number" min={1} defaultValue={30} required className={`${aInput} !w-36`} /></label>
+              <button disabled={busy} className={aBtn.primary}>Add days</button></form>)}
+          {panel === "limits" && (
+            <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const o: Record<string, number> = {}; LIMIT_FIELDS.forEach(([k]) => { const v = String(f.get(k) ?? ""); if (v !== "") o[k] = Number(v); }); patch({ limits_override: o }, "Custom limits saved."); }} className="flex flex-col gap-3 rounded-xl bg-[#F5F1FF] p-4">
+              <p className="text-[13px] text-[#5B6472]">Leave a field empty to use the plan&apos;s value (shown as the placeholder).</p>
+              <div className="grid grid-cols-2 gap-3">{LIMIT_FIELDS.map(([k, l]) => <label key={k} className="flex flex-col gap-1 text-[13px] font-medium">{l}<input name={k} type="number" min={0} defaultValue={data.limits_override[k] ?? ""} placeholder={String(data.base_limits[k] ?? "")} className={aInput} /></label>)}</div>
+              <div className="flex gap-2"><button disabled={busy} className={aBtn.primary}>Save limits</button><button type="button" onClick={() => patch({ limits_override: {} }, "Custom limits removed.")} className={aBtn.secondary}>Remove custom limits</button></div></form>)}
+          {panel === "refund" && (
+            <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => send("POST", `/api/admin/customers/${id}/refund`, { reference: f.get("reference"), amount: Number(f.get("amount")) || undefined }), "Refund recorded."); }} className="flex flex-col gap-3 rounded-xl bg-[#F5F1FF] p-4">
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Payment<select name="reference" className={aInput}>{refundable.map((p) => <option key={p.reference} value={p.reference}>{shortDate(p.paid ?? p.created)} · {p.plan_id} · {money(p.amount)}{p.refunded ? ` (${money(p.refunded)} refunded)` : ""}</option>)}</select></label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Amount in GHS (empty refunds what is left)<input name="amount" type="number" step="0.01" min={0} className={`${aInput} !w-48`} /></label>
+              <div><button disabled={busy} className={aBtn.danger}>Refund through Paystack</button></div></form>)}
+        </AdminCard>
+
+        <AdminCard label="Usage" className="flex min-w-0 flex-[1_1_340px] flex-col gap-4">
+          <h2 className="text-lg font-semibold">Usage</h2>
+          {data.usage.map((u) => (
+            <div key={u.label} className="flex flex-col gap-1.5"><div className="flex justify-between text-sm"><span>{u.label}</span><span className="font-semibold">{u.text}</span></div>
+              <div className="h-2 rounded bg-[#E8EBF0]"><div className="h-2 rounded bg-[#6B4FE0]" style={{ width: `${Math.min(100, Math.max(u.pct > 0 ? 3 : 0, u.pct * 100))}%` }} /></div></div>
+          ))}
+        </AdminCard>
+      </div>
+
+      <div className="flex flex-wrap items-stretch gap-5">
+        <AdminCard label="Websites" className="min-w-0 flex-[1_1_400px] !pb-2">
+          <h2 className="mb-2 text-lg font-semibold">Websites</h2>
+          {data.sites.length === 0 && <p className="border-t border-[#EDEFF3] py-6 text-sm text-[#5B6472]">No websites yet.</p>}
+          {data.sites.map((s) => (
+            <div key={s.id} className="flex items-center gap-3 border-t border-[#EDEFF3] py-3.5">
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{s.name}</span><span className="block truncate font-mono text-[13px] text-[#5B6472]">{s.url.split("//")[1]}</span></span>
+              <Pill tone={s.status === "up" ? "ok" : s.status === "down" ? "bad" : "muted"}>{s.status === "up" ? "Up" : s.status === "down" ? "Down" : s.status === "paused" ? "Paused" : "Waiting"}</Pill>
+              <span className="w-[90px] text-right text-[13px] text-[#5B6472]">{s.last_check ? whenAgo(s.last_check) : "—"}</span>
+            </div>
+          ))}
+        </AdminCard>
+        <AdminCard label="Team" className="min-w-0 flex-[1_1_340px] !pb-2">
+          <h2 className="mb-2 text-lg font-semibold">Team</h2>
+          {data.team.members.map((m) => (
+            <div key={m.id} className="flex items-center gap-3 border-t border-[#EDEFF3] py-3.5"><Avatar name={`${m.first_name} ${m.last_name}`} round />
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{m.first_name} {m.last_name}</span><span className="block truncate text-[13px] text-[#5B6472]">{m.email}</span></span>
+              <span className="text-[13px] font-medium capitalize">{m.role}</span></div>))}
+          {data.team.invites.map((i) => <div key={i.id} className="flex justify-between border-t border-[#EDEFF3] py-3.5 text-[13px] text-[#5B6472]"><span>{i.email}</span><span>Invite pending</span></div>)}
+          <div className="border-t border-[#EDEFF3] py-3 text-[13px] text-[#5B6472]">{data.team.members.length + data.team.invites.length} of {c.members_limit} seats used on the {c.plan_name} plan.</div>
+        </AdminCard>
+      </div>
+
+      <div className="flex flex-wrap items-stretch gap-5">
+        <AdminCard label="Internal notes" className="flex min-w-0 flex-[1_1_400px] flex-col gap-3">
+          <h2 className="text-lg font-semibold">Internal notes</h2>
+          <form key={data.notes.length} onSubmit={(e) => { e.preventDefault(); const t = String(new FormData(e.currentTarget).get("text") ?? ""); run(() => send("POST", `/api/admin/customers/${id}/notes`, { text: t })); }} className="flex flex-col gap-3">
+            <label htmlFor="note" className="sr-only">Add a note</label>
+            <textarea id="note" name="text" rows={3} placeholder="Only admins see notes" className="w-full rounded-lg border border-[#C9CFD8] px-3.5 py-3 text-sm" />
+            <div><button disabled={busy} className={`${aBtn.primary}`}>Save note</button></div></form>
+          {data.notes.map((n, i) => <div key={i} className="border-t border-[#EDEFF3] pt-3 text-sm leading-relaxed"><b>{n.admin}</b> · {shortDate(n.ts)}<br />{n.text}</div>)}
+        </AdminCard>
+        <AdminCard label="Audit trail" className="min-w-0 flex-[1_1_340px] !pb-2">
+          <h2 className="mb-2 text-lg font-semibold">Audit trail</h2>
+          {data.audit.map((a, i) => (
+            <div key={i} className="flex gap-3 border-t border-[#EDEFF3] py-3"><span style={{ background: dot[a.tone] ?? dot.muted }} className="mt-1.5 size-2 shrink-0 rounded-full" />
+              <span className="flex-1 text-sm leading-snug">{a.text}</span>
+              <span className="whitespace-nowrap text-xs text-[#5B6472]">{new Date(a.ts * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span></div>))}
+        </AdminCard>
       </div>
     </>
   );

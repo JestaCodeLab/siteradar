@@ -39,6 +39,13 @@ def blueprint(cfg):
         if ws_id:
             session["ws"] = ws_id
 
+    def announcement():
+        a = db.kv_get("announcement")
+        if not a or not g.ws:
+            return None
+        paying = g.ws["plan_id"] != "free"
+        return a["message"] if a["audience"] == "everyone" or (a["audience"] == "paying") == paying else None
+
     def me_payload():
         mine = accounts.memberships(g.user["id"]) if g.user else []
         return {
@@ -46,6 +53,7 @@ def blueprint(cfg):
             "user": accounts.public_user(g.user) if g.user else None,
             "workspaces": [{"id": w["id"], "name": w["name"], "role": w["role"], "logo_url": w["logo_url"]} for w in mine],
             "workspace": accounts.public_workspace(g.ws, g.role) if g.ws else None,
+            "announcement": announcement(),
             "support": {"until": g.impersonating["until"], "reason": g.impersonating["reason"], "mode": g.impersonating["mode"]}
             if g.impersonating else None,
         }

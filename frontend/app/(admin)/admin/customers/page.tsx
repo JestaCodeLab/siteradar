@@ -3,46 +3,75 @@
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, Empty, ErrorState, input, PageHeader, Skeleton } from "@/components/ui";
+import { Avatar, AdminCard, AdminHeader, Pill, TableHead, Tabs, aBtn, aSelect, downloadCsv, shortDate, statusTone } from "@/components/admin/ui";
+import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
-import { fmtAgo } from "@/lib/format";
 
-export interface CustomerRow { id: number; name: string; plan_id: string; plan_status: string; cycle: string; suspended: boolean; comped: boolean; created: number; sites: number; members: number; renews: number | null;
-  owner: { name: string; email: string; last_login: number | null } | null }
-
-export function StatusPill({ c }: { c: Pick<CustomerRow, "suspended" | "plan_status" | "comped"> }) {
-  const [t, cls] = c.suspended ? ["Suspended", "bg-bad-soft text-bad"] : c.plan_status === "past_due" ? ["Past due", "bg-warn-soft text-warn"] : c.plan_status === "lapsed" ? ["Lapsed", "bg-bad-soft text-bad"] : c.comped ? ["Complimentary", "bg-brand-soft text-brand-ink"] : ["Active", "bg-ok-soft text-ok"];
-  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${cls}`}>{t}</span>;
+export interface CustomerRow {
+  id: number; name: string; plan_id: string; plan_name: string; status: string; suspended: boolean; created: number; mrr: number;
+  sites: number; sites_limit: number; members: number; members_limit: number;
+  owner: { name: string; email: string; phone: string; last_login: number | null } | null;
 }
+interface Resp { total: number; page: number; per_page: number; counts: Record<string, number>; customers: CustomerRow[] }
+
+const GRID = "minmax(220px,2fr) minmax(190px,1.6fr) 90px 110px 90px 120px 110px 100px";
+type Tab = "all" | "paid" | "free" | "past_due" | "suspended";
 
 export default function Customers() {
-  const [q, setQ] = useState(""); const [plan, setPlan] = useState(""); const [status, setStatus] = useState(""); const [page, setPage] = useState(1);
-  const qs = new URLSearchParams({ q, plan, status, page: String(page) }).toString();
-  const { data, error, mutate } = useSWR<{ total: number; customers: CustomerRow[] }>(`/api/admin/customers?${qs}`, fetcher);
+  const [tab, setTab] = useState<Tab>("all");
+  const [plan, setPlan] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [page, setPage] = useState(1);
+  const qs = new URLSearchParams({ tab, plan, sort, page: String(page) }).toString();
+  const { data, error, mutate } = useSWR<Resp>(`/api/admin/customers?${qs}`, fetcher, { keepPreviousData: true });
+  const c = data?.counts;
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "all", label: `All (${c?.all ?? 0})` }, { id: "paid", label: `Paying (${c?.paid ?? 0})` }, { id: "free", label: `Free (${c?.free ?? 0})` },
+    { id: "past_due", label: `Past due (${c?.past_due ?? 0})` }, { id: "suspended", label: `Suspended (${c?.suspended ?? 0})` },
+  ];
+
   return (
     <>
-      <PageHeader title="Customers" subtitle="Every workspace on the platform." />
-      <div className="flex flex-wrap gap-3">
-        <input aria-label="Search customers" placeholder="Search by company or owner email" value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} className={`${input} max-w-sm`} />
-        <select aria-label="Plan" value={plan} onChange={(e) => { setPlan(e.target.value); setPage(1); }} className={`${input} !w-40`}><option value="">All plans</option>{["free", "starter", "growth", "scale"].map((p) => <option key={p} value={p}>{p}</option>)}</select>
-        <select aria-label="Status" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className={`${input} !w-40`}><option value="">All statuses</option><option value="active">Active</option><option value="past_due">Past due</option><option value="lapsed">Lapsed</option><option value="suspended">Suspended</option></select>
-      </div>
-      {error ? <ErrorState message={error.message} retry={() => mutate()} /> : !data ? <Skeleton className="h-64" /> : (
-        <Card className="overflow-x-auto">
-          {data.customers.length === 0 ? <Empty title="No customers found" /> : (
-            <table className="w-full min-w-[820px] text-left text-sm">
-              <thead><tr className="border-b border-line bg-soft text-xs uppercase tracking-wide text-muted"><th className="px-5 py-3">Workspace</th><th className="px-5 py-3">Owner</th><th className="px-5 py-3">Plan</th><th className="px-5 py-3">Websites</th><th className="px-5 py-3">Team</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Joined</th></tr></thead>
-              <tbody>{data.customers.map((c) => (
-                <tr key={c.id} className="border-b border-line-soft last:border-0 hover:bg-soft">
-                  <td className="px-5 py-3.5"><Link href={`/admin/customers/${c.id}`} className="font-semibold text-brand">{c.name}</Link></td>
-                  <td className="px-5 py-3.5">{c.owner ? <><span className="block">{c.owner.name}</span><span className="text-muted">{c.owner.email}</span></> : "—"}</td>
-                  <td className="px-5 py-3.5 capitalize">{c.plan_id}</td><td className="px-5 py-3.5 font-mono">{c.sites}</td><td className="px-5 py-3.5 font-mono">{c.members}</td>
-                  <td className="px-5 py-3.5"><StatusPill c={c} /></td><td className="px-5 py-3.5 text-muted">{fmtAgo(c.created)}</td></tr>))}</tbody>
-            </table>)}
-          <div className="flex items-center justify-between px-5 py-3 text-sm text-muted"><span>{data.total} customer{data.total === 1 ? "" : "s"}</span>
-            <span className="flex gap-2"><button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="min-h-10 px-3 font-semibold disabled:opacity-40">Previous</button>
-              <button disabled={page * 25 >= data.total} onClick={() => setPage((p) => p + 1)} className="min-h-10 px-3 font-semibold disabled:opacity-40">Next</button></span></div>
-        </Card>)}
+      <AdminHeader title="Customers" subtitle="Every workspace on the platform."
+        actions={<button onClick={() => downloadCsv(`/api/admin/customers.csv?${qs}`, "customers")} className={aBtn.secondary}>Export CSV</button>} />
+      <section aria-label="Customers" className="overflow-hidden rounded-xl border border-[#E2E5EA] bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E5EA] px-5 py-3.5">
+          <Tabs items={tabs} value={tab} onChange={(t) => { setTab(t); setPage(1); }} />
+          <div className="flex flex-wrap gap-2.5">
+            <select aria-label="Plan" value={plan} onChange={(e) => { setPlan(e.target.value); setPage(1); }} className={aSelect}>
+              <option value="">All plans</option><option value="free">Free</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="scale">Scale</option></select>
+            <select aria-label="Sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className={aSelect}>
+              <option value="newest">Newest first</option><option value="revenue">Highest revenue</option><option value="sites">Most websites</option></select>
+          </div>
+        </div>
+        {error ? <div className="p-5"><ErrorState message={error.message} retry={() => mutate()} /></div> : !data ? <div className="p-5"><Skeleton className="h-64" /></div> : (
+          <>
+            <div className="overflow-x-auto"><div className="min-w-[1040px]">
+              <TableHead template={GRID} cols={["Workspace", "Owner", "Plan", "Websites", "Team", "Status", "MRR", "Joined"]} />
+              {data.customers.length === 0 && <Empty title="No customers found" />}
+              {data.customers.map((r) => (
+                <Link key={r.id} href={`/admin/customers/${r.id}`} style={{ display: "grid", gridTemplateColumns: GRID }} className="min-h-11 items-center gap-4 border-b border-[#EDEFF3] px-5 py-3.5 hover:bg-[#FBFAFF]">
+                  <span className="flex min-w-0 items-center gap-3"><Avatar name={r.name} /><span className="truncate text-[15px] font-semibold">{r.name}</span></span>
+                  <span className="min-w-0"><span className="block truncate text-sm">{r.owner?.name}</span><span className="block truncate text-xs text-[#5B6472]">{r.owner?.email}</span></span>
+                  <span><Pill>{r.plan_name}</Pill></span>
+                  <span className="font-mono text-[13px]">{r.sites} of {r.sites_limit}</span>
+                  <span className="font-mono text-[13px]">{r.members} of {r.members_limit}</span>
+                  <span><Pill tone={statusTone(r.status)}>{r.status}</Pill></span>
+                  <span className="font-mono text-[13px]">GHS {Math.round(r.mrr).toLocaleString()}</span>
+                  <span className="text-[13px] text-[#5B6472]">{shortDate(r.created)}</span>
+                </Link>
+              ))}
+            </div></div>
+            <div className="flex flex-wrap items-center justify-between gap-2.5 px-5 py-3 text-sm text-[#5B6472]">
+              <span>Showing {data.customers.length} of {data.total}</span>
+              <span className="flex gap-2">
+                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className={`${aBtn.secondary} !min-h-10 !px-3.5 !font-normal`}>Previous</button>
+                <button disabled={page * data.per_page >= data.total} onClick={() => setPage((p) => p + 1)} className={`${aBtn.secondary} !min-h-10 !px-3.5 !font-normal`}>Next</button></span>
+            </div>
+          </>
+        )}
+      </section>
     </>
   );
 }
+void AdminCard;

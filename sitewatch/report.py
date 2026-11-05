@@ -36,7 +36,8 @@ def brand(site):
     ws = accounts.workspace(site.get("workspace_id"))
     if not ws:
         return {"name": "", "logo": None, "watermark": False}
-    return {"name": ws["name"], "logo": ws["logo_url"], "watermark": not plans.limits(ws)["clean_reports"]}
+    mark = not plans.limits(ws)["clean_reports"]
+    return {"name": ws["name"], "logo": ws["logo_url"], "watermark": mark, **({"wm": plans.watermark()} if mark else {})}
 
 
 def build(cfg, site, year, month):

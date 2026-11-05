@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site.name }} – Website report {{ period }}</title>
 {% include "_style.html" %}
-</head><body><div class="wrap">
+</head><body>{% if brand.watermark %}<div aria-hidden="true" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden"><span style="font-size:84px;font-weight:700;white-space:nowrap;transform:rotate(-28deg);color:#1F4FD8;opacity:{{ brand.wm.strength / 100 }}">{{ brand.wm.text }}</span></div>{% endif %}<div class="wrap" style="position:relative;z-index:1">
 {% if nav %}<div class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
   <a href="/" class="small" style="margin-right:auto">← All sites</a>
   <form method="post" action="/api/check/{{ site.id }}"><button class="btn ghost">Check now</button></form>
@@ -154,7 +154,7 @@
 <div class="card"><p class="muted">No audit has been run yet.</p></div>
 {% endif %}
 
-<p class="muted small" style="margin-top:36px;text-align:center">{% if brand.watermark %}Made with SiteWatch · {% endif %}Analytics are cookieless and anonymous</p>
+<p class="muted small" style="margin-top:36px;text-align:center">{% if brand.watermark %}{{ brand.wm.text }}. Upgrade to remove this line. · {% elif brand.name %}Prepared by {{ brand.name }} · {% endif %}Analytics are cookieless and anonymous</p>
 
 {% set h = health or {} %}
 {% if h.domain or h.dns or h.sitemap %}

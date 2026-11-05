@@ -105,7 +105,8 @@ def confirm(cfg, reference):
     now = time.time()
     base = ws["plan_renews"] if ws["plan_id"] == pay["plan_id"] and ws["plan_renews"] and ws["plan_renews"] > now else now
     auth = data.get("authorization") or {}
-    db.exec("UPDATE payments SET status='success', paid=?, channel=? WHERE id=?", (now, data.get("channel") or "test", pay["id"]))
+    db.exec("UPDATE payments SET status='success', paid=?, channel=?, method=? WHERE id=?",
+            (now, data.get("channel") or "test", method_label(data.get("channel"), auth), pay["id"]))
     if auth.get("reusable") and auth.get("channel") == "card":
         db.exec("UPDATE workspaces SET paystack_auth=?, paystack_email=?, paystack_card=? WHERE id=?",
                 (auth["authorization_code"], (data.get("customer") or {}).get("email"),
@@ -115,6 +116,13 @@ def confirm(cfg, reference):
     switch_plan(cfg, ws, pay["plan_id"], pay["cycle"], base + PERIOD[pay["cycle"]])
     _receipt(accounts.workspace(ws["id"]), pay)
     return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
+
+
+def method_label(channel, auth):
+    if channel == "mobile_money":
+        bank = (auth or {}).get("bank") or ""
+        return {"MTN": "MTN MoMo", "TGO": "Telecel Cash", "ATL": "AirtelTigo Money"}.get(bank.upper(), bank or "Mobile money")
+    return "Card" if channel == "card" else (channel or "Test payment").replace("_", " ").title()
 
 
 def _receipt(ws, pay):
@@ -136,6 +144,7 @@ def webhook(cfg, raw, signature):
     expected = hmac.new(os.environ["PAYSTACK_SECRET_KEY"].encode(), raw, hashlib.sha512).hexdigest()
     if not hmac.compare_digest(expected, signature or ""):
         return False
+    db.kv_set("last_webhook", {"ts": time.time()})
     event = json.loads(raw)
     if event.get("event") == "charge.success":
         ref = (event.get("data") or {}).get("reference")
@@ -152,6 +161,8 @@ def history(ws_id):
 def cancel(cfg, ws):
     """Back to Free straight away. The paid period is not refunded."""
     db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws["id"],))
+    db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)",
+            (time.time(), ws["id"], "plan.cancel", f"Owner cancelled the {ws['plan_id']} plan"))
     switch_plan(cfg, ws, "free", "monthly")
 
 
@@ -174,6 +185,8 @@ def _renew(cfg, ws, now):
         db.exec("UPDATE workspaces SET plan_status='past_due' WHERE id=?", (ws["id"],))
     if left < -GRACE_DAYS * 86400:
         db.exec("UPDATE workspaces SET plan_status='lapsed' WHERE id=?", (ws["id"],))
+        db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)",
+                (now, ws["id"], "plan.lapsed", "Plan lapsed after a failed renewal"))
         sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
         _notify_owner(ws, "Your SiteWatch plan has ended",
                       "We could not renew your plan, so your account is now on Free limits. Your data is safe. Upgrade any time to restore it.")
@@ -203,3 +216,53 @@ def _notify_owner(ws, subject, message):
     if owner:
         mailer.send(owner["email"], subject, message,
                     mailer.layout(subject, f"<p>{html.escape(message)}</p>", ("Open billing", app_url() + "/billing")))
+
+
+# ---- support actions used by the super admin ------------------------------------
+
+def send_payment_link(ws):
+    """Email the owner a link to pay for the current plan."""
+    owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
+    if not owner:
+        raise ValueError("This workspace has no owner to email.")
+    plan = plans.get(ws["plan_id"])
+    body = (f"<p>We could not take payment for your <b>{html.escape(plan['name'])}</b> plan. "
+            "Open Billing to pay by card or mobile money and keep your plan.</p>")
+    mailer.send(owner["email"], "Payment needed to keep your SiteWatch plan",
+                f"We could not take payment for your {plan['name']} plan. Open {app_url()}/settings?tab=billing to pay.",
+                mailer.layout("Payment needed", body, ("Open billing", app_url() + "/settings?tab=billing")))
+    return owner["email"]
+
+
+def retry_payment(cfg, ws):
+    """Charge the saved card again. Without one, send the payment link instead. Returns 'charged', 'failed' or 'link'."""
+    if not (configured() and ws["paystack_auth"]):
+        send_payment_link(ws)
+        return "link"
+    plan, amount = quote(ws["plan_id"], ws["cycle"])
+    ref = "sw_" + secrets.token_hex(10)
+    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
+           (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, "GHS", "pending", "retry", time.time()))
+    try:
+        _call("POST", "/transaction/charge_authorization", json={
+            "authorization_code": ws["paystack_auth"], "email": ws["paystack_email"], "amount": int(round(amount * 100)),
+            "currency": "GHS", "reference": ref})
+    except RuntimeError:
+        db.exec("UPDATE payments SET status='failed' WHERE reference=?", (ref,))
+        return "failed"
+    return "charged" if confirm(cfg, ref)["status"] == "success" else "failed"
+
+
+def refund(reference, amount=None):
+    """Refund a successful payment (all of it unless an amount is given)."""
+    pay = db.q1("SELECT * FROM payments WHERE reference=?", (reference,))
+    if not pay or pay["status"] != "success":
+        raise ValueError("Only a successful payment can be refunded.")
+    amount = round(float(amount or pay["amount"]), 2)
+    if amount <= 0 or amount > pay["amount"] - (pay["refunded"] or 0):
+        raise ValueError("That is more than is left to refund.")
+    if not test_mode():
+        _call("POST", "/refund", json={"transaction": reference, "amount": int(round(amount * 100))})
+    db.exec("UPDATE payments SET refunded=COALESCE(refunded,0)+?, status=? WHERE id=?",
+            (amount, "refunded" if amount >= pay["amount"] - (pay["refunded"] or 0) else "success", pay["id"]))
+    return amount

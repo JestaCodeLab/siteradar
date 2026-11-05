@@ -161,6 +161,20 @@ ALTER TABLE subscriptions ADD COLUMN workspace_id BIGINT;
 CREATE INDEX idx_sites_ws ON sites(workspace_id);
 CREATE INDEX idx_subs_ws ON subscriptions(workspace_id);
 """),
+    (3, """
+ALTER TABLE workspaces ADD COLUMN limits_override TEXT;
+ALTER TABLE plans ADD COLUMN audit_pages INTEGER NOT NULL DEFAULT 50;
+ALTER TABLE plans ADD COLUMN storage_mb INTEGER NOT NULL DEFAULT 100;
+ALTER TABLE plans ADD COLUMN priority_support INTEGER NOT NULL DEFAULT 0;
+UPDATE plans SET audit_pages=10,  storage_mb=10,   priority_support=0 WHERE id='free';
+UPDATE plans SET audit_pages=25,  storage_mb=100,  priority_support=0 WHERE id='starter';
+UPDATE plans SET audit_pages=50,  storage_mb=1024, priority_support=1 WHERE id='growth';
+UPDATE plans SET audit_pages=100, storage_mb=5120, priority_support=1 WHERE id='scale';
+ALTER TABLE payments ADD COLUMN method TEXT;
+ALTER TABLE payments ADD COLUMN refunded DOUBLE PRECISION;
+CREATE TABLE error_log (id BIGSERIAL PRIMARY KEY, ts DOUBLE PRECISION, source TEXT, text TEXT);
+CREATE INDEX idx_error_log_ts ON error_log(ts);
+"""),
 ]
 
 

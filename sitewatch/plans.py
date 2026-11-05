@@ -11,7 +11,7 @@ DEFAULT_DISCOUNT = 20          # yearly billing, percent off; editable by a supe
 def _row(r):
     p = dict(r)
     p["channels"] = json.loads(p["channels"] or "[]")
-    for f in ("clean_reports", "client_access", "active"):
+    for f in ("clean_reports", "client_access", "active", "priority_support"):
         p[f] = bool(p[f])
     return p
 
@@ -62,12 +62,24 @@ def sms_used(ws_id):
     return db.q1("SELECT COUNT(*) n FROM sms_log WHERE workspace_id=? AND ok=1 AND ts>=?", (ws_id, start))["n"]
 
 
+OVERRIDABLE = ("sites", "members", "sms", "interval_minutes", "history_months", "audit_pages", "storage_mb")
+
+
 def limits(ws):
-    """Plan for a workspace row (a suspended or lapsed paid plan falls back to Free)."""
+    """Plan for a workspace row: a lapsed paid plan falls back to Free, and a super admin's custom limits win."""
     plan = get(ws["plan_id"]) or get("free")
     if ws["plan_status"] == "lapsed" and not ws.get("comped"):
         plan = get("free")
+    custom = ws.get("limits_override") or {}
+    if custom:
+        plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}
     return plan
+
+
+def watermark():
+    """Text and strength (percent) of the Free plan report watermark, set by the super admin."""
+    v = db.kv_get("platform") or {}
+    return {"text": v.get("watermark_text") or "Made with SiteWatch", "strength": int(v.get("watermark_strength", 8))}
 
 
 def check_can_add_site(ws):
