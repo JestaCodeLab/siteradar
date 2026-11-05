@@ -85,14 +85,12 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         {ws && (
           <div className="mx-3.5 mt-4 rounded-lg bg-nav-active/50 p-3 text-[13px]">
             <div className="flex items-center justify-between"><span className="font-semibold text-white">{ws.plan.name} plan</span>
-              {isAdmin && ws.plan_id !== "scale" && <Link href="/billing" onClick={onClose} className="font-semibold text-[#8fb0ff]">Upgrade</Link>}</div>
+              {isAdmin && ws.plan_id !== "scale" && <Link href="/settings?tab=billing" onClick={onClose} className="font-semibold text-[#8fb0ff]">Upgrade</Link>}</div>
             <p className="mt-1 text-nav-muted">{ws.usage.sites} of {ws.plan.sites} website{ws.plan.sites === 1 ? "" : "s"} used</p>
           </div>
         )}
         <div className="mt-4 flex flex-col gap-1 border-t border-[#222b3d] px-3.5 py-3.5">
           {user?.is_super && <Link href="/admin" onClick={onClose} className={`${row} ${idle}`}><Icon.shield />Admin area</Link>}
-          <Link href="/team" onClick={onClose} className={`${row} ${is("/team") ? active : idle}`}><Icon.users />Team</Link>
-          {isAdmin && <Link href="/billing" onClick={onClose} className={`${row} ${is("/billing") ? active : idle}`}><Icon.card />Billing</Link>}
           <Link href="/settings" onClick={onClose} className={`${row} ${is("/settings") ? active : idle}`}><Icon.settings />Settings</Link>
           <Link href="/activity" onClick={onClose} className={`${row} ${is("/activity") ? active : idle}`}><Icon.activity />Activity logs</Link>
         </div>

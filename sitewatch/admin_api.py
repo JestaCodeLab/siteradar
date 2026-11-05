@@ -194,6 +194,7 @@ def blueprint(cfg):
             open_incidents=db.q1("SELECT COUNT(*) n FROM incidents WHERE ended IS NULL")["n"],
             sms_sent_24h=db.q1("SELECT COUNT(*) n FROM sms_log WHERE ok=1 AND ts>?", (now - 86400,))["n"],
             sms_failed_24h=db.q1("SELECT COUNT(*) n FROM sms_log WHERE ok=0 AND ts>?", (now - 86400,))["n"],
+            sms_wallet=sms.balance(),
             integrations={"email": mailer.configured(), "storage": storage.cloud_enabled(), "payments": billing.configured(),
                           "sms": sms.configured(), "pagespeed": bool(cfg.get("pagespeed_api_key"))})
 

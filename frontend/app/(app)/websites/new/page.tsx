@@ -40,7 +40,7 @@ export default function NewWebsitePage() {
       <Crumbs items={[{ label: "Overview", href: "/overview" }, { label: "Add website" }]} />
       <PageHeader title="Add website" subtitle="SiteWatch starts checking it right away and shows you the tracking snippet to install." />
       {ws && ws.usage.sites >= ws.plan.sites && (
-        <p role="status" className="max-w-2xl rounded-xl bg-warn-soft px-5 py-4 text-[15px] text-warn"><b>You are using all {ws.plan.sites} website{ws.plan.sites === 1 ? "" : "s"} on the {ws.plan.name} plan.</b> Your sites keep running. <Link href="/billing" className="font-semibold underline">Upgrade</Link> to add more.</p>
+        <p role="status" className="max-w-2xl rounded-xl bg-warn-soft px-5 py-4 text-[15px] text-warn"><b>You are using all {ws.plan.sites} website{ws.plan.sites === 1 ? "" : "s"} on the {ws.plan.name} plan.</b> Your sites keep running. <Link href="/settings?tab=billing" className="font-semibold underline">Upgrade</Link> to add more.</p>
       )}
       {!canWrite && <p className="max-w-2xl rounded-xl bg-line-soft px-5 py-4 text-[15px]">You have view-only access, so you can&apos;t add websites.</p>}
       <Card className="max-w-2xl p-5">
@@ -56,7 +56,7 @@ export default function NewWebsitePage() {
           <Field label="Extra people to alert when it goes down" htmlFor="alert_to" hint="optional">
             <input id="alert_to" name="alert_to" className={input} />
           </Field>
-          {error && <p role="alert" className="rounded-lg bg-bad-soft px-3.5 py-2.5 text-sm text-bad">{error} {limit && <Link href="/billing" className="font-semibold underline">See plans</Link>}</p>}
+          {error && <p role="alert" className="rounded-lg bg-bad-soft px-3.5 py-2.5 text-sm text-bad">{error} {limit && <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link>}</p>}
           <div className="flex justify-end gap-3">
             <button type="button" onClick={() => router.back()} className={btn.secondary}>Cancel</button>
             <button type="submit" disabled={busy} className={btn.primary}>{busy ? "Adding…" : "Add website"}</button>

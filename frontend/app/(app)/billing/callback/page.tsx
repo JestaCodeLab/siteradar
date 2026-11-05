@@ -22,7 +22,7 @@ function Verify() {
         if (r.status === "success") {
           setState("ok"); await mutate();
           let onboarding = false; try { onboarding = sessionStorage.getItem("sitewatch.onboarding") === "1"; } catch { /* optional */ }
-          setTimeout(() => router.replace(onboarding ? "/onboarding/done" : "/billing"), 1200);
+          setTimeout(() => router.replace(onboarding ? "/onboarding/done" : "/settings?tab=billing"), 1200);
         } else if (r.status === "pending" && tries++ < 5) setTimeout(check, 2500);
         else { setState("failed"); setMsg("The payment was not completed."); }
       } catch (e) { setState("failed"); setMsg(e instanceof Error ? e.message : "We could not check the payment."); }
@@ -35,7 +35,7 @@ function Verify() {
       {state === "checking" && <><h1 className="text-2xl font-semibold">Confirming your payment…</h1><p className="text-muted">This takes a few seconds. Please do not close this page.</p></>}
       {state === "ok" && <><h1 className="text-2xl font-semibold">Payment received</h1><p className="text-muted">Your plan is active. Taking you back…</p></>}
       {state === "failed" && <><h1 className="text-2xl font-semibold">Payment not confirmed</h1><p className="text-muted">{msg} If you were charged, it will appear on your account shortly, or contact us.</p>
-        <Link href="/billing" className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 font-semibold text-white">Back to billing</Link></>}
+        <Link href="/settings?tab=billing" className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 font-semibold text-white">Back to billing</Link></>}
     </div>
   );
 }

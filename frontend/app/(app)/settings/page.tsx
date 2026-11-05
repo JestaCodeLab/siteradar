@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useRef, useState } from "react";
 import useSWR from "swr";
+import { BillingPanel } from "@/components/billing-panel";
+import { TeamPanel } from "@/components/team-panel";
 import { btn, Card, CardTitle, ErrorState, Field, input, PageHeader, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type SettingsData } from "@/lib/api";
 import { splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
-type Tab = "company" | "profile" | "alerts" | "monitoring";
+type Tab = "company" | "profile" | "team" | "billing" | "alerts" | "monitoring";
 type Note = { ok: boolean; text: string } | null;
 const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];
 
@@ -138,11 +141,11 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           {sms ? (
             <Field label="SMS numbers" hint={`${a.sms_used} of ${a.sms_quota} messages used this month; texts are sent for outages and recoveries`} htmlFor="phones">
               <input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={input} /></Field>
-          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>SMS alerts</b> are available on the Growth plan and above. <Link href="/billing" className="font-semibold text-brand">See plans</Link></p>}
+          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>SMS alerts</b> are available on the Growth plan and above. <Link href="/settings?tab=billing" className="font-semibold text-brand">See plans</Link></p>}
           {chat ? (
             <Field label="Slack, Teams or Discord webhook addresses" hint="one per line" htmlFor="hooks">
               <textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${input} py-2.5`} /></Field>
-          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>Slack, Teams and Discord</b> alerts are available on the Starter plan and above. <Link href="/billing" className="font-semibold text-brand">See plans</Link></p>}
+          ) : <p className="rounded-lg bg-soft p-3.5 text-sm text-ink-2"><b>Slack, Teams and Discord</b> alerts are available on the Starter plan and above. <Link href="/settings?tab=billing" className="font-semibold text-brand">See plans</Link></p>}
         </fieldset>
         {isAdmin && <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={btn.primary}>Save changes</button>
           <button type="button" onClick={test} disabled={busy} className={btn.secondary}>Send test alert</button><Notice note={note} /></div>}
@@ -169,21 +172,31 @@ function Monitoring({ data }: { data: SettingsData }) {
   );
 }
 
-export default function SettingsPage() {
-  const [tab, setTab] = useState<Tab>("company");
-  const { data, error, mutate } = useSWR<SettingsData>("/api/settings", fetcher);
-  const tabs: [Tab, string][] = [["company", "Company"], ["profile", "Your account"], ["alerts", "Alerts"], ["monitoring", "Monitoring"]];
+function Settings() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const { isAdmin } = useMe();
+  const tabs: [Tab, string][] = [["company", "Company"], ["profile", "Your account"], ["team", "Team"], ...(isAdmin ? [["billing", "Billing"] as [Tab, string]] : []), ["alerts", "Alerts"], ["monitoring", "Monitoring"]];
+  const asked = params.get("tab") as Tab | null;
+  const tab: Tab = tabs.some(([k]) => k === asked) ? (asked as Tab) : "company";
+  const { data, error, mutate } = useSWR<SettingsData>(tab === "alerts" || tab === "monitoring" ? "/api/settings" : null, fetcher);
   return (
     <>
-      <PageHeader title="Settings" subtitle="Your company, your own account and how you are alerted." />
-      <div role="tablist" aria-label="Settings" className="flex flex-wrap gap-1 border-b border-line">
-        {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}
-          className={`min-h-11 border-b-2 px-4 text-sm font-semibold ${tab === k ? "border-brand text-brand" : "border-transparent text-ink-2 hover:text-ink"}`}>{label}</button>)}
+      <PageHeader title="Settings" subtitle="Your company, team, billing and how you are alerted." />
+      <div role="tablist" aria-label="Settings" className="flex flex-wrap gap-1 overflow-x-auto border-b border-line">
+        {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => router.replace(`/settings?tab=${k}`, { scroll: false })}
+          className={`min-h-11 whitespace-nowrap border-b-2 px-4 text-sm font-semibold ${tab === k ? "border-brand text-brand" : "border-transparent text-ink-2 hover:text-ink"}`}>{label}</button>)}
       </div>
       {tab === "company" && <Company />}
       {tab === "profile" && <Profile />}
+      {tab === "team" && <TeamPanel />}
+      {tab === "billing" && <BillingPanel />}
       {(tab === "alerts" || tab === "monitoring") && (error ? <ErrorState message={error.message} retry={() => mutate()} /> : !data ? <Skeleton className="h-64 max-w-3xl" />
         : tab === "alerts" ? <Alerts data={data} refresh={() => mutate()} /> : <Monitoring data={data} />)}
     </>
   );
+}
+
+export default function SettingsPage() {
+  return <Suspense><Settings /></Suspense>;
 }

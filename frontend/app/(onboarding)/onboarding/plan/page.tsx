@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FormError } from "@/components/auth-shell";
 import { btn, Icon } from "@/components/ui";
-import { send } from "@/lib/api";
+import { checkout } from "@/lib/paystack";
 import { ghs } from "@/lib/me";
 import { planFeatures, priceLine, usePlans } from "@/lib/plans";
 
@@ -38,9 +38,10 @@ export default function PlanStep() {
   async function go() {
     setBusy(true); setError(null);
     try {
-      const r = await send<{ done?: boolean; url?: string }>("POST", "/api/onboarding/plan", { plan, cycle: yearly ? "yearly" : "monthly" });
-      try { sessionStorage.removeItem("sitewatch.plan"); sessionStorage.setItem("sitewatch.onboarding", "1"); } catch { /* optional */ }
-      if (r.url) window.location.assign(r.url); else router.push("/onboarding/done");
+      const r = await checkout("/api/onboarding/plan", { plan, cycle: yearly ? "yearly" : "monthly" });
+      if (r === "cancelled") { setError("The payment was cancelled. Nothing was charged. You can try again or continue with Free."); setBusy(false); return; }
+      try { sessionStorage.removeItem("sitewatch.plan"); } catch { /* optional */ }
+      router.push("/onboarding/done");
     } catch (err) { setError(err instanceof Error ? err.message : "Could not continue."); setBusy(false); }
   }
 
@@ -73,7 +74,7 @@ export default function PlanStep() {
         ) : (
           <div className="min-w-0 flex-[2_1_420px] rounded-2xl border border-line bg-surface p-6">
             <p className="mb-1 text-base font-semibold">How you pay</p>
-            <p className="text-[15px] leading-relaxed text-ink-2">You will go to Paystack&apos;s secure page to pay by card or mobile money (MTN MoMo, Telecel Cash, AirtelTigo Money). Cards renew automatically. With mobile money we email you a payment link before each renewal. You can cancel any time.</p>
+            <p className="text-[15px] leading-relaxed text-ink-2">A secure Paystack window opens on this page so you can pay by card or mobile money (MTN MoMo, Telecel Cash, AirtelTigo Money). Cards renew automatically. With mobile money we email you a payment link before each renewal. You can cancel any time.</p>
           </div>
         )}
         <div className="min-w-0 flex-[1_1_300px] rounded-2xl border border-line bg-surface p-6">

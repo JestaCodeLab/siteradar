@@ -6,7 +6,7 @@ import { fetcher } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 
 interface Health { database: boolean; worker: { last_beat: number | null; ok: boolean; sites: number | null }; checks_last_hour: number; failed_checks_last_hour: number; open_incidents: number;
-  sms_sent_24h: number; sms_failed_24h: number; integrations: Record<string, boolean> }
+  sms_sent_24h: number; sms_wallet: number | null; sms_failed_24h: number; integrations: Record<string, boolean> }
 const names: Record<string, string> = { email: "Email (Resend)", storage: "File storage (Cloudinary)", payments: "Payments (Paystack)", sms: "SMS (FlockText)", pagespeed: "Google PageSpeed" };
 
 export default function AdminHealth() {
@@ -24,7 +24,7 @@ export default function AdminHealth() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Tile label="Checks, last hour" value={data.checks_last_hour} /><Tile label="Failed checks, last hour" value={data.failed_checks_last_hour} />
-        <Tile label="Open incidents" value={data.open_incidents} /><Tile label="SMS sent / failed (24h)" value={`${data.sms_sent_24h} / ${data.sms_failed_24h}`} tone={data.sms_failed_24h ? "warn" : "muted"} /></div>
+        <Tile label="Open incidents" value={data.open_incidents} /><Tile label="FlockText credits left" value={data.sms_wallet ?? "—"} note={data.sms_wallet === null ? "Not connected" : data.sms_wallet < 200 ? "Top up soon" : undefined} tone={data.sms_wallet !== null && data.sms_wallet < 200 ? "warn" : "muted"} /><Tile label="SMS sent / failed (24h)" value={`${data.sms_sent_24h} / ${data.sms_failed_24h}`} tone={data.sms_failed_24h ? "warn" : "muted"} /></div>
       <Card className="p-5"><CardTitle>Integrations</CardTitle>
         <ul className="flex flex-col">{Object.entries(data.integrations).map(([k, on]) => <li key={k} className="flex items-center justify-between border-t border-line-soft py-3 text-sm first:border-0"><span>{names[k] ?? k}</span><span className="flex items-center gap-2">{dot(on)}{on ? "Connected" : "Not configured"}</span></li>)}</ul></Card>
     </>

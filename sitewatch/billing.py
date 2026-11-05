@@ -73,11 +73,15 @@ def checkout(cfg, ws, user, plan_id, cycle):
         return {"done": True}
     if not configured():
         raise RuntimeError("Payments are not set up yet. Please contact support.")
-    data = _call("POST", "/transaction/initialize", json={
-        "email": user["email"], "amount": int(round(amount * 100)), "currency": "GHS", "reference": ref,
-        "callback_url": f"{app_url()}/billing/callback",
-        "metadata": {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}})
-    return {"url": data["authorization_url"], "reference": ref}
+    payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": "GHS", "reference": ref,
+               "callback_url": f"{app_url()}/billing/callback",
+               "metadata": {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}}
+    if os.environ.get("PAYSTACK_SUBACCOUNT"):          # payments settle to this subaccount
+        payload["subaccount"] = os.environ["PAYSTACK_SUBACCOUNT"]
+        payload["bearer"] = os.environ.get("PAYSTACK_FEE_BEARER", "account")    # who pays Paystack's fee: account (us) or subaccount
+    data = _call("POST", "/transaction/initialize", json=payload)
+    # the site opens access_code in Paystack's popup; url is the fallback if the popup can't load
+    return {"access_code": data["access_code"], "url": data["authorization_url"], "reference": ref}
 
 
 def confirm(cfg, reference):

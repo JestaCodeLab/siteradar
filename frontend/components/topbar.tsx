@@ -34,8 +34,8 @@ const PAGES: Hit[] = [
   { label: "Monthly reports", hint: "Subscription spend by month", href: "/subscriptions/reports", group: "Pages" },
   { label: "Activity logs", hint: "Incidents, alerts and changes", href: "/activity", group: "Pages" },
   { label: "Settings", hint: "Company, profile and alerts", href: "/settings", group: "Pages" },
-  { label: "Team", hint: "Members and invitations", href: "/team", group: "Pages" },
-  { label: "Billing", hint: "Plan, usage and invoices", href: "/billing", group: "Pages" },
+  { label: "Team", hint: "Members and invitations", href: "/settings?tab=team", group: "Pages" },
+  { label: "Billing", hint: "Plan, usage and invoices", href: "/settings?tab=billing", group: "Pages" },
 ];
 
 function SearchDialog({ onClose }: { onClose: () => void }) {
@@ -191,7 +191,7 @@ function Profile() {
           )}
           <div className="pt-1.5">
             <Link role="menuitem" href="/settings" onClick={close} className={item}><Icon.user />Profile settings</Link>
-            {isAdmin && <Link role="menuitem" href="/billing" onClick={close} className={item}><Icon.card />Billing</Link>}
+            {isAdmin && <Link role="menuitem" href="/settings?tab=billing" onClick={close} className={item}><Icon.card />Billing</Link>}
             <button role="menuitem" onClick={logout} className={`${item} text-bad`}><Icon.logout />Log out</button>
           </div>
         </div>
