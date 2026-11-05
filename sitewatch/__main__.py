@@ -2,7 +2,6 @@
 
   python -m sitewatch serve              API + scheduler in one process (add --no-scheduler when a worker runs separately)
   python -m sitewatch worker             the scheduler only (checks, audits, reports)
-  python -m sitewatch migrate-sqlite F   copy an old SQLite database into Postgres
   python -m sitewatch check              run one uptime check of every site
   python -m sitewatch audit [site-id]    run an SEO/performance/security audit now
   python -m sitewatch report [site-id] [--month 2026-09] [--pdf] [--email]
@@ -13,7 +12,7 @@ import argparse
 import logging
 import sys
 
-from . import alerts, auditor, db, monitor, report, sites
+from . import accounts, alerts, auditor, db, monitor, report, sites, storage
 from .config import get_site, load
 
 
@@ -26,8 +25,6 @@ def main(argv=None):
     s.add_argument("--port", type=int, default=8080)
     s.add_argument("--no-scheduler", action="store_true")
     sub.add_parser("worker")           # the scheduler on its own, for a separate Railway service
-    m = sub.add_parser("migrate-sqlite")
-    m.add_argument("path", help="path to the old sitewatch.db file")
     sub.add_parser("check")
     a = sub.add_parser("audit")
     a.add_argument("site", nargs="?")
@@ -43,10 +40,8 @@ def main(argv=None):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = load(args.config)
     db.init(cfg)
-    if args.cmd == "migrate-sqlite":
-        from .migrate_sqlite import migrate
-        migrate(args.path, cfg["data_dir"])
-        return
+    storage.init(cfg)
+    accounts.bootstrap(cfg)
     sites.init(cfg)
 
     def pick(site_id):

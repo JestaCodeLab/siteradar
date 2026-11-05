@@ -1,55 +1,24 @@
-# SiteWatch configuration. Copy to config.yaml and edit.
-# Secrets can come from environment variables: ${SMTP_PASSWORD}
+# SiteWatch platform config. Secrets and per-environment values come from environment variables (see .env.example).
+public_url: https://api.monitor.upplauseconsulting.com     # where this API is reachable (tracking script, logo URLs)
 
-# Address where this SiteWatch instance is reachable from the internet.
-# The analytics snippet on your websites sends data here, so it must be public (https recommended).
-public_url: https://monitor.yourdomain.com
-
-dashboard_password: ${SITEWATCH_PASSWORD}   # basic-auth for the dashboard (user name: anything)
 data_dir: data
-database_url: ${DATABASE_URL}     # Postgres connection string (Railway sets this)
+database_url: ${DATABASE_URL}     # Railway Postgres
 
-check_interval_minutes: 5        # uptime check frequency
-failures_before_alert: 2         # consecutive failed checks before a DOWN alert (avoids false alarms)
+# Defaults used by the scheduler. Check frequency per customer comes from their plan.
+failures_before_alert: 2
 timeout_seconds: 15
-slow_threshold_ms: 3000          # warn if 3 checks in a row are slower than this
-ssl_warning_days: 21             # warn when the certificate is about to expire
+slow_threshold_ms: 3000
+ssl_warning_days: 21
 
 audit:
-  max_pages: 50                  # pages crawled per audit
-  daily_at: "03:00"              # full SEO/performance/security audit every night
+  max_pages: 50
+  daily_at: "03:00"
 
 report:
-  day_of_month: 1                # monthly report for the previous month is generated & emailed on this day
+  day_of_month: 1
   at: "07:00"
 
-# Optional: Google PageSpeed Insights key (free) adds Core Web Vitals from real Chrome users.
-# https://developers.google.com/speed/docs/insights/v5/get-started
 pagespeed_api_key: ${PAGESPEED_API_KEY}
 
 health:
-  daily_at: "03:30"              # domain expiry, DNS and sitemap checks every night
-
-alerts:
-  email_to: [you@yourcompany.com]
-  email:
-    host: smtp.gmail.com         # or smtp.office365.com, smtp.sendgrid.net …
-    port: 587
-    username: you@yourcompany.com
-    password: ${SMTP_PASSWORD}   # for Gmail: an App Password
-    from: "SiteWatch <you@yourcompany.com>"
-  webhooks:                      # Slack, Microsoft Teams or Discord incoming-webhook URLs
-    # - https://hooks.slack.com/services/XXX/YYY/ZZZ
-
-sites:
-  - name: My Company
-    url: https://www.yourcompany.com
-    keyword: "Contact"           # optional: page must contain this text, catches "blank page" failures
-    report_to: [you@yourcompany.com]
-
-  - name: Client – Acme BV
-    id: acme
-    url: https://www.acme.nl
-    owner: "Client: Acme BV"
-    report_to: [you@yourcompany.com, marketing@acme.nl]
-    alert_to: [you@yourcompany.com]   # extra recipients for this site's outage alerts
+  daily_at: "03:30"              # domain expiry, DNS and sitemap checks

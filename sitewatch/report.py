@@ -7,7 +7,7 @@ import time
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import alerts, analytics, db, health as health_mod, monitor
+from . import accounts, alerts, analytics, db, health as health_mod, monitor, plans
 from .charts import bar_chart, line_chart, uptime_strip
 
 log = logging.getLogger("sitewatch.report")
@@ -29,6 +29,14 @@ def _delta(now, before):
     if now is None or before in (None, 0):
         return None
     return round(100 * (now - before) / before)
+
+
+def brand(site):
+    """Company name and logo for the report header; plans without clean reports get a small SiteWatch credit."""
+    ws = accounts.workspace(site.get("workspace_id"))
+    if not ws:
+        return {"name": "", "logo": None, "watermark": False}
+    return {"name": ws["name"], "logo": ws["logo_url"], "watermark": not plans.limits(ws)["clean_reports"]}
 
 
 def build(cfg, site, year, month):
@@ -73,7 +81,7 @@ def build(cfg, site, year, month):
         charts["visitors"] = bar_chart([(d[8:], dv.get(d, 0)) for d in days if d <= dt.date.today().isoformat()])
 
     return {
-        "site": site, "cfg": cfg,
+        "site": site, "cfg": cfg, "brand": brand(site),
         "period": dt.date(year, month, 1).strftime("%B %Y"),
         "generated": dt.datetime.now().strftime("%d %B %Y, %H:%M"),
         "partial": until > time.time(),
@@ -205,13 +213,14 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
             paths["pdf"] = to_pdf(base + ".html", base + ".pdf")
         except Exception as e:
             log.warning("PDF export unavailable (%s); sending HTML only.", e)
-    if email and site.get("report_to"):
+    to = site.get("report_to") or (accounts.workspace(site.get("workspace_id")) or {}).get("alert_emails") or []
+    if email and to:
         attach = []
         if paths.get("pdf"):
             attach.append((os.path.basename(paths["pdf"]), open(paths["pdf"], "rb").read(), "application/pdf"))
         summary = (f"Website report for {site['name']} – {ctx['period']}\n\n"
                    f"Uptime: {ctx['up']['uptime']:.2f}%\n" if ctx['up']['uptime'] is not None else "")
-        alerts.send_email(cfg, site["report_to"], f"Website report – {site['name']} – {ctx['period']}",
+        alerts.send_email(cfg, to, f"Website report – {site['name']} – {ctx['period']}",
                           summary + "\nThe full report is attached.", html=html, attachments=attach)
     return paths
 

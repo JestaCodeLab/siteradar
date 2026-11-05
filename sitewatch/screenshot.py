@@ -7,6 +7,8 @@ import threading
 import time
 from urllib.parse import urlparse
 
+from . import storage
+
 log = logging.getLogger("sitewatch.screenshot")
 DEVICES = {
     "desktop": {"viewport": {"width": 1280, "height": 800}, "mobile": False},
@@ -15,19 +17,17 @@ DEVICES = {
 _lock = threading.Lock()          # one Chrome at a time keeps memory use small
 
 
-def _dir(cfg):
-    path = os.path.abspath(os.path.join(cfg["data_dir"], "screenshots"))
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
-def path_for(cfg, site_id, device):
-    return os.path.join(_dir(cfg), f"{site_id}-{device}.jpg")
+def key(site_id, device):
+    return f"shot/{site_id}-{device}.jpg"
 
 
 def captured_at(cfg, site_id, device="desktop"):
-    p = path_for(cfg, site_id, device)
-    return os.path.getmtime(p) if os.path.exists(p) else None
+    row = storage.info(key(site_id, device))
+    return row["ts"] if row else None
+
+
+def image(cfg, site_id, device):
+    return storage.get(key(site_id, device), os.path.join(cfg["data_dir"], "screenshots", f"{site_id}-{device}.jpg"))
 
 
 def _public(url):
@@ -66,9 +66,7 @@ def capture(cfg, site):
                     except Exception:
                         pass
                     page.wait_for_timeout(2000)                            # let fonts, sliders and lazy images settle
-                    tmp = path_for(cfg, site["id"], device) + ".tmp"
-                    page.screenshot(path=tmp, type="jpeg", quality=72)
-                    os.replace(tmp, path_for(cfg, site["id"], device))
+                    storage.put(key(site["id"], device), page.screenshot(type="jpeg", quality=72), "image/jpeg")
                 finally:
                     ctx.close()
         finally:
@@ -78,7 +76,4 @@ def capture(cfg, site):
 
 def remove(cfg, site_id):
     for device in DEVICES:
-        try:
-            os.remove(path_for(cfg, site_id, device))
-        except OSError:
-            pass
+        storage.remove(key(site_id, device), os.path.join(cfg["data_dir"], "screenshots", f"{site_id}-{device}.jpg"))

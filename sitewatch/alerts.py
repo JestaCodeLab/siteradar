@@ -6,10 +6,14 @@ from email.message import EmailMessage
 
 import requests
 
+from . import accounts, mailer, plans, sms
+
 log = logging.getLogger("sitewatch.alerts")
 
 
 def send_email(cfg, to, subject, text, html=None, attachments=()):
+    if mailer.configured():
+        return mailer.send(to, subject, text, html, attachments)
     smtp = (cfg.get("alerts") or {}).get("email") or {}
     if not smtp.get("host") or not to:
         log.info("Email not configured; would have sent: %s", subject)
@@ -58,14 +62,24 @@ def send_webhook(url, text):
         return False
 
 
-def notify(cfg, site, subject, text):
-    """Send a short alert through every configured channel."""
-    a = cfg.get("alerts") or {}
-    to = list(a.get("email_to") or []) + list(site.get("alert_to") or [])
+def notify(cfg, site, subject, text, sms_text=None):
+    """Tell the site's workspace about it: email always, chat webhooks and SMS when the plan includes them.
+
+    `sms_text` is only passed for outages and recoveries, so text messages are kept for what matters.
+    """
+    ws = accounts.workspace(site.get("workspace_id"))
+    if not ws:
+        log.warning("ALERT (no workspace) %s | %s", subject, text.replace("\n", " "))
+        return False
+    plan = plans.limits(ws)
+    to = list(dict.fromkeys(ws["alert_emails"] + list(site.get("alert_to") or [])))
     sent = False
     if to:
         sent |= send_email(cfg, to, subject, text)
-    for url in a.get("webhooks") or []:
-        sent |= send_webhook(url, f"*{subject}*\n{text}")
+    if "chat" in plan["channels"]:
+        for url in ws["alert_webhooks"]:
+            sent |= send_webhook(url, f"*{subject}*\n{text}")
+    if sms_text and "sms" in plan["channels"]:
+        sent |= bool(sms.send(ws, sms_text))
     log.warning("ALERT %s | %s", subject, text.replace("\n", " "))
     return sent

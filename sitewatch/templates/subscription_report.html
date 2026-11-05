@@ -12,6 +12,7 @@ td{padding:10px 6px;border-bottom:1px solid var(--line)}
 .tag.bad{background:var(--bad-soft);color:var(--bad)}.tag.warn{background:var(--warn-soft);color:#8a5a00}
 </style>
 </head><body><div class="wrap">
+{% if ws.logo_url %}<img src="{{ ws.logo_url }}" alt="{{ ws.name }}" style="max-height:44px;max-width:180px;margin-bottom:14px;display:block">{% endif %}
 <div class="muted small" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600">Subscription report</div>
 <h1>{{ r.label }}{% if r.in_progress %} (in progress){% endif %}</h1>
 <div class="muted small">Generated {{ r.generated }} · all websites</div>
@@ -54,4 +55,5 @@ td{padding:10px 6px;border-bottom:1px solid var(--line)}
   {% for u in r.upcoming %}<tr><td class="num">{{ u.date }}</td><td>{{ u.name }}</td><td>{{ u.site }}</td><td class="num">{{ u.currency }} {{ '%.2f'|format(u.amount) }}</td></tr>
   {% else %}<tr><td class="muted">Nothing renews next month.</td></tr>{% endfor %}
 </table></div>
+{% if watermark %}<p class="muted small" style="margin-top:36px;text-align:center">Made with SiteWatch</p>{% endif %}
 </div></body></html>

@@ -6,7 +6,7 @@ import re
 import time
 import uuid
 
-from . import db
+from . import db, storage
 
 CATEGORIES = ["Domain", "Hosting", "SSL", "SaaS", "Other"]
 CYCLES = ("monthly", "yearly")
@@ -76,24 +76,26 @@ def serialise(sub, invoices=None, site_names=None, today=None):
     }
 
 
-def list_all(site_id=None):
-    names = {s["id"]: s["name"] for s in db.q("SELECT id, name FROM sites")}
-    subs = db.q("SELECT * FROM subscriptions" + (" WHERE site_id=?" if site_id else "") + " ORDER BY created DESC",
-                (site_id,) if site_id else ())
+def _names(ws_id):
+    return {s["id"]: s["name"] for s in db.q("SELECT id, name FROM sites WHERE workspace_id=?", (ws_id,))}
+
+
+def list_all(ws_id, site_id=None):
+    names = _names(ws_id)
+    subs = db.q("SELECT * FROM subscriptions WHERE workspace_id=?" + (" AND site_id=?" if site_id else "") + " ORDER BY created DESC",
+                (ws_id, site_id) if site_id else (ws_id,))
     inv = {}
-    for i in db.q("SELECT * FROM invoices ORDER BY period DESC, id DESC"):
+    for i in db.q("""SELECT i.* FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                     WHERE s.workspace_id=? ORDER BY i.period DESC, i.id DESC""", (ws_id,)):
         inv.setdefault(i["subscription_id"], []).append(i)
     out = [serialise(s, inv.get(s["id"], []), names) for s in subs]
     order = {"expired": 0, "soon": 1, "active": 2, "cancelled": 3}
     return sorted(out, key=lambda s: (order[s["status"]], s["next_renewal"]))
 
 
-def get(sub_id):
-    row = db.q1("SELECT * FROM subscriptions WHERE id=?", (sub_id,))
-    if not row:
-        return None
-    names = {s["id"]: s["name"] for s in db.q("SELECT id, name FROM sites")}
-    return serialise(row, site_names=names)
+def get(ws_id, sub_id):
+    row = db.q1("SELECT * FROM subscriptions WHERE id=? AND workspace_id=?", (sub_id, ws_id))
+    return serialise(row, site_names=_names(ws_id)) if row else None
 
 
 def totals(items):
@@ -109,8 +111,8 @@ def totals(items):
             "yearly": {k: round(v, 2) for k, v in year.items()}}
 
 
-def summary():
-    items = list_all()
+def summary(ws_id):
+    items = list_all(ws_id)
     live = [s for s in items if s["status"] != "cancelled"]
     today = dt.date.today()
     soon = [s for s in live if s["status"] == "soon"]
@@ -127,7 +129,7 @@ def summary():
     }
 
 
-def validate(data, partial=False):
+def validate(ws_id, data, partial=False):
     out = {}
     if not partial or "name" in data:
         out["name"] = (data.get("name") or "").strip()
@@ -163,7 +165,7 @@ def validate(data, partial=False):
         out["currency"] = (data["currency"] or "USD").strip().upper()[:3]
     if "site_id" in data:
         out["site_id"] = data["site_id"] or None
-        if out["site_id"] and not db.q1("SELECT 1 FROM sites WHERE id=?", (out["site_id"],)):
+        if out["site_id"] and not db.q1("SELECT 1 FROM sites WHERE id=? AND workspace_id=?", (out["site_id"], ws_id)):
             raise ValueError("That website doesn't exist.")
     if "auto_renew" in data:
         out["auto_renew"] = int(bool(data["auto_renew"]))
@@ -174,8 +176,9 @@ def validate(data, partial=False):
     return out
 
 
-def create(data):
-    v = validate(data)
+def create(ws_id, data):
+    v = validate(ws_id, data)
+    v["workspace_id"] = ws_id
     v.setdefault("currency", "USD")
     v.setdefault("auto_renew", 1)
     v.setdefault("remind_days", 14)
@@ -187,8 +190,8 @@ def create(data):
     return sub_id
 
 
-def update(sub_id, data):
-    v = validate(data, partial=True)
+def update(ws_id, sub_id, data):
+    v = validate(ws_id, data, partial=True)
     if v:
         db.run(f"UPDATE subscriptions SET {', '.join(k + '=?' for k in v)} WHERE id=?", (*v.values(), sub_id))
 
@@ -202,17 +205,12 @@ def delete(cfg, sub_id):
 
 # ---- invoices ------------------------------------------------------------
 
-def _inv_dir(cfg):
-    path = os.path.join(cfg["data_dir"], "invoices")
-    os.makedirs(path, exist_ok=True)
-    return path
+def _legacy(cfg, filename):
+    return os.path.join(cfg["data_dir"], "invoices", filename)      # where invoices lived before cloud storage
 
 
 def _remove_file(cfg, filename):
-    try:
-        os.remove(os.path.join(_inv_dir(cfg), filename))
-    except OSError:
-        pass
+    storage.remove("invoice/" + filename, _legacy(cfg, filename))
 
 
 def add_invoice(cfg, sub_id, file_storage, period=None):
@@ -225,20 +223,24 @@ def add_invoice(cfg, sub_id, file_storage, period=None):
     if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
         raise ValueError("Period must look like 2026-10.")
     filename = uuid.uuid4().hex + ".pdf"
-    with open(os.path.join(_inv_dir(cfg), filename), "wb") as f:
-        f.write(data)
+    storage.put("invoice/" + filename, data, "application/pdf")
     original = os.path.basename(file_storage.filename or "invoice.pdf")[:120]
     return db.run("INSERT INTO invoices(subscription_id, period, filename, original_name, size, uploaded) VALUES (?,?,?,?,?,?)",
                   (sub_id, period, filename, original, len(data), time.time()))
 
 
-def invoice_path(cfg, invoice_id):
-    i = db.q1("SELECT * FROM invoices WHERE id=?", (invoice_id,))
-    return (i, os.path.join(_inv_dir(cfg), i["filename"])) if i else (None, None)
+def invoice_file(cfg, ws_id, invoice_id):
+    """(invoice row, PDF bytes) for an invoice in this workspace, else (None, None)."""
+    i = db.q1("""SELECT i.* FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                 WHERE i.id=? AND s.workspace_id=?""", (invoice_id, ws_id))
+    if not i:
+        return None, None
+    return i, storage.get("invoice/" + i["filename"], _legacy(cfg, i["filename"]))
 
 
-def delete_invoice(cfg, invoice_id):
-    i = db.q1("SELECT * FROM invoices WHERE id=?", (invoice_id,))
+def delete_invoice(cfg, ws_id, invoice_id):
+    i = db.q1("""SELECT i.* FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                 WHERE i.id=? AND s.workspace_id=?""", (invoice_id, ws_id))
     if i:
         _remove_file(cfg, i["filename"])
         db.run("DELETE FROM invoices WHERE id=?", (invoice_id,))
@@ -259,8 +261,8 @@ def charge_date(sub, year, month):
     return dt.date(year, month, min(anchor.day, calendar.monthrange(year, month)[1]))
 
 
-def available_months():
-    first = db.q1("SELECT MIN(created) t FROM subscriptions")["t"]
+def available_months(ws_id):
+    first = db.q1("SELECT MIN(created) t FROM subscriptions WHERE workspace_id=?", (ws_id,))["t"]
     if not first:
         return []
     d = dt.date.fromtimestamp(first).replace(day=1)
@@ -272,13 +274,14 @@ def available_months():
     return out[::-1]
 
 
-def build_report(year, month):
-    names = {s["id"]: s["name"] for s in db.q("SELECT id, name FROM sites")}
+def build_report(ws_id, year, month):
+    names = _names(ws_id)
     period = f"{year}-{month:02d}"
     today = dt.date.today()
-    subs = db.q("SELECT * FROM subscriptions WHERE active=1")
+    subs = db.q("SELECT * FROM subscriptions WHERE active=1 AND workspace_id=?", (ws_id,))
     invoices = {}
-    for i in db.q("SELECT * FROM invoices WHERE period=?", (period,)):
+    for i in db.q("""SELECT i.* FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                     WHERE i.period=? AND s.workspace_id=?""", (period, ws_id)):
         invoices.setdefault(i["subscription_id"], i)
 
     charges, by_site, by_cat, total = [], {}, {}, {}
@@ -317,7 +320,7 @@ def build_report(year, month):
         if charge_date(s, py, pm):
             prev_total[s["currency"]] = prev_total.get(s["currency"], 0) + s["amount"]
 
-    items = list_all()
+    items = list_all(ws_id)
     actions = []
     for s in items:
         if s["status"] == "expired":
@@ -345,11 +348,11 @@ def build_report(year, month):
     }
 
 
-def due_reminders(today=None):
+def due_reminders(ws_id, today=None):
     """Active subscriptions whose renewal is within their reminder window."""
     today = today or dt.date.today()
     out = []
-    for s in list_all():
+    for s in list_all(ws_id):
         if s["status"] in ("cancelled", "expired") or not s["remind_days"]:
             continue
         d = _date(s["next_renewal"])

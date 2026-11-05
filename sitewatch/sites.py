@@ -1,13 +1,11 @@
-"""Websites live in the database so they can be added and removed from the dashboard.
-
-config.yaml `sites:` only seeds an empty database on first start.
-"""
+"""Websites live in the database, each owned by one workspace (customer account)."""
 import json
 import re
+import secrets
 import time
 from urllib.parse import urlparse
 
-from . import db
+from . import db, plans
 
 LIST_FIELDS = ("report_to", "alert_to")
 
@@ -18,6 +16,7 @@ def _row(r):
         site[f] = json.loads(site[f]) if site.get(f) else []
     site["track_analytics"] = bool(site["track_analytics"])
     site["audit"] = bool(site["audit"])
+    site["paused"] = bool(site.get("paused"))
     site["owner"] = site.get("owner") or ""
     return site
 
@@ -37,11 +36,26 @@ def normalise_url(url):
 
 
 def _insert(site):
-    db.run("""INSERT INTO sites(id, name, url, keyword, owner, report_to, alert_to, track_analytics, audit, created)
-              VALUES (?,?,?,?,?,?,?,?,?,?)""",
+    db.run("""INSERT INTO sites(id, name, url, keyword, owner, report_to, alert_to, track_analytics, audit, created, workspace_id)
+              VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
            (site["id"], site["name"], site["url"], site.get("keyword"), site.get("owner", ""),
             json.dumps(site.get("report_to") or []), json.dumps(site.get("alert_to") or []),
-            int(site.get("track_analytics", True)), int(site.get("audit", True)), time.time()))
+            int(site.get("track_analytics", True)), int(site.get("audit", True)), time.time(), site.get("workspace_id")))
+
+
+def get(ws_id, site_id):
+    r = db.q1("SELECT * FROM sites WHERE id=? AND workspace_id=?", (site_id, ws_id))
+    return _row(r) if r else None
+
+
+def get_any(site_id):
+    """Look up a site without a workspace check. Only for the public analytics endpoint."""
+    r = db.q1("SELECT * FROM sites WHERE id=?", (site_id,))
+    return _row(r) if r else None
+
+
+def list_ws(ws_id):
+    return [_row(r) for r in db.q("SELECT * FROM sites WHERE workspace_id=? ORDER BY created, name", (ws_id,))]
 
 
 def refresh(cfg):
@@ -50,22 +64,20 @@ def refresh(cfg):
 
 
 def init(cfg):
-    if not db.q1("SELECT COUNT(*) n FROM sites")["n"]:
-        for s in cfg["sites"]:
-            _insert(s)
     refresh(cfg)
 
 
-def create(cfg, data):
+def create(cfg, ws, data):
+    plans.check_can_add_site(ws)
     name = (data.get("name") or "").strip()
     if not name:
         raise ValueError("Give the website a name.")
     url = normalise_url(data.get("url"))
-    base = slug(data.get("id") or name) or slug(urlparse(url).netloc)
-    site_id, n = base, 2
-    while db.q1("SELECT 1 FROM sites WHERE id=?", (site_id,)):
-        site_id, n = f"{base}-{n}", n + 1
-    _insert({"id": site_id, "name": name, "url": url, "keyword": (data.get("keyword") or None),
+    base = slug(name) or slug(urlparse(url).netloc)
+    site_id = base
+    while db.q1("SELECT 1 FROM sites WHERE id=?", (site_id,)):    # ids are shared by every customer
+        site_id = f"{base}-{secrets.token_hex(2)}"
+    _insert({"id": site_id, "workspace_id": ws["id"], "name": name, "url": url, "keyword": (data.get("keyword") or None),
              "owner": data.get("owner", ""), "report_to": data.get("report_to") or [],
              "alert_to": data.get("alert_to") or []})
     refresh(cfg)
@@ -100,4 +112,13 @@ def delete(cfg, site_id):
     screenshot.remove(cfg, site_id)
     db.run("UPDATE subscriptions SET site_id=NULL WHERE site_id=?", (site_id,))
     db.run("DELETE FROM sites WHERE id=?", (site_id,))
+    refresh(cfg)
+
+
+def enforce_limit(cfg, ws):
+    """After a plan change: keep the oldest sites running up to the plan limit and pause the rest (nothing is deleted)."""
+    limit = plans.limits(ws)["sites"]
+    rows = db.q("SELECT id FROM sites WHERE workspace_id=? ORDER BY created, name", (ws["id"],))
+    for i, r in enumerate(rows):
+        db.run("UPDATE sites SET paused=? WHERE id=?", (int(i >= limit), r["id"]))
     refresh(cfg)

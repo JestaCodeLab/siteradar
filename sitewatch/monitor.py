@@ -5,6 +5,7 @@ single network blip) and close on the first successful check, with a recovery al
 """
 import datetime as dt
 import logging
+import os
 import socket
 import ssl
 import time
@@ -85,7 +86,8 @@ def _handle_incidents(cfg, site, result, now):
             mins = (now - incident["started"]) / 60
             alerts.notify(cfg, site, f"RECOVERED: {site['name']} is back up",
                           f"{site['url']} is responding again (HTTP {result['status_code']}, "
-                          f"{result['response_ms']} ms).\nDowntime: {mins:.0f} minutes.\nCause was: {incident['cause']}")
+                          f"{result['response_ms']} ms).\nDowntime: {mins:.0f} minutes.\nCause was: {incident['cause']}",
+                          sms_text=f"SiteWatch: {site['name']} is back up after {mins:.0f} min.")
         return
     if incident:
         return
@@ -96,7 +98,8 @@ def _handle_incidents(cfg, site, result, now):
         db.run("INSERT INTO incidents(site_id, started, cause) VALUES (?,?,?)", (site["id"], started, result["error"]))
         alerts.notify(cfg, site, f"DOWN: {site['name']}",
                       f"{site['url']} failed {n} checks in a row.\nReason: {result['error']}\n"
-                      f"Dashboard: {cfg['public_url']}/site/{site['id']}")
+                      f"Dashboard: {os.environ.get('APP_URL', cfg['public_url']).rstrip('/')}/websites/{site['id']}",
+                      sms_text=f"SiteWatch: {site['name']} is DOWN. {result['error']}")
 
 
 def _handle_warnings(cfg, site, result):

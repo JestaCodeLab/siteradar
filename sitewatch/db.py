@@ -87,6 +87,80 @@ CREATE INDEX idx_sitemap_site_ts ON sitemap_snapshots(site_id, ts);
 
 CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT);
 """),
+    (2, """
+CREATE TABLE plans (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, tagline TEXT, price_month DOUBLE PRECISION NOT NULL DEFAULT 0,
+    sites INTEGER NOT NULL, members INTEGER NOT NULL, interval_minutes INTEGER NOT NULL,
+    sms INTEGER NOT NULL DEFAULT 0, history_months INTEGER NOT NULL DEFAULT 3,
+    channels TEXT NOT NULL DEFAULT '["email"]', clean_reports INTEGER NOT NULL DEFAULT 0,
+    client_access INTEGER NOT NULL DEFAULT 0, sort INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1
+);
+INSERT INTO plans(id, name, tagline, price_month, sites, members, interval_minutes, sms, history_months, channels, clean_reports, client_access, sort) VALUES
+ ('free',    'Free',    'For one personal or side project',      0,   1,  1, 10,   0,  1, '["email"]',                0, 0, 1),
+ ('starter', 'Starter', 'For a small business with a few sites', 99,  3,  2,  5,   0,  3, '["email","chat"]',         1, 0, 2),
+ ('growth',  'Growth',  'For agencies and growing teams',       299, 15, 5,  3, 100, 12, '["email","chat","sms"]',    1, 1, 3),
+ ('scale',   'Scale',   'For many sites and larger teams',      799, 50, 15, 1, 500, 24, '["email","chat","sms"]',    1, 1, 4);
+
+CREATE TABLE users (
+    id BIGSERIAL PRIMARY KEY, email TEXT NOT NULL, first_name TEXT, last_name TEXT, phone TEXT,
+    password_hash TEXT NOT NULL, email_verified INTEGER NOT NULL DEFAULT 0, is_super INTEGER NOT NULL DEFAULT 0,
+    disabled INTEGER NOT NULL DEFAULT 0, created DOUBLE PRECISION, last_login DOUBLE PRECISION
+);
+CREATE UNIQUE INDEX users_email_uq ON users(lower(email));
+
+CREATE TABLE workspaces (
+    id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, website TEXT, industry TEXT, size TEXT, country TEXT, phone TEXT,
+    address TEXT, logo_url TEXT, owner_id BIGINT, plan_id TEXT NOT NULL DEFAULT 'free', cycle TEXT NOT NULL DEFAULT 'monthly',
+    plan_status TEXT NOT NULL DEFAULT 'active', plan_renews DOUBLE PRECISION, pending_plan TEXT, pending_cycle TEXT,
+    onboarded INTEGER NOT NULL DEFAULT 0, suspended INTEGER NOT NULL DEFAULT 0,
+    alert_emails TEXT NOT NULL DEFAULT '[]', alert_phones TEXT NOT NULL DEFAULT '[]', alert_webhooks TEXT NOT NULL DEFAULT '[]',
+    paystack_auth TEXT, paystack_email TEXT, paystack_card TEXT, sms_bonus INTEGER NOT NULL DEFAULT 0,
+    comped INTEGER NOT NULL DEFAULT 0, notes TEXT, created DOUBLE PRECISION
+);
+
+CREATE TABLE memberships (
+    workspace_id BIGINT NOT NULL, user_id BIGINT NOT NULL, role TEXT NOT NULL, created DOUBLE PRECISION,
+    PRIMARY KEY (workspace_id, user_id)
+);
+CREATE INDEX idx_memberships_user ON memberships(user_id);
+
+CREATE TABLE invitations (
+    id BIGSERIAL PRIMARY KEY, workspace_id BIGINT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL,
+    token_hash TEXT NOT NULL, invited_by BIGINT, created DOUBLE PRECISION, expires DOUBLE PRECISION, accepted DOUBLE PRECISION
+);
+CREATE INDEX idx_invitations_ws ON invitations(workspace_id);
+CREATE INDEX idx_invitations_token ON invitations(token_hash);
+
+CREATE TABLE email_codes (
+    id BIGSERIAL PRIMARY KEY, user_id BIGINT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL,
+    created DOUBLE PRECISION, expires DOUBLE PRECISION, attempts INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_email_codes_user ON email_codes(user_id, purpose);
+
+CREATE TABLE payments (
+    id BIGSERIAL PRIMARY KEY, workspace_id BIGINT NOT NULL, reference TEXT NOT NULL UNIQUE, plan_id TEXT, cycle TEXT,
+    amount DOUBLE PRECISION, currency TEXT DEFAULT 'GHS', status TEXT NOT NULL DEFAULT 'pending', channel TEXT, kind TEXT,
+    created DOUBLE PRECISION, paid DOUBLE PRECISION
+);
+CREATE INDEX idx_payments_ws ON payments(workspace_id, created);
+
+CREATE TABLE admin_audit (
+    id BIGSERIAL PRIMARY KEY, ts DOUBLE PRECISION, admin_id BIGINT, workspace_id BIGINT, action TEXT, detail TEXT
+);
+
+CREATE TABLE sms_log (
+    id BIGSERIAL PRIMARY KEY, workspace_id BIGINT, ts DOUBLE PRECISION, phone TEXT, message TEXT, ok INTEGER, error TEXT
+);
+CREATE INDEX idx_sms_ws_ts ON sms_log(workspace_id, ts);
+
+CREATE TABLE assets (key TEXT PRIMARY KEY, ref TEXT NOT NULL, mime TEXT, size INTEGER, ts DOUBLE PRECISION);
+
+ALTER TABLE sites ADD COLUMN workspace_id BIGINT;
+ALTER TABLE sites ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE subscriptions ADD COLUMN workspace_id BIGINT;
+CREATE INDEX idx_sites_ws ON sites(workspace_id);
+CREATE INDEX idx_subs_ws ON subscriptions(workspace_id);
+"""),
 ]
 
 
