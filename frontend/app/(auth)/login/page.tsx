@@ -28,7 +28,7 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell headline="Every site you look after, in one place." bullets={["Uptime, response time and SSL checks around the clock", "Daily audits for SEO, speed, security and accessibility", "A clear report for every website, every month"]}>
+    <AuthShell variant="login">
       <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Log in</h2><p className="text-[15px] text-muted">Welcome back. Enter your details to open your dashboard.</p></div>
       <form onSubmit={submit} className="flex flex-col gap-5">
         <Field label="Email" htmlFor="email"><input id="email" name="email" type="email" autoComplete="email" required className={input} /></Field>

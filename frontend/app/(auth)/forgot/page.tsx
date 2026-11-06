@@ -27,7 +27,7 @@ export default function ForgotPage() {
   }
 
   return (
-    <AuthShell headline="Locked out? It happens.">
+    <AuthShell variant="forgot">
       {step === "email" ? (
         <>
           <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Reset your password</h2><p className="text-[15px] text-muted">Enter your email and we will send you a 6-digit code.</p></div>

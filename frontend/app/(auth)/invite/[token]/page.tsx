@@ -25,7 +25,7 @@ export default function InvitePage() {
   }
 
   return (
-    <AuthShell headline="Join your team on SiteRadar.">
+    <AuthShell variant="invite">
       {error ? (
         <div className="flex flex-col gap-3"><h2 className="text-[28px] font-semibold">Invitation not available</h2>
           <p className="text-[15px] text-muted">{error instanceof ApiError ? error.message : "Something went wrong."}</p></div>

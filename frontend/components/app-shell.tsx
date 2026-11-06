@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Eye } from "lucide-react";
 import { send } from "@/lib/api";
+import { POWERED_BY } from "@/lib/brand";
 import { useMe } from "@/lib/me";
 import { Skeleton } from "./ui";
 import { Sidebar } from "./sidebar";
@@ -92,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line bg-surface px-4 py-4 text-[13px] text-muted lg:px-6">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <span className="font-medium text-ink-2">Upplause Consulting</span></span>
+          <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-ink-2 hover:text-ink">{POWERED_BY.name}</a></span>
         </footer>
       </div>
     </div>

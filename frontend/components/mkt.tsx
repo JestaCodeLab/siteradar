@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Building2, ChevronDown, Menu, Users, X } from "lucide-react";
+import { POWERED_BY } from "@/lib/brand";
 import { Logo } from "./logo";
 
 export { Logo } from "./logo";
@@ -88,7 +89,7 @@ export function MktFooter() {
         </div>
         <div className="flex flex-wrap justify-between gap-3 border-t border-[#1E293B] pt-6 text-sm text-[#94A3B8]">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <b className="text-[#E2E8F0]">Upplause Consulting</b></span>
+          <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#E2E8F0] hover:text-white">{POWERED_BY.name}</a></span>
         </div>
       </div>
     </footer>

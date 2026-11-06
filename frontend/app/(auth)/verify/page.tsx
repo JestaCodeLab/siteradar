@@ -66,5 +66,5 @@ function Form() {
 }
 
 export default function VerifyPage() {
-  return <AuthShell headline="One quick step to keep your account safe."><Suspense><Form /></Suspense></AuthShell>;
+  return <AuthShell variant="verify"><Suspense><Form /></Suspense></AuthShell>;
 }
