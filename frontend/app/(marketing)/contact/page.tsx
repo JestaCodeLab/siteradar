@@ -31,7 +31,7 @@ export default function Contact() {
         <Rings className="-right-[260px] -top-[260px] hidden size-[900px] md:block" opacity={0.9} />
         <Container className="relative flex flex-col gap-3 pb-8 pt-10 md:gap-5 md:pb-[72px] md:pt-[88px]">
           <span className={`${eyebrow} text-[#C2410C]`}>Contact</span>
-          <h1 className="max-w-[860px] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] text-[#0F172A] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Talk to a real person about your websites.</h1>
+          <h1 className="max-w-[860px] text-[28px] font-bold leading-[1.12] tracking-[-0.025em] text-[#0F172A] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Talk to a real person about your websites.</h1>
           <p className="max-w-[640px] text-base leading-relaxed text-[#475569] md:text-[19px]"><span className="hidden md:inline">Questions about plans, a larger portfolio, or setting SiteRadar up for your clients? </span>Pick whichever way suits you.</p>
         </Container>
       </section>

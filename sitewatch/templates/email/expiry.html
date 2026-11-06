@@ -1,0 +1,14 @@
+{#- Something is about to run out: an SSL certificate, a domain or a subscription renewal. `tone` is 'warn' (weeks left) or 'bad' (days left or already expired). -#}
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set accent = '#DC2626' if tone == 'bad' else '#F59E0B' %}
+{% set preheader = headline %}
+{% set eyebrow = kind_label ~ (" expiry" if kind != "subscription" else " renewal") %}
+{% set title %}{{ headline }}{% endset %}
+{% block intro %}{% call p.para() %}{{ message }}{% endcall %}{% endblock %}
+{% block body %}
+{{ p.stat(big, caption, tone) }}
+{{ p.facts(rows) }}
+{% if advice %}{% call p.notice() %}<b>What to do:</b> {{ advice }}{% endcall %}{% endif %}
+{{ p.button(url, button_label) }}
+{% endblock %}
+{% block footer_note %}You received this email because it is set up to alert {{ workspace }} about expiry and renewal dates. You can change who gets alerts in Settings.{% endblock %}

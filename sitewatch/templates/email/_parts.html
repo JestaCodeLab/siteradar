@@ -1,0 +1,66 @@
+{#- Pieces shared by the email templates. Each row is one <tr> of the card, so they drop straight into the `body` block. -#}
+
+{% macro para(text) %}<p style="margin:0 0 24px;font-size:16px;line-height:26px;color:#475569">{{ caller() if caller else text }}</p>{% endmacro %}
+
+{% macro button(url, label) %}
+<tr><td class="px btn" style="padding:0 40px 16px">
+<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ url }}" style="height:52px;v-text-anchor:middle;width:260px" arcsize="20%" stroke="f" fillcolor="#F97316"><center style="color:#FFFFFF;font-family:Arial,sans-serif;font-size:16px;font-weight:bold">{{ label }}</center></v:roundrect><![endif]-->
+<!--[if !mso]><!--><a href="{{ url }}" style="display:inline-block;padding:16px 32px;background:#F97316;border-radius:10px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;font-weight:700;color:#FFFFFF;text-decoration:none;text-align:center">{{ label }}</a><!--<![endif]-->
+</td></tr>
+{% endmacro %}
+
+{% macro linkfallback(url) %}
+<tr><td class="px" style="padding:0 40px 28px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:13px;line-height:20px;color:#64748B">
+Button not working? Copy this link into your browser:<br><a href="{{ url }}" style="color:#C2410C;word-break:break-all">{{ url }}</a>
+</td></tr>
+{% endmacro %}
+
+{% macro code(value) %}
+<tr><td class="px" style="padding:0 40px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:12px">
+<tr><td align="center" class="code" style="padding:22px 12px;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:38px;line-height:44px;font-weight:700;letter-spacing:10px;color:#0F172A">{{ value }}</td></tr>
+</table>
+</td></tr>
+{% endmacro %}
+
+{% macro notice(bg='#FFF7ED', color='#9A3412') %}
+<tr><td class="px" style="padding:8px 40px 24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{{ bg }};border-radius:10px">
+<tr><td style="padding:14px 16px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:21px;color:{{ color }}">{{ caller() }}</td></tr></table>
+</td></tr>
+{% endmacro %}
+
+{% macro divider() %}
+<tr><td class="px" style="padding:0 40px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid #EFE4D8;font-size:0;line-height:0">&nbsp;</td></tr></table></td></tr>
+{% endmacro %}
+
+{% macro section(heading) %}
+<tr><td class="px" style="padding:24px 40px 8px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+{% if heading %}<p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#0F172A">{{ heading }}</p>{% endif %}
+{{ caller() }}
+</td></tr>
+{% endmacro %}
+
+{# Label and value rows, e.g. a receipt. `rows` is a list of (label, value) or (label, value, True) for monospace values. #}
+{% macro facts(rows) %}
+<tr><td class="px" style="padding:0 40px 24px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #EFE4D8;border-radius:12px">
+{% for r in rows %}<tr>
+<td style="padding:12px 16px;{% if not loop.last %}border-bottom:1px solid #EFE4D8;{% endif %}font-size:14px;line-height:20px;color:#64748B" width="42%">{{ r[0] }}</td>
+<td align="right" style="padding:12px 16px;{% if not loop.last %}border-bottom:1px solid #EFE4D8;{% endif %}font-size:14px;line-height:20px;font-weight:700;color:#0F172A;{% if r[2] %}font-family:'SFMono-Regular',Consolas,Menlo,monospace;{% endif %}word-break:break-word">{{ r[1] }}</td>
+</tr>{% endfor %}
+</table>
+</td></tr>
+{% endmacro %}
+
+{# A large number with a caption, e.g. days left. tone is 'warn', 'bad' or 'ok'. #}
+{% macro stat(value, caption, tone='warn') %}
+{% set c = {'warn': ['#FEF3C7', '#92400E'], 'bad': ['#FEE2E2', '#991B1B'], 'ok': ['#DCFCE7', '#166534']}[tone] %}
+<tr><td class="px" style="padding:0 40px 24px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{{ c[0] }};border-radius:12px">
+<tr><td align="center" style="padding:20px 16px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+<div style="font-family:'SFMono-Regular',Consolas,Menlo,monospace;font-size:40px;line-height:44px;font-weight:700;color:{{ c[1] }}">{{ value }}</div>
+<div style="margin-top:4px;font-size:14px;line-height:20px;color:{{ c[1] }}">{{ caption }}</div>
+</td></tr></table>
+</td></tr>
+{% endmacro %}

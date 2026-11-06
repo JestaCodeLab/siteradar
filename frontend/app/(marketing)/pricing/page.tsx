@@ -60,7 +60,7 @@ export default function Pricing() {
         <Rings className="-right-[260px] -top-[180px] hidden size-[900px] md:block" />
         <Container className="relative flex flex-col items-start gap-3 pb-[88px] pt-10 text-left md:items-center md:gap-4 md:pb-[150px] md:pt-20 md:text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
-          <h1 className="max-w-[760px] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Monitoring Plans for Every Business.</h1>
+          <h1 className="max-w-[760px] text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Monitoring Plans for Every Business.</h1>
           <p className="max-w-[600px] text-base text-[#CBD5E1] md:text-[19px]">Clear monthly pricing in {plans[0]?.currency === "USD" ? "US dollars" : "Ghana cedis"}.<span className="hidden md:inline"> Choose the plan that fits the websites you look after, and move up as you grow.</span></p>
           <div role="group" aria-label="Billing period" className="mt-2 inline-flex gap-1 md:mt-3 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
@@ -90,7 +90,7 @@ export default function Pricing() {
       <div className="hidden md:block"><ComparePlans plans={plans} yearly={yearly} /></div>
 
       <Container className="flex flex-wrap gap-4 pb-12 pt-9 md:gap-12 md:pb-24 md:pt-12">
-        <h2 className="min-w-[280px] flex-[1_1_280px] text-xl font-semibold leading-[1.1] tracking-[-0.02em] md:text-[clamp(28px,3.2vw,40px)] md:font-bold md:tracking-[-0.03em]">Questions</h2>
+        <h2 className="min-w-[280px] flex-[1_1_280px] text-xl font-bold leading-[1.1] tracking-[-0.02em] md:text-[clamp(28px,3.2vw,40px)] md:font-bold md:tracking-[-0.03em]">Questions</h2>
         <div className="flex min-w-0 flex-[2_1_520px] flex-col border-b border-[#EFE4D8]">
           <div className="md:hidden">{faq.map(([q, a]) => <details key={q} className="group border-t border-[#EFE4D8] py-3.5"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden [&::-webkit-details-marker]:hidden"><h3 className="text-base font-bold">{q}</h3><span aria-hidden="true" className="text-[#C2410C] group-open:hidden">+</span><span aria-hidden="true" className="hidden text-[#C2410C] group-open:inline">−</span></summary><p className="mt-2 text-[15px] text-[#475569]">{a}</p></details>)}</div>
           <div className="hidden md:block">{faq.map(([q, a]) => <div key={q} className="border-t border-[#EFE4D8] py-5"><h3 className="mb-1.5 text-lg font-bold">{q}</h3><p className="text-[#475569]">{a}</p></div>)}</div>

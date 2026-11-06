@@ -1,0 +1,12 @@
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set preheader = "Your SiteRadar code is " ~ code ~ ". It expires in " ~ minutes ~ " minutes." %}
+{% set eyebrow = "Verify your email" %}
+{% set title %}Confirm your email address{% endset %}
+{% block intro %}{% call p.para() %}Hi {{ first_name or "there" }}, enter this code on the SiteRadar page to confirm your email address and finish creating your account.{% endcall %}{% endblock %}
+{% block body %}
+{{ p.code(code) }}
+{% call p.notice() %}<b>This code expires in {{ minutes }} minutes</b> and can only be used once.{% endcall %}
+{{ p.divider() }}
+{% call p.section("Didn’t create an account?") %}<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#475569">You can safely ignore this email. No account is active until the code is used.{% if support_email %} Questions? Write to <a href="mailto:{{ support_email }}" style="color:#C2410C;font-weight:600">{{ support_email }}</a>.{% endif %}</p>{% endcall %}
+{% endblock %}
+{% block footer_note %}You received this email because someone started creating a SiteRadar account with this address.{% endblock %}

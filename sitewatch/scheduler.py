@@ -8,7 +8,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import accounts, alerts, auditor, billing, db, health, monitor, plans, report, sites, sub_report, subscriptions
+from . import accounts, alerts, auditor, billing, db, emails, health, monitor, plans, report, sites, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -127,9 +127,12 @@ class Scheduler(threading.Thread):
                 if db.last_alert("", kind):
                     continue
                 site = s["site_name"] or "no website"
+                days = (dt.date.fromisoformat(str(s["next_renewal"])[:10]) - dt.date.today()).days
+                mail = emails.expiry("subscription", ws["name"], s["name"], days, emails.fmt_date(s["next_renewal"]), f"{emails.app_url()}/subscriptions",
+                                     site=s["site_name"], amount=f"{s['currency']} {s['amount']:,.2f}", auto_renew=bool(s["auto_renew"]))
                 alerts.notify(self.cfg, {"workspace_id": ws["id"]}, f"Renewal coming up: {s['name']} ({site})",
                               f"{s['name']} renews on {s['next_renewal']} for {s['currency']} {s['amount']:.2f}"
-                              f"{' (charged automatically)' if s['auto_renew'] else ' (manual renewal needed)'}.")
+                              f"{' (charged automatically)' if s['auto_renew'] else ' (manual renewal needed)'}.", event="renewal", mail=mail)
                 db.log_alert("", kind, s["name"])
 
     @staticmethod

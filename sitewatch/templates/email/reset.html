@@ -1,0 +1,16 @@
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set accent = "#0F172A" %}
+{% set preheader = "Your password reset code is " ~ code ~ ". It expires in " ~ minutes ~ " minutes." %}
+{% set eyebrow = "Password reset" %}
+{% set title %}Reset your password{% endset %}
+{% block intro %}{% call p.para() %}Hi {{ first_name or "there" }}, we received a request to reset the password for your SiteRadar account. Enter this code on the SiteRadar page to choose a new one.{% endcall %}{% endblock %}
+{% block body %}
+{{ p.code(code) }}
+{% call p.notice() %}<b>This code expires in {{ minutes }} minutes</b> and can only be used once.{% endcall %}
+{{ p.divider() }}
+{% call p.section("Didn’t ask for this?") %}
+<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#475569">You can safely ignore this email. Your password won’t change unless the code is used. If you keep getting these emails, contact us{% if support_email %} at <a href="mailto:{{ support_email }}" style="color:#C2410C;font-weight:600">{{ support_email }}</a>{% endif %}.</p>
+<p style="margin:0;font-size:13px;line-height:20px;color:#64748B">Request made {{ request_time }}.</p>
+{% endcall %}
+{% endblock %}
+{% block footer_note %}This is a security email from SiteRadar and is sent even if you have turned off other emails.{% endblock %}

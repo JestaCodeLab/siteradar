@@ -3,17 +3,23 @@ import json
 import logging
 import time
 
-from . import alerts, db, dnshealth, domains, screenshot, sitemap
+from . import accounts, alerts, db, dnshealth, domains, emails, screenshot, sitemap
 
 log = logging.getLogger("sitewatch.health")
 DOMAIN_ALERT_DAYS = (60, 30, 14, 7, 3, 1)
 
 
-def _once(site, kind, subject, text, cfg):
+def _once(site, kind, subject, text, cfg, mail=None):
     if db.last_alert(site["id"], kind):
         return
     db.log_alert(site["id"], kind, subject)
-    alerts.notify(cfg, site, subject, text, event="domain")
+    alerts.notify(cfg, site, subject, text, event="domain", mail=mail)
+
+
+def _domain_mail(site, domain, left, expires, registrar):
+    ws = accounts.workspace(site.get("workspace_id")) or {}
+    return emails.expiry("domain", ws.get("name", "your workspace"), domain, left, emails.fmt_date(expires),
+                         f"{emails.app_url()}/websites/{site['id']}", registrar=registrar)
 
 
 def check_domain(cfg, site):
@@ -25,12 +31,14 @@ def check_domain(cfg, site):
     if left is not None:
         if left < 0:
             _once(site, f"domain:expired:{res['expires']}", f"DOMAIN EXPIRED: {domain}",
-                  f"{domain} expired on {res['expires']}. Renew it immediately or the website and email will stop working.", cfg)
+                  f"{domain} expired on {res['expires']}. Renew it immediately or the website and email will stop working.", cfg,
+                  _domain_mail(site, domain, left, res["expires"], res["registrar"]))
         else:
             due = [d for d in DOMAIN_ALERT_DAYS if left <= d]
             if due:
                 _once(site, f"domain:{res['expires']}:{min(due)}", f"Domain {domain} expires in {left} days",
-                      f"{domain} expires on {res['expires']}. Renew it with {res['registrar'] or 'your registrar'} before then.", cfg)
+                      f"{domain} expires on {res['expires']}. Renew it with {res['registrar'] or 'your registrar'} before then.", cfg,
+                      _domain_mail(site, domain, left, res["expires"], res["registrar"]))
     return res
 
 

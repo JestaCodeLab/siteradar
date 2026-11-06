@@ -3,7 +3,6 @@
 Without a key the message is written to the log instead, which is how you read verification codes locally.
 """
 import base64
-import html as _html
 import logging
 import os
 
@@ -44,33 +43,3 @@ def send(to, subject, text, html=None, attachments=(), reply_to=None):
     except requests.RequestException as e:
         log.error("Resend request failed: %s", e)
         return False
-
-
-def layout(heading, body, button=None, footer="You are receiving this because of your SiteRadar account."):
-    """Plain, responsive email shell. `body` is already-safe HTML."""
-    btn = ""
-    if button:
-        label, url = button
-        btn = (f'<p style="margin:28px 0"><a href="{_html.escape(url)}" style="background:#EA580C;color:#fff;text-decoration:none;'
-               f'font-weight:600;padding:13px 22px;border-radius:8px;display:inline-block">{_html.escape(label)}</a></p>')
-    base = os.environ.get("APP_URL", "").rstrip("/")
-    if base.startswith("https://"):          # an image needs a public address; fall back to the name locally
-        brand = f'<img src="{base}/logos/siteradar-logo-horizontal.png" alt="SiteRadar" height="40" style="height:40px;width:auto;display:block;border:0">'
-    else:
-        brand = '<span style="font-size:18px;font-weight:700;color:#EA580C">SiteRadar</span>'
-    return f"""<!doctype html><html><body style="margin:0;background:#FFF7ED;font-family:system-ui,Arial,Helvetica,sans-serif;color:#0F172A">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:12px;border:1px solid #E2E5EA">
-<tr><td style="padding:26px 32px 8px">{brand}</td></tr>
-<tr><td style="padding:0 32px 8px"><h1 style="font-size:22px;margin:8px 0 12px">{_html.escape(heading)}</h1>
-<div style="font-size:15px;line-height:1.6;color:#3F4857">{body}</div>{btn}</td></tr>
-<tr><td style="padding:16px 32px 28px;font-size:12px;color:#8A93A3">{_html.escape(footer)}</td></tr>
-</table></td></tr></table></body></html>"""
-
-
-def code_email(first_name, code, minutes=15):
-    body = (f"<p>Hi {_html.escape(first_name or 'there')}, use this code to verify your email address.</p>"
-            f'<p style="font-size:34px;letter-spacing:8px;font-weight:700;font-family:monospace;margin:18px 0;color:#0F172A">{code}</p>'
-            f"<p>It expires in {minutes} minutes. If you did not create a SiteRadar account, ignore this email.</p>")
-    return (f"Your SiteRadar code is {code}\n\nIt expires in {minutes} minutes.",
-            layout("Verify your email", body))

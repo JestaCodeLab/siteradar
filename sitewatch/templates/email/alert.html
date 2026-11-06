@@ -1,0 +1,12 @@
+{#- Everything else the monitoring says: a site down, back up, slow, DNS changed, a test. `tone` is 'bad', 'ok', 'warn' or 'info'. -#}
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set accent = {'bad': '#DC2626', 'ok': '#16A34A', 'warn': '#F59E0B', 'info': '#F97316'}[tone] %}
+{% set preheader = lines[0] if lines else headline %}
+{% set eyebrow = label %}
+{% set title %}{{ headline }}{% endset %}
+{% block intro %}{% for line in lines %}<p style="margin:0 0 {{ 24 if loop.last else 12 }}px;font-size:16px;line-height:26px;color:#475569;word-break:break-word">{{ line }}</p>{% endfor %}{% endblock %}
+{% block body %}
+{% if rows %}{{ p.facts(rows) }}{% endif %}
+{% if url %}{{ p.button(url, button_label) }}{% endif %}
+{% endblock %}
+{% block footer_note %}You received this email because it is set up to alert {{ workspace }}. You can change who gets alerts in Settings.{% endblock %}

@@ -1,0 +1,14 @@
+{#- One template for the plan emails that need an action: renewing soon, payment needed, plan ended. `tone` is 'soon', 'due' or 'ended'. -#}
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set accent = {'soon': '#F59E0B', 'due': '#DC2626', 'ended': '#475569'}[tone] %}
+{% set preheader = headline %}
+{% set eyebrow = {'soon': 'Plan renewal', 'due': 'Payment needed', 'ended': 'Plan ended'}[tone] %}
+{% set title %}{{ headline }}{% endset %}
+{% block intro %}{% call p.para() %}Hi {{ first_name or "there" }}, {{ message }}{% endcall %}{% endblock %}
+{% block body %}
+{{ p.facts(rows) }}
+{% if note %}{% call p.notice(*({'soon': ('#FFF7ED', '#9A3412'), 'due': ('#FEF2F2', '#991B1B'), 'ended': ('#F1F5F9', '#334155')}[tone])) %}{{ note }}{% endcall %}{% endif %}
+{{ p.button(billing_url, button_label) }}
+{{ p.linkfallback(billing_url) }}
+{% endblock %}
+{% block footer_note %}This is a billing email about the SiteRadar account {{ workspace }}.{% endblock %}

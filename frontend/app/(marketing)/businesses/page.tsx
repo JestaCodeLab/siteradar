@@ -40,7 +40,7 @@ export default function Businesses() {
         <Container className="relative flex flex-wrap items-center gap-14 py-10 md:py-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 md:gap-5">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 text-[#FDBA74]`}>Solutions for businesses</span>
-            <h1 className="text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Your digital presence, watched around the clock.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Your digital presence, watched around the clock.</h1>
             <p className="text-base text-[#CBD5E1] md:text-[19px]">For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence.<span className="hidden md:inline"> Know about problems before your customers do, and get a plain-language list of what to fix.</span></p>
             <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineDark}>Talk to us</Link></div>
           </div>

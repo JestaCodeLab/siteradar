@@ -41,7 +41,7 @@ export default function Agencies() {
         <Container className="relative flex flex-wrap items-center gap-14 py-10 md:py-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 md:gap-5">
             <span className={`${eyebrow} self-start rounded-full bg-[#FFEDD5] px-3 py-1.5 text-[#9A3412]`}>Solutions for agencies</span>
-            <h1 className="text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
             <p className="text-base text-[#475569] md:text-[19px]">For digital marketing agencies, web development agencies and consultants managing multiple clients.<span className="hidden md:inline"> Catch problems before your clients call, and prove the value of your work every month.</span></p>
             <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
           </div>

@@ -1,0 +1,29 @@
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set preheader = "Add your first website and your radar starts checking straight away." %}
+{% set eyebrow = "Welcome to SiteRadar" %}
+{% set title %}Your radar is ready, {{ first_name or "there" }}.{% endset %}
+{% block intro %}{% call p.para() %}Thanks for confirming your email. Add your first website and SiteRadar starts checking it straight away: uptime, SSL, domain and DNS, speed and more.{% endcall %}{% endblock %}
+{% block body %}
+{{ p.button(add_url, "Add your first website") }}
+<tr><td style="height:16px;font-size:0;line-height:0">&nbsp;</td></tr>
+{{ p.divider() }}
+<tr><td class="px" style="padding:28px 40px 8px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+<p style="margin:0 0 18px;font-size:16px;font-weight:700;color:#0F172A">What happens next</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+{% for n, head, text in [
+  ("1", "Add your websites.", "Paste the address of each site and SiteRadar starts checking straight away."),
+  ("2", "Install one line (optional).", "A tiny cookieless script shows visitors and real page speed."),
+  ("3", "Relax, we will tell you.", "Alerts when something needs attention, and a report on the 1st of every month.")] %}
+<tr>
+<td width="44" valign="top" style="padding:0 0 {{ 18 if not loop.last else 8 }}px"><div style="width:32px;height:32px;line-height:32px;border-radius:16px;background:#FFEDD5;text-align:center;font-size:14px;font-weight:700;color:#9A3412">{{ n }}</div></td>
+<td valign="top" style="padding:0 0 {{ 18 if not loop.last else 8 }}px;font-size:15px;line-height:23px;color:#475569"><b style="color:#0F172A">{{ head }}</b> {{ text }}</td>
+</tr>
+{% endfor %}
+</table>
+</td></tr>
+<tr><td class="px" style="padding:16px 40px 8px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:24px;color:#475569">
+Questions? Just reply to this email{% if support_email %} or write to <a href="mailto:{{ support_email }}" style="color:#C2410C;font-weight:600">{{ support_email }}</a>{% endif %}.<br><br>
+The SiteRadar team
+</td></tr>
+{% endblock %}
+{% block footer_note %}You received this email because an account was created on SiteRadar with this address.{% endblock %}

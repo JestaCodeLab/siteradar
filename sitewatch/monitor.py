@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from . import alerts, db, netguard
+from . import accounts, alerts, db, emails, netguard
 
 log = logging.getLogger("sitewatch.monitor")
 UA = "SiteRadar-Monitor/1.0 (+uptime check)"
@@ -104,16 +104,20 @@ def _handle_incidents(cfg, site, result, now):
 
 def _handle_warnings(cfg, site, result):
     """Non-outage warnings, sent at most once a day each."""
-    def once_a_day(kind, subject, text):
+    def once_a_day(kind, subject, text, mail=None):
         last = db.last_alert(site["id"], kind)
         if not last or time.time() - last["ts"] > 86400:
             db.log_alert(site["id"], kind, subject)
-            alerts.notify(cfg, site, subject, text, event=kind)
+            alerts.notify(cfg, site, subject, text, event=kind, mail=mail)
 
     days = result["ssl_days_left"]
     if days is not None and days <= cfg["ssl_warning_days"]:
+        ws = accounts.workspace(site.get("workspace_id")) or {}
+        mail = emails.expiry("ssl", ws.get("name", "your workspace"), site["name"], days,
+                             emails.fmt_date(result["ssl_expires"]) if result.get("ssl_expires") else "soon",
+                             f"{emails.app_url()}/websites/{site['id']}")
         once_a_day("ssl", f"SSL certificate for {site['name']} expires in {days} days",
-                   f"Renew the certificate for {site['url']} before it expires, or visitors will see a security warning.")
+                   f"Renew the certificate for {site['url']} before it expires, or visitors will see a security warning.", mail)
     if result["ok"] and result["response_ms"]:
         recent = db.q("SELECT response_ms FROM checks WHERE site_id=? AND ok=1 ORDER BY ts DESC LIMIT 3", (site["id"],))
         if len(recent) == 3 and all(r["response_ms"] > cfg["slow_threshold_ms"] for r in recent):

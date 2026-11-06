@@ -1,0 +1,13 @@
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set preheader = who ~ " invited you to join " ~ workspace ~ " on SiteRadar." %}
+{% set eyebrow = "Team invitation" %}
+{% set title %}Join {{ workspace }} on SiteRadar{% endset %}
+{% block intro %}{% call p.para() %}<b style="color:#0F172A">{{ who }}</b> invited you to join <b style="color:#0F172A">{{ workspace }}</b> as <b style="color:#0F172A">{{ role }}</b>. {{ role_note }}{% endcall %}{% endblock %}
+{% block body %}
+{{ p.button(url, "Accept invitation") }}
+{{ p.linkfallback(url) }}
+{% call p.notice() %}<b>This invitation expires in {{ days }} days.</b> It was sent to {{ email }}.{% endcall %}
+{{ p.divider() }}
+{% call p.section("Don’t know " ~ who ~ "?") %}<p style="margin:0 0 16px;font-size:15px;line-height:24px;color:#475569">You can ignore this email and nothing will happen. You won’t be added to anything unless you accept.</p>{% endcall %}
+{% endblock %}
+{% block footer_note %}You received this email because {{ who }} invited you to SiteRadar.{% endblock %}

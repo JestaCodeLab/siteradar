@@ -7,7 +7,6 @@ Set BILLING_TEST_MODE=1 to switch plans without any payment while developing.
 """
 import hashlib
 import hmac
-import html
 import json
 import logging
 import os
@@ -16,7 +15,7 @@ import time
 
 import requests
 
-from . import accounts, db, mailer, plans, sites
+from . import accounts, db, emails, mailer, plans, sites
 
 log = logging.getLogger("sitewatch.billing")
 API = "https://api.paystack.co"
@@ -141,13 +140,13 @@ def _receipt(ws, pay):
     owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
     if not owner:
         return
+    pay = db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],)) or pay          # the row as saved, with the payment method filled in
     plan = plans.get(pay["plan_id"])
-    renews = time.strftime("%d %B %Y", time.localtime(ws["plan_renews"]))
-    body = (f"<p>Thank you. Your <b>{html.escape(plan['name'])}</b> plan ({pay['cycle']}) is active.</p>"
-            f"<p>Amount paid: <b>{plans.money(pay['amount'], pay['currency'] or 'GHS')}</b><br>Reference: {pay['reference']}<br>Next renewal: {renews}</p>")
-    mailer.send(owner["email"], f"Payment received: SiteRadar {plan['name']}",
-                f"Payment of {plans.money(pay['amount'], pay['currency'] or 'GHS')} received for the {plan['name']} plan. Next renewal: {renews}.",
-                mailer.layout("Payment received", body, ("Open billing", app_url() + "/billing")))
+    renews = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(ws["plan_renews"])))
+    paid_on = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(pay.get("paid") or time.time())))
+    mail = emails.payment_received(owner["first_name"], ws["name"], plan["name"], pay["cycle"], plans.money(pay["amount"], pay["currency"] or "GHS"),
+                                   pay.get("method") or method_label(pay.get("channel"), None), pay["reference"], paid_on, renews)
+    mailer.send(owner["email"], mail.subject, mail.text, mail.html)
 
 
 def webhook(cfg, raw, signature):
@@ -200,12 +199,11 @@ def _renew(cfg, ws, now):
         db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)",
                 (now, ws["id"], "plan.lapsed", "Plan lapsed after a failed renewal"))
         sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
-        _notify_owner(ws, "Your SiteRadar plan has ended",
-                      "We could not renew your plan, so your account is now on Free limits. Your data is safe. Upgrade any time to restore it.")
+        _notify_owner(ws, "ended")
         return
     if left > 0 and ws["paystack_auth"] is None and not db.kv_get(flag):
         db.kv_set(flag, True)
-        _notify_owner(ws, "Your SiteRadar plan renews soon", "Open billing to pay for the next period by card or mobile money.")
+        _notify_owner(ws, "soon")
         return
     if left <= 0 and ws["paystack_auth"] and configured() and not db.kv_get(flag):
         db.kv_set(flag, True)
@@ -219,15 +217,24 @@ def _renew(cfg, ws, now):
         confirm(cfg, ref)
     elif left <= 0 and ws["plan_status"] == "past_due" and not db.kv_get(flag + ":due"):
         db.kv_set(flag + ":due", True)
-        _notify_owner(ws, "Payment needed to keep your SiteRadar plan",
-                      f"Your plan period has ended. Pay within {GRACE_DAYS} days to keep your plan.")
+        _notify_owner(ws, "due")
 
 
-def _notify_owner(ws, subject, message):
+def _notify_owner(ws, tone):
+    """Tell the owner about their plan: tone is 'soon' (renews in a few days), 'due' (payment did not go through) or 'ended'."""
     owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
-    if owner:
-        mailer.send(owner["email"], subject, message,
-                    mailer.layout(subject, f"<p>{html.escape(message)}</p>", ("Open billing", app_url() + "/billing")))
+    if not owner:
+        return
+    plan = plans.get(ws["plan_id"])
+    renews = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(ws["plan_renews"]))) if ws["plan_renews"] else None
+    amount = None
+    if tone != "ended":
+        try:
+            amount = plans.money(quote(ws["plan_id"], ws["cycle"], ws["currency"])[1], ws["currency"] or "GHS")
+        except Exception:
+            pass
+    mail = emails.billing_notice(tone, owner["first_name"], ws["name"], plan["name"], renews, amount, GRACE_DAYS)
+    mailer.send(owner["email"], mail.subject, mail.text, mail.html)
 
 
 # ---- support actions used by the super admin ------------------------------------
@@ -237,12 +244,7 @@ def send_payment_link(ws):
     owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
     if not owner:
         raise ValueError("This workspace has no owner to email.")
-    plan = plans.get(ws["plan_id"])
-    body = (f"<p>We could not take payment for your <b>{html.escape(plan['name'])}</b> plan. "
-            "Open Billing to pay by card or mobile money and keep your plan.</p>")
-    mailer.send(owner["email"], "Payment needed to keep your SiteRadar plan",
-                f"We could not take payment for your {plan['name']} plan. Open {app_url()}/settings?tab=billing to pay.",
-                mailer.layout("Payment needed", body, ("Open billing", app_url() + "/settings?tab=billing")))
+    _notify_owner(ws, "due")
     return owner["email"]
 
 

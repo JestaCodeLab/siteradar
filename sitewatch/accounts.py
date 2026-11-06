@@ -10,7 +10,7 @@ import time
 
 from werkzeug.security import check_password_hash, generate_password_hash as _gen
 
-from . import db, mailer, netguard, plans, storage
+from . import db, emails, mailer, netguard, plans, storage
 
 log = logging.getLogger("sitewatch.accounts")
 CODE_MINUTES = 15
@@ -116,11 +116,8 @@ def send_code(user, purpose, to=None):
     code = f"{secrets.randbelow(1000000):06d}"
     db.run("INSERT INTO email_codes(user_id, purpose, code_hash, created, expires) VALUES (?,?,?,?,?)",
            (user["id"], purpose, _hash_code(user["id"], purpose, code), now, now + CODE_MINUTES * 60))
-    text, html = mailer.code_email(user["first_name"], code, CODE_MINUTES)
-    if purpose == "reset":
-        text = f"Your SiteRadar password reset code is {code}\n\nIt expires in {CODE_MINUTES} minutes."
-        html = html.replace("Verify your email", "Reset your password")
-    mailer.send(to or user["email"], f"{code} is your SiteRadar code", text, html)
+    mail = (emails.reset_code if purpose == "reset" else emails.verify_code)(user["first_name"], code, CODE_MINUTES)
+    mailer.send(to or user["email"], mail.subject, mail.text, mail.html)
 
 
 def check_code(user, purpose, code):
@@ -137,13 +134,25 @@ def check_code(user, purpose, code):
     db.exec("UPDATE email_codes SET used=1 WHERE id=?", (row["id"],))
 
 
+def send_welcome(user):
+    """The first email after an account is confirmed. Never lets a mail problem get in the way of signing in."""
+    try:
+        mail = emails.welcome(user["first_name"])
+        mailer.send(user["email"], mail.subject, mail.text, mail.html)
+    except Exception:
+        log.exception("Welcome email failed for user %s", user["id"])
+
+
 def verify_email(email, code):
     user = user_by_email(norm_email(email)) or raise_(AuthError("That code is not right.", "bad_code", 400))
+    first_time = not user["email_verified"]
     check_code(user, "verify", code)
     sets = f"email_verified=1, last_login={time.time()}"
     if user["email"].lower() in super_emails():
         sets += ", is_super=1"
     db.exec(f"UPDATE users SET {sets} WHERE id=?", (user["id"],))
+    if first_time:
+        send_welcome(user)
     return user_by_id(user["id"])
 
 
@@ -177,6 +186,7 @@ def google_user(profile, country=None):
         uid = db.run("INSERT INTO users(email, first_name, last_name, phone, country, password_hash, email_verified, google_sub, created) VALUES (?,?,?,?,?,?,?,?,?)",
                      (email, first, last, "", (country or "").upper()[:2] or None, generate_password_hash(secrets.token_urlsafe(32)), 1, sub, time.time()))
         user, created = user_by_id(uid), True
+        send_welcome(user)
     else:
         if user["disabled"]:
             raise AuthError("This account has been disabled. Contact support.", "disabled", 403)
@@ -461,12 +471,8 @@ def send_invite_email(ws, inviter, email, role, token):
     base = os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
     url = f"{base}/invite/{token}"
     who = f"{inviter['first_name']} {inviter['last_name']}".strip()
-    text = (f"{who} invited you to join {ws['name']} on SiteRadar as {role}.\n\nAccept the invitation: {url}\n\n"
-            f"The link works for {INVITE_DAYS} days.")
-    import html
-    body = f"<p><b>{html.escape(who)}</b> invited you to join <b>{html.escape(ws['name'])}</b> on SiteRadar as <b>{role}</b>.</p>"
-    mailer.send(email, f"{who} invited you to {ws['name']} on SiteRadar", text,
-                mailer.layout("You are invited", body, ("Accept invitation", url)))
+    mail = emails.invite(ws["name"], who, role, url, INVITE_DAYS, email)
+    mailer.send(email, mail.subject, mail.text, mail.html)
 
 
 def _invite_row(token):
