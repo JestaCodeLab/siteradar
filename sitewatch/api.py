@@ -231,7 +231,14 @@ def blueprint(cfg):
         # first check right away so the new site shows a status instead of "unknown"
         threading.Thread(target=monitor.check_site, args=(cfg, site), daemon=True).start()
         threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
+        if site.get("audit", True):
+            start_audit(site)         # Google PageSpeed and the page audit, so the first results are not a night away
         return jsonify(site_card(site)), 201
+
+    def fresh(site_id, now):
+        """True for the first 15 minutes after a website's first check, while its first audit can still be on its way."""
+        first = db.q1("SELECT MIN(ts) t FROM checks WHERE site_id=?", (site_id,))["t"]
+        return first is None or now - first < 900
 
     @bp.get("/sites/<site_id>")
     def site_detail(site_id):
@@ -257,6 +264,9 @@ def blueprint(cfg):
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',
             "audit_running": site_id in running_audits,
+            # still waiting on the first results of a website that was only just added
+            "first_run": {"checks": not db.q1("SELECT 1 FROM checks WHERE site_id=? LIMIT 1", (site_id,)),
+                          "audit": bool(s.get("audit", True)) and au is None and (site_id in running_audits or fresh(site_id, now))},
             "preview": {"desktop": screenshot.captured_at(cfg, site_id, "desktop"),
                         "mobile": screenshot.captured_at(cfg, site_id, "mobile"),
                         "running": site_id in running_shots},
@@ -342,18 +352,23 @@ def blueprint(cfg):
         r = monitor.check_site(cfg, site_or_404(site_id))
         return jsonify(ok=r["ok"], status_code=r["status_code"], response_ms=r["response_ms"], error=r["error"])
 
+    def start_audit(s):
+        if s["id"] in running_audits:
+            return
+        running_audits.add(s["id"])
+
+        def job():
+            try:
+                auditor.audit_site(cfg, s)
+            except Exception:
+                log.exception("Audit failed for %s", s["id"])
+            finally:
+                running_audits.discard(s["id"])
+        threading.Thread(target=job, daemon=True).start()
+
     @bp.post("/sites/<site_id>/audit")
     def audit_now(site_id):
-        s = site_or_404(site_id)
-        if site_id not in running_audits:
-            running_audits.add(site_id)
-
-            def job():
-                try:
-                    auditor.audit_site(cfg, s)
-                finally:
-                    running_audits.discard(site_id)
-            threading.Thread(target=job, daemon=True).start()
+        start_audit(site_or_404(site_id))
         return jsonify(started=True), 202
 
     @bp.get("/sites/<site_id>/reports")

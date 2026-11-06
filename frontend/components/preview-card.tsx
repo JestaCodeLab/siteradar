@@ -11,7 +11,7 @@ export function PreviewCard({ site, onChange }: { site: SiteDetail; onChange: ()
   const { desktop, mobile, running } = site.preview;
   const [starting, setStarting] = useState(false);
   const [broken, setBroken] = useState<{ desktop?: boolean; mobile?: boolean }>({});
-  const busy = starting || running;
+  const busy = starting || running || !!site.first_run?.checks;
 
   async function refresh() {
     setStarting(true);

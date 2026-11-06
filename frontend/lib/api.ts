@@ -62,6 +62,8 @@ export interface PageSpeed { mobile: PageSpeedResult | null; desktop: PageSpeedR
 
 export interface SiteDetail extends SiteCard {
   audit_ts: number | null; pagespeed: PageSpeed | null;
+  /** True while the first results of a website that was just added are still on their way. */
+  first_run?: { checks: boolean; audit: boolean };
   preview: { desktop: number | null; mobile: number | null; running: boolean };
   uptime_stats: { uptime: number | null; avg_ms: number | null; p95_ms: number | null; downtime_minutes: number; incident_count: number };
   response_series: { day: string; ms: number }[];

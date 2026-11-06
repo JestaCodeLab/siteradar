@@ -34,6 +34,9 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
   const [copied, setCopied] = useState(false);
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
+  const waitChecks = !!site.first_run?.checks;
+  const waitAudit = !!site.first_run?.audit || site.audit_running;
+  const wait = <Skeleton className="h-8 w-24" />;
   return (
     <div className="flex flex-col gap-5">
       {site.status === "down" && (
@@ -42,28 +45,28 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
         </p>
       )}
       <section className="grid grid-cols-[repeat(auto-fit,minmax(170px,1fr))] gap-4">
-        <Tile label="Uptime, 30 days" icon={Activity} info="The share of the last 30 days the site was reachable. It is worked out from how long incidents lasted, so one failed check that recovers straight away does not count." value={fmtPct(site.uptime_stats.uptime)} note={`${site.uptime_stats.incident_count} incident${site.uptime_stats.incident_count === 1 ? "" : "s"}`} />
-        <Tile label="Response time" icon={Timer} info="How long the site took to answer its latest check. The 30-day average is shown underneath. Over 3 seconds counts as slow." value={fmtMs(site.response_ms)} note={`Average ${fmtMs(site.uptime_stats.avg_ms)}`} tone={site.status === "slow" ? "warn" : "muted"} />
-        <Tile label="SSL certificate" icon={ShieldCheck} info="Days left until the website's security certificate runs out, with the date underneath. The team is emailed 21 days before, then daily, until it is renewed. After that date visitors see a security warning." value={site.ssl_days == null ? "—" : `${site.ssl_days} days`} note={site.ssl_expires ? `Expires ${fmtDate(site.ssl_expires)}` : "Not checked yet"} tone={sslTone} />
-        <Tile label="Domain expires" icon={CalendarClock} tone={site.domain_days != null && site.domain_days <= 60 ? "warn" : "muted"} info="Days until the domain name registration runs out, with the date underneath, taken from the domain registry. If it lapses, the website and email stop working. Details are in the Domain tab." value={site.domain_days == null ? "—" : `${site.domain_days} days`} note={site.domain_expires ? `Expires ${fmtDate(site.domain_expires)}` : "Not checked yet"} />
-        <Tile label="Audit score" icon={ClipboardCheck} info="The overall result of the nightly audit of up to 50 pages, covering SEO, performance, security, accessibility and best practices. 85 or more is healthy. Under 60 needs work." value={site.audit_score ?? "—"} note={site.top_issues.length ? `${site.top_issues.length} high issues` : "No high issues"} />
+        <Tile label="Uptime, 30 days" icon={Activity} info="The share of the last 30 days the site was reachable. It is worked out from how long incidents lasted, so one failed check that recovers straight away does not count." value={waitChecks ? wait : fmtPct(site.uptime_stats.uptime)} note={`${site.uptime_stats.incident_count} incident${site.uptime_stats.incident_count === 1 ? "" : "s"}`} />
+        <Tile label="Response time" icon={Timer} info="How long the site took to answer its latest check. The 30-day average is shown underneath. Over 3 seconds counts as slow." value={waitChecks ? wait : fmtMs(site.response_ms)} note={`Average ${fmtMs(site.uptime_stats.avg_ms)}`} tone={site.status === "slow" ? "warn" : "muted"} />
+        <Tile label="SSL certificate" icon={ShieldCheck} info="Days left until the website's security certificate runs out, with the date underneath. The team is emailed 21 days before, then daily, until it is renewed. After that date visitors see a security warning." value={waitChecks && site.ssl_days == null ? wait : site.ssl_days == null ? "—" : `${site.ssl_days} days`} note={site.ssl_expires ? `Expires ${fmtDate(site.ssl_expires)}` : "Not checked yet"} tone={sslTone} />
+        <Tile label="Domain expires" icon={CalendarClock} tone={site.domain_days != null && site.domain_days <= 60 ? "warn" : "muted"} info="Days until the domain name registration runs out, with the date underneath, taken from the domain registry. If it lapses, the website and email stop working. Details are in the Domain tab." value={waitChecks && site.domain_days == null ? wait : site.domain_days == null ? "—" : `${site.domain_days} days`} note={site.domain_expires ? `Expires ${fmtDate(site.domain_expires)}` : "Not checked yet"} />
+        <Tile label="Audit score" icon={ClipboardCheck} info="The overall result of the nightly audit of up to 50 pages, covering SEO, performance, security, accessibility and best practices. 85 or more is healthy. Under 60 needs work." value={waitAudit && site.audit_score == null ? wait : site.audit_score ?? "—"} note={site.top_issues.length ? `${site.top_issues.length} high issues` : "No high issues"} />
         <Tile label="Visitors, 30 days" icon={Users} info="Unique visitors in the last 30 days, counted by the tracking snippet. It needs the snippet installed, and counting starts on the day you install it." value={fmtNum(site.visitors30)} note={`${fmtNum(site.pageviews30)} page views`} />
       </section>
 
       <PreviewCard site={site} onChange={onChange} />
 
-      <PageSpeedCard ps={site.pagespeed} auditRan={site.audit_ts != null} />
+      <PageSpeedCard ps={site.pagespeed} auditRan={site.audit_ts != null} loading={waitAudit && !site.pagespeed} />
 
       <Card className="flex flex-col gap-3.5 p-5">
-        <CardTitle aside={`${fmtPct(site.uptime_stats.uptime)} · ${site.uptime_stats.downtime_minutes} min downtime`}>Uptime, last 30 days</CardTitle>
-        <UptimeStrip days={site.strip} height="h-11" />
+        <CardTitle aside={waitChecks ? undefined : `${fmtPct(site.uptime_stats.uptime)} · ${site.uptime_stats.downtime_minutes} min downtime`}>Uptime, last 30 days</CardTitle>
+        {waitChecks ? <Skeleton className="h-11" /> : <UptimeStrip days={site.strip} height="h-11" />}
         <div className="flex justify-between text-xs text-muted"><span>30 days ago</span><span>Today</span></div>
         <StripLegend />
       </Card>
 
       <Card className="p-5">
         <CardTitle aside={`Slow threshold ${threshold / 1000} s (dashed line)`}>Response time</CardTitle>
-        <LineChart label="Daily average response time for the last 30 days" points={site.response_series.map((r) => ({ x: r.day, y: r.ms }))} threshold={threshold} />
+        {waitChecks ? <Skeleton className="h-48" /> : <LineChart label="Daily average response time for the last 30 days" points={site.response_series.map((r) => ({ x: r.day, y: r.ms }))} threshold={threshold} />}
       </Card>
 
       <div className="flex flex-wrap gap-5">
@@ -79,7 +82,8 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
         </Card>
         <Card className="min-w-0 flex-[1_1_360px] px-5 pb-2 pt-5">
           <CardTitle>Top issues from the last audit</CardTitle>
-          {site.top_issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-muted">{site.audit_score == null ? "No audit has run yet. It runs every night, or press Run audit." : "No high-severity issues."}</p>}
+          {waitAudit && site.audit_score == null && <div role="status" aria-label="Running the first audit" className="flex flex-col gap-3 border-t border-line-soft py-4"><Skeleton className="h-5 w-3/4" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-5 w-1/2" /></div>}
+          {!(waitAudit && site.audit_score == null) && site.top_issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-muted">{site.audit_score == null ? "No audit has run yet. It runs every night, or press Run audit." : "No high-severity issues."}</p>}
           {site.top_issues.map((i) => (
             <div key={i.rule} className="flex items-center gap-3 border-t border-line-soft py-3.5">
               <SeverityChip severity="high" /><span className="text-[15px]">{i.title}</span>

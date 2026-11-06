@@ -2,7 +2,7 @@ import { Image as ImageIcon, Monitor, MousePointerClick, MoveVertical, Smartphon
 import { useState } from "react";
 import type { PageSpeed } from "@/lib/api";
 import { InfoTip } from "./info-tip";
-import { Card, CardTitle } from "./ui";
+import { Card, CardTitle, Skeleton } from "./ui";
 
 type Rating = "good" | "improve" | "poor";
 
@@ -50,8 +50,17 @@ function Metric({ label, hint, value, rating, icon: Glyph, info }: { label: stri
 
 type Device = "mobile" | "desktop";
 
-export function PageSpeedCard({ ps, auditRan }: { ps: PageSpeed | null; auditRan: boolean }) {
+export function PageSpeedCard({ ps, auditRan, loading = false }: { ps: PageSpeed | null; auditRan: boolean; loading?: boolean }) {
   const [picked, setPicked] = useState<Device | null>(null);
+  if (!ps && loading) {
+    return (
+      <Card className="flex flex-col gap-4 p-5" aria-busy="true">
+        <div className="flex flex-col gap-0.5"><h2 className="text-lg font-semibold">Google PageSpeed</h2><span role="status" className="text-sm text-muted">Running the first PageSpeed test. This takes about a minute.</span></div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28" />)}</div>
+      </Card>
+    );
+  }
   if (!ps) {
     return (
       <Card className="p-5">

@@ -22,7 +22,7 @@ function SiteView() {
   const router = useRouter();
   const tab = useSearchParams().get("tab") ?? "overview";
   const { data: site, error, mutate } = useSWR<SiteDetail>(`/api/sites/${id}`, fetcher, {
-    refreshInterval: (d) => (d?.audit_running || d?.preview.running ? 5000 : d && !d.preview.desktop ? 10000 : 60000),
+    refreshInterval: (d) => (d?.audit_running || d?.preview.running || d?.first_run?.checks || d?.first_run?.audit ? 4000 : d && !d.preview.desktop ? 10000 : 60000),
   });
   const toast = useToast();
   const [busy, setBusy] = useState<"check" | "audit" | null>(null);
