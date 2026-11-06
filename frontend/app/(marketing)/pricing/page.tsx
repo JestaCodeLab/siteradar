@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { ComparePlans } from "@/components/compare-plans";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow } from "@/lib/mkt-styles";
 import type { PlanInfo } from "@/lib/api";
@@ -44,17 +45,6 @@ export default function Pricing() {
   const disc = cat?.yearly_discount ?? 20;
   const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-bold ${on ? "bg-[#F97316] text-white" : "text-[#CBD5E1] hover:text-white"}`;
 
-  const rows: [string, (p: PlanInfo) => string, boolean?][] = [
-    ["Websites", (p) => String(p.sites), true], ["Team members", (p) => String(p.members), true],
-    ["Check frequency", (p) => `Every ${p.interval_minutes} minute${p.interval_minutes === 1 ? "" : "s"}`],
-    ["Email alerts", () => "Included"], ["Chat alerts (Slack, Teams, Discord)", (p) => (p.channels.includes("chat") ? "Included" : "Not included")],
-    ["SMS alerts", (p) => (p.sms ? `${p.sms} a month` : "Not included")],
-    ["Monthly PDF report", (p) => (p.clean_reports ? "Your logo, no watermark" : "Watermarked")],
-    ["Client viewer access", (p) => (p.client_access ? "Included" : "Not included")],
-    ["Pages crawled in each audit", (p) => AUDIT_PAGES[p.id] ?? "50", true], ["History kept", (p) => `${p.history_months} month${p.history_months === 1 ? "" : "s"}`],
-    ["Support", (p) => SUPPORT[p.id] ?? "Email"],
-  ];
-
   return (
     <>
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
@@ -87,16 +77,7 @@ export default function Pricing() {
         </div>
       </Container>
 
-      <Container className="flex flex-col gap-6 pb-12 pt-24">
-        <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Compare plans</h2>
-        <div className="overflow-x-auto rounded-2xl border border-[#EFE4D8] bg-white">
-          <table className="w-full min-w-[720px] border-collapse text-[15px]">
-            <thead><tr className="bg-[#FFF7ED] text-left"><th scope="col" className="px-5 py-4 font-bold">Feature</th>{plans.map((p) => <th key={p.id} scope="col" className={`px-5 py-4 font-bold ${p.id === "growth" ? "text-[#9A3412]" : ""}`}>{p.name}</th>)}</tr></thead>
-            <tbody>{rows.map(([label, fn, mono]) => (
-              <tr key={label} className="border-t border-[#EFE4D8]"><th scope="row" className="px-5 py-3.5 text-left font-medium">{label}</th>{plans.map((p) => <td key={p.id} className={`px-5 py-3.5 ${mono ? "font-mono" : ""} ${fn(p) === "Not included" ? "text-[#475569]" : ""}`}>{fn(p)}</td>)}</tr>))}</tbody>
-          </table>
-        </div>
-      </Container>
+      <ComparePlans plans={plans} yearly={yearly} />
 
       <Container className="flex flex-wrap gap-12 pb-24 pt-12">
         <h2 className="min-w-[280px] flex-[1_1_280px] text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Questions</h2>
