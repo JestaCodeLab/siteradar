@@ -11,7 +11,7 @@ import { btnOrange, btnOutlineInk, card, eyebrow, h2, h2Small, iconTile, monoLab
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring for agencies",
   description: "Put every client website on the radar. Uptime and SSL alerts, monthly reports with your logo, and read-only access for clients, all from one dashboard.",
-  path: "/solutions/agencies",
+  path: "/agencies",
   image: "/og/og-agencies.png",
 });
 
@@ -31,7 +31,7 @@ const grid = [
 export default function Agencies() {
   return (
     <>
-      <JsonLd data={breadcrumbs([["Home", "/"], ["For agencies", "/solutions/agencies"]])} />
+      <JsonLd data={breadcrumbs([["Home", "/"], ["For agencies", "/agencies"]])} />
       {/* hero: light */}
       <section className="relative overflow-hidden border-b border-[#F5E6D3] bg-[#FFF7ED]">
         <svg viewBox="0 0 600 600" aria-hidden="true" className="pointer-events-none absolute -bottom-[380px] -left-[300px] size-[760px]"><g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="300" cy="300" r="100" strokeOpacity="0.3" /><circle cx="300" cy="300" r="190" strokeOpacity="0.2" /><circle cx="300" cy="300" r="280" strokeOpacity="0.1" /></g></svg>

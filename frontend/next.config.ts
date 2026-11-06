@@ -17,6 +17,14 @@ const nextConfig: NextConfig = {
       "/onboarding/:path*", "/verify", "/forgot", "/invite/:path*", "/auth/:path*"];
     return paths.map((source) => ({ source, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }));
   },
+  // The two audience pages used to live under /solutions.
+  async redirects() {
+    return [
+      { source: "/solutions", destination: "/agencies", permanent: true },
+      { source: "/solutions/agencies", destination: "/agencies", permanent: true },
+      { source: "/solutions/businesses", destination: "/businesses", permanent: true },
+    ];
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${backend}/api/:path*` },

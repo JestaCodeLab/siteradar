@@ -7,8 +7,8 @@ import { eyebrow } from "@/lib/mkt-styles";
 export const metadata: Metadata = { title: "Page not found" };
 
 const links = [
-  { href: "/solutions/agencies", icon: Users, title: "For agencies", text: "Every client website on one radar." },
-  { href: "/solutions/businesses", icon: Building2, title: "For businesses", text: "Your digital presence, watched around the clock." },
+  { href: "/agencies", icon: Users, title: "For agencies", text: "Every client website on one radar." },
+  { href: "/businesses", icon: Building2, title: "For businesses", text: "Your digital presence, watched around the clock." },
   { href: "/pricing", icon: Tag, title: "Pricing", text: "Compare plans in Ghana cedis." },
   { href: "/login", icon: LogIn, title: "Log in", text: "Back to your dashboard." },
 ];

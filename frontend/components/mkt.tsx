@@ -14,8 +14,8 @@ export { Logo } from "./logo";
 
 
 const solutions = [
-  { href: "/solutions/agencies", label: "Agencies", Icon: Users, text: "For digital marketing agencies, web development agencies and consultants managing multiple clients." },
-  { href: "/solutions/businesses", label: "Businesses", Icon: Building2, text: "For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence." },
+  { href: "/agencies", label: "Agencies", Icon: Users, text: "For digital marketing agencies, web development agencies and consultants managing multiple clients." },
+  { href: "/businesses", label: "Businesses", Icon: Building2, text: "For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence." },
 ];
 
 /** For signed-in visitors: replaces Log in and Get started with a menu back to their dashboard. */
@@ -71,7 +71,7 @@ export function MktHeader() {
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [menu]);
   const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${path === href ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
-  const inSolutions = path.startsWith("/solutions");
+  const inSolutions = path.startsWith("/agencies") || path.startsWith("/businesses");
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#EFE4D8] bg-white">
@@ -104,7 +104,7 @@ export function MktHeader() {
       </nav>
       {open && (
         <div className="flex flex-col gap-1 border-t border-[#EFE4D8] px-6 py-3 md:hidden">
-          {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
+          {[["/", "Home"], ["/agencies", "Solutions: Agencies"], ["/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
             <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-normal text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
           {user ? (
             <Link href="/overview" onClick={() => setOpen(false)} className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Go to dashboard</Link>
@@ -130,7 +130,7 @@ export function MktFooter() {
           </div>
           <div className="flex flex-wrap gap-16">
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
-              <Link href="/solutions/agencies" className={col}>For agencies</Link><Link href="/solutions/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
+              <Link href="/agencies" className={col}>For agencies</Link><Link href="/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link><Link href="/terms-of-service" className={col}>Terms of Service</Link><Link href="/privacy" className={col}>Privacy Policy</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>

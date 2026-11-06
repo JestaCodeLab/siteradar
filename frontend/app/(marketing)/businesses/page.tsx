@@ -11,7 +11,7 @@ import { btnOrange, btnOutlineDark, card, eyebrow, h2, h2Small, iconTile, monoLa
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring for businesses",
   description: "Know your website is up before your customers tell you it is not. Uptime, SSL and domain expiry alerts, visitor stats and a plain monthly report.",
-  path: "/solutions/businesses",
+  path: "/businesses",
   image: "/og/og-businesses.png",
 });
 
@@ -31,7 +31,7 @@ const manage = [
 export default function Businesses() {
   return (
     <>
-      <JsonLd data={breadcrumbs([["Home", "/"], ["For businesses", "/solutions/businesses"]])} />
+      <JsonLd data={breadcrumbs([["Home", "/"], ["For businesses", "/businesses"]])} />
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
         <Rings className="-bottom-[420px] -right-[300px] size-[900px]" />
         <Container className="relative flex flex-wrap items-center gap-14 py-[88px]">
