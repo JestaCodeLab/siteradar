@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { AuthShell, FormError } from "@/components/auth-shell";
-import { btn, Field, input } from "@/components/ui";
+import { AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
 import { send } from "@/lib/api";
+
+/** Ghana numbers only: 024 123 4567, 24 123 4567 or +233 24 123 4567 all become +233241234567. */
+function ghanaPhone(raw: string): string | null {
+  const d = raw.replace(/\D/g, "");
+  const local = d.startsWith("233") ? d.slice(3) : d.startsWith("0") ? d.slice(1) : d;
+  return /^\d{9}$/.test(local) ? `+233${local}` : null;
+}
 
 function Form() {
   const router = useRouter();
@@ -16,13 +22,11 @@ function Form() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const local = String(f.get("phone") ?? "").replace(/\D/g, "").replace(/^0/, "");
+    const phone = ghanaPhone(String(f.get("phone") ?? ""));
+    if (!phone) { setError("Enter a Ghana phone number, for example 024 123 4567."); return; }
     setBusy(true); setError(null);
     try {
-      await send("POST", "/api/auth/register", {
-        first_name: f.get("first_name"), last_name: f.get("last_name"), email: f.get("email"),
-        phone: `+233${local}`, password: f.get("password"),
-      });
+      await send("POST", "/api/auth/register", { first_name: f.get("first_name"), last_name: f.get("last_name"), email: f.get("email"), phone, password: f.get("password") });
       try { const plan = params.get("plan"); if (plan) sessionStorage.setItem("sitewatch.plan", JSON.stringify({ plan, cycle: params.get("cycle") ?? "monthly" })); } catch { /* optional */ }
       router.push(`/verify?email=${encodeURIComponent(String(f.get("email")))}`);
     } catch (err) {
@@ -32,39 +36,26 @@ function Form() {
   }
 
   return (
-    <>
-      <div className="flex flex-col gap-0"><h2 className="text-[28px] font-semibold">Create your account</h2>
-        <p className="text-[15px] text-muted">Start on the Free plan. No card needed.</p></div>
-      <form onSubmit={submit} className="flex flex-col gap-3.5">
-        <div className="grid gap-3.5 sm:grid-cols-2">
-          <Field label="First name" htmlFor="first_name"><input id="first_name" name="first_name" autoComplete="given-name" required className={input} /></Field>
-          <Field label="Last name" htmlFor="last_name"><input id="last_name" name="last_name" autoComplete="family-name" required className={input} /></Field>
-        </div>
-        <Field label="Work email" htmlFor="email"><input id="email" name="email" type="email" autoComplete="email" required className={input} /></Field>
-        <Field label="Phone number" htmlFor="phone">
-          <div className="flex gap-2">
-            <span className={`${input} flex !w-[84px] shrink-0 items-center justify-center bg-soft text-ink-2`} aria-label="Ghana country code">+233</span>
-            <input id="phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="24 123 4567" pattern="[0-9 ]{9,12}" className={input} />
-          </div>
-        </Field>
-        <Field label="Password" htmlFor="password">
-          <input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={input} />
-          <span className="text-[13px] text-muted">At least 8 characters.</span>
-        </Field>
-        <label className="flex gap-3 text-sm leading-relaxed"><input type="checkbox" required className="mt-1 size-4 shrink-0" />
-          <span>I agree to the <Link href="/contact" className="font-semibold text-brand">Terms</Link> and <Link href="/contact" className="font-semibold text-brand">Privacy Policy</Link>.</span></label>
-        <FormError message={error} />
-        <button type="submit" disabled={busy} className={`${btn.primary} min-h-12 text-[15px]`}>{busy ? "Creating account…" : "Create account"}</button>
-      </form>
-      <p className="text-sm text-muted">Already have an account? <Link href="/login" className="font-semibold text-brand">Log in</Link></p>
-    </>
+    <form onSubmit={submit} aria-label="Create your account" className="flex flex-col gap-[18px]">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-[32px] font-bold tracking-[-0.03em]">Create your free account</h2>
+        <p className="text-[#475569]">Already have an account? <Link href="/login" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Log in</Link></p>
+      </div>
+      <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+        <div className="flex flex-col gap-1.5"><label htmlFor="first_name" className={authLabel}>First name</label><input id="first_name" name="first_name" autoComplete="given-name" required className={authInput} /></div>
+        <div className="flex flex-col gap-1.5"><label htmlFor="last_name" className={authLabel}>Last name</label><input id="last_name" name="last_name" autoComplete="family-name" required className={authInput} /></div>
+      </div>
+      <div className="flex flex-col gap-1.5"><label htmlFor="email" className={authLabel}>Email</label><input id="email" name="email" type="email" autoComplete="email" required placeholder="you@company.com" className={authInput} /></div>
+      <div className="flex flex-col gap-1.5"><label htmlFor="phone" className={authLabel}>Phone</label><input id="phone" name="phone" type="tel" autoComplete="tel" required placeholder="+233 20 000 0000" className={authInput} /></div>
+      <div className="flex flex-col gap-1.5"><label htmlFor="password" className={authLabel}>Password</label><input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={authInput} /></div>
+      <label className="flex cursor-pointer items-start gap-2.5 text-sm text-[#334155]"><input type="checkbox" required className="mt-px size-[18px] flex-none accent-[#F97316]" />
+        <span>I agree to the <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Terms of Service</Link> and <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Privacy Policy</Link>.</span></label>
+      <FormError message={error} />
+      <button type="submit" disabled={busy} className={authButton}>{busy ? "Creating account…" : "Create free account"}</button>
+    </form>
   );
 }
 
 export default function SignupPage() {
-  return (
-    <AuthShell variant="signup">
-      <Suspense><Form /></Suspense>
-    </AuthShell>
-  );
+  return <AuthShell variant="signup" width={480}><Suspense><Form /></Suspense></AuthShell>;
 }

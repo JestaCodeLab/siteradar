@@ -32,9 +32,9 @@ def blueprint(cfg):
     def body():
         return request.get_json(silent=True) or {}
 
-    def sign_in(user, ws_id=None):
+    def sign_in(user, ws_id=None, remember=True):
         session.clear()
-        session.permanent = True
+        session.permanent = bool(remember)        # not remembered: the cookie ends when the browser closes
         session["uid"] = user["id"]
         session["ver"] = user["session_ver"]
         if ws_id:
@@ -116,7 +116,7 @@ def blueprint(cfg):
         if limited("login", 15, 10):
             return jsonify(error="Too many attempts. Try again in 15 minutes.", code="rate"), 429
         user = accounts.login(body().get("email"), body().get("password"))
-        sign_in(user)
+        sign_in(user, remember=body().get("remember", True))
         g.user, g.impersonating = user, None
         mine = accounts.memberships(user["id"])
         g.ws, g.role = (mine[0], mine[0]["role"]) if mine else (None, None)

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { AuthShell, FormError } from "@/components/auth-shell";
-import { btn, Field, input } from "@/components/ui";
+import { AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
 import { ApiError, send, type Me } from "@/lib/api";
 import { homeFor } from "@/lib/me";
 
@@ -18,7 +17,7 @@ export default function LoginPage() {
     const f = new FormData(e.currentTarget);
     setBusy(true); setError(null);
     try {
-      const me = await send<Me>("POST", "/api/auth/login", { email: f.get("email"), password: f.get("password") });
+      const me = await send<Me>("POST", "/api/auth/login", { email: f.get("email"), password: f.get("password"), remember: f.get("remember") === "on" });
       router.replace(homeFor(me));
     } catch (err) {
       if (err instanceof ApiError && err.code === "unverified") { router.push(`/verify?email=${encodeURIComponent(String(f.get("email")))}`); return; }
@@ -29,15 +28,21 @@ export default function LoginPage() {
 
   return (
     <AuthShell variant="login">
-      <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Log in</h2><p className="text-[15px] text-muted">Welcome back. Enter your details to open your dashboard.</p></div>
-      <form onSubmit={submit} className="flex flex-col gap-3.5">
-        <Field label="Email" htmlFor="email"><input id="email" name="email" type="email" autoComplete="email" required className={input} /></Field>
-        <Field label="Password" htmlFor="password"><input id="password" name="password" type="password" autoComplete="current-password" required className={input} /></Field>
-        <Link href="/forgot" className="w-fit text-sm font-semibold text-brand">Forgot your password?</Link>
+      <form onSubmit={submit} aria-label="Log in" className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-[32px] font-bold tracking-[-0.03em]">Log in</h2>
+          <p className="text-[#475569]">New to SiteRadar? <Link href="/signup" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Create a free account</Link></p>
+        </div>
+        <div className="flex flex-col gap-1.5"><label htmlFor="email" className={authLabel}>Email</label><input id="email" name="email" type="email" autoComplete="email" required placeholder="you@company.com" className={authInput} /></div>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline justify-between"><label htmlFor="password" className={authLabel}>Password</label><Link href="/forgot" className="text-sm font-semibold text-[#C2410C] hover:text-[#7C2D12]">Forgot password?</Link></div>
+          <input id="password" name="password" type="password" autoComplete="current-password" required className={authInput} />
+        </div>
+        <label className="flex cursor-pointer items-center gap-2.5 text-[15px] text-[#334155]"><input type="checkbox" name="remember" defaultChecked className="size-[18px] accent-[#F97316]" />Keep me logged in on this device</label>
         <FormError message={error} />
-        <button type="submit" disabled={busy} className={`${btn.primary} min-h-12 text-[15px]`}>{busy ? "Logging in…" : "Log in"}</button>
+        <button type="submit" disabled={busy} className={authButton}>{busy ? "Logging in…" : "Log in"}</button>
+        <p className="text-center text-sm text-[#475569]">Trouble logging in? <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Contact us</Link></p>
       </form>
-      <p className="text-sm text-muted">New to SiteRadar? <Link href="/signup" className="font-semibold text-brand">Create an account</Link></p>
     </AuthShell>
   );
 }
