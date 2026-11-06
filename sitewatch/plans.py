@@ -35,15 +35,15 @@ def price(plan, cycle):
     """Amount in GHS to charge for one billing period."""
     m = plan["price_month"]
     if cycle == "yearly":
-        return round(m * 12 * (1 - yearly_discount() / 100), 2)
-    return round(m, 2)
+        return float(round(m * 12 * (1 - yearly_discount() / 100)))     # whole cedis, no pesewas
+    return float(round(m))
 
 
 def public():
     d = yearly_discount()
     out = []
     for p in all_plans():
-        out.append({**p, "price_year": price(p, "yearly"), "price_year_month": round(price(p, "yearly") / 12, 2)})
+        out.append({**p, "price_year": price(p, "yearly"), "price_year_month": round(price(p, "yearly") / 12)})
     return {"plans": out, "yearly_discount": d, "currency": "GHS"}
 
 
