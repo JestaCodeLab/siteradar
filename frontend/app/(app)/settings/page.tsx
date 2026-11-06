@@ -11,6 +11,8 @@ import { ErrorState, PageHeader, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type SettingsData } from "@/lib/api";
 import { fmtSize, splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
+import { LockBadge, Locked, useFeature } from "@/components/locked";
+import { Lock } from "lucide-react";
 import { useNoteToast } from "@/components/toast";
 
 type Tab = "company" | "profile" | "team" | "billing" | "alerts";
@@ -185,7 +187,8 @@ function Profile() {
 interface Prefs { prefs: Record<string, { email: boolean; sms: boolean }>; events: { id: string; label: string; sub: string }[] }
 
 function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) {
-  const { user, isAdmin, ws } = useMe();
+  const { user, isAdmin, isGhana, ws } = useMe();
+  const smsPlan = useFeature("sms").plan, chatPlan = useFeature("chat").plan;
   const { data: pref, mutate: refreshPrefs } = useSWR<Prefs>("/api/account/alert-prefs", fetcher);
   const setNote = useNoteToast();
   const [busy, setBusy] = useState(false);
@@ -217,6 +220,7 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
     await send("PUT", "/api/account/alert-prefs", { prefs: next });
   }
 
+  const cols = isGhana ? "grid-cols-[1fr_70px_70px]" : "grid-cols-[1fr_70px]";
   const row = "flex flex-wrap items-center gap-3 border-t border-line-soft py-3.5 first:border-0";
   const on = <span className="rounded-full bg-ok-soft px-2.5 py-1 text-xs font-semibold text-ok">On</span>;
 
@@ -225,32 +229,32 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
       <section aria-label="Channels" className={box}>
         <h2 className="mb-2 text-lg font-semibold">Where alerts go</h2>
         <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Email</span><span className="truncate text-[13px] text-muted">{a.emails.join(", ") || user?.email} · included on every plan</span></span>{on}</div>
-        {sms ? (
+        {isGhana && (sms ? (
           <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">SMS</span>
             <span className="text-[13px] text-muted">{a.phones.join(", ") || "No number added yet"} · {a.sms_used} of {a.sms_quota} messages used this month{a.sms_credits ? ` (+${a.sms_credits} bought)` : ""}</span></span>
             {isAdmin && <Link href="/settings?tab=billing" className={`${secondary} !min-h-10`}>Buy more</Link>}{a.phones.length > 0 && on}</div>
         ) : (
-          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">SMS alerts</span><span className="text-[13px] text-muted">Available on the Growth plan and above.</span></span>
-            {isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>)}
+          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">SMS alerts</span><span className="text-[13px] text-muted">Text messages to Ghana numbers.</span></span>
+            <LockBadge plan={smsPlan} />{isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>))}
         {chat ? (
           <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack, Teams or Discord</span>
             <span className="text-[13px] text-muted">{a.webhooks.length ? `${a.webhooks.length} channel${a.webhooks.length === 1 ? "" : "s"} connected` : "No channel connected yet"}</span></span>
             {isAdmin && <button onClick={() => setHooks((h) => !h)} className={`${secondary} !min-h-10`}>{a.webhooks.length ? "Edit channels" : "Add a channel"}</button>}{a.webhooks.length > 0 && on}</div>
         ) : (
-          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack, Teams or Discord</span><span className="text-[13px] text-muted">Available on the Starter plan and above.</span></span>
-            {isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>)}
+          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack, Teams or Discord</span><span className="text-[13px] text-muted">Post alerts to your team chat.</span></span>
+            <LockBadge plan={chatPlan} />{isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>)}
       </section>
 
       <section aria-label="What you are alerted about" className={box}>
         <h2 className="text-lg font-semibold">What you are alerted about</h2>
         <p className="mb-3 mt-1 text-sm text-muted">These choices are for you. Each team member sets their own.</p>
-        <div className="overflow-x-auto"><div className="min-w-[460px]">
-          <div className="grid grid-cols-[1fr_70px_70px] items-center gap-3 border-b border-line pb-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted"><span /><span>Email</span><span>SMS</span></div>
+        <div className="overflow-x-auto"><div className="min-w-[360px]">
+          <div className={`grid ${cols} items-center gap-3 border-b border-line pb-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted`}><span /><span>Email</span>{isGhana && <span className="inline-flex items-center gap-1">SMS{!sms && <Lock aria-label="Locked on your plan" size={12} />}</span>}</div>
           {!pref ? <Skeleton className="mt-3 h-40" /> : pref.events.map((ev) => (
-            <div key={ev.id} className="grid grid-cols-[1fr_70px_70px] items-center gap-3 border-b border-line-soft py-3 text-sm last:border-0">
+            <div key={ev.id} className={`grid ${cols} items-center gap-3 border-b border-line-soft py-3 text-sm last:border-0`}>
               <span>{ev.label}<span className="block text-[13px] text-muted">{ev.sub}</span></span>
               <input type="checkbox" aria-label={`${ev.label} by email`} checked={pref.prefs[ev.id].email} onChange={(e) => toggle(ev.id, "email", e.target.checked)} className="size-[18px] accent-[#f97316]" />
-              <input type="checkbox" aria-label={`${ev.label} by SMS`} checked={sms && pref.prefs[ev.id].sms} disabled={!sms} onChange={(e) => toggle(ev.id, "sms", e.target.checked)} className="size-[18px] accent-[#f97316]" />
+              {isGhana && <input type="checkbox" aria-label={`${ev.label} by SMS`} checked={sms && pref.prefs[ev.id].sms} disabled={!sms} onChange={(e) => toggle(ev.id, "sms", e.target.checked)} className="size-[18px] accent-[#f97316] disabled:opacity-40" />}
             </div>))}
         </div></div>
       </section>
@@ -261,8 +265,8 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           <p className="mb-3 mt-1 text-sm text-muted">Addresses and numbers for {ws?.name}. People listed here can still turn individual alerts off above.</p>
           <form onSubmit={saveRecipients} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2"><Lbl id="emails" hint={<span className="font-normal text-muted">(separate with commas)</span>}>Email recipients</Lbl><input id="emails" name="emails" defaultValue={a.emails.join(", ")} className={inputCls} /></div>
-            {sms && <div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div>}
-            {chat && (hooks || a.webhooks.length > 0) && <div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack, Teams or Discord webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div>}
+            {isGhana && <Locked feature="sms" title="SMS alerts"><div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div></Locked>}
+            {(!chat || hooks || a.webhooks.length > 0) && <Locked feature="chat" title="Team chat alerts"><div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack, Teams or Discord webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div></Locked>}
             <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={primary}>Save changes</button><button type="button" onClick={test} disabled={busy} className={secondary}>Send test alert</button></div>
           </form>
         </section>

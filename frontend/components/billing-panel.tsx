@@ -1,5 +1,6 @@
 "use client";
 
+import { Locked } from "./locked";
 import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
@@ -32,7 +33,7 @@ const planLine = (p: PlanInfo) => {
 };
 
 export function BillingPanel() {
-  const { isOwner, mutate: refreshMe } = useMe();
+  const { isOwner, isGhana, mutate: refreshMe } = useMe();
   const { data, error, mutate } = useSWR<BillingData>("/api/billing", fetcher);
   const [yearly, setYearly] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -157,25 +158,22 @@ export function BillingPanel() {
           )}
         </section>
 
-        <section aria-label="SMS alerts" className={`${box} flex min-w-0 flex-[1_1_340px] flex-col gap-3`}>
-          <h2 className={h2}>SMS alerts</h2>
-          {ws.plan.channels.includes("sms") ? (
-            <>
-              <p className="text-sm leading-relaxed text-muted">Your plan includes {ws.plan.sms} SMS a month. {ws.usage.sms} used so far.{ws.sms_credits ? ` You also have ${ws.sms_credits} bought credits.` : ""} Need more? Top up a bundle and it is added straight away.</p>
-              <div className="flex flex-wrap gap-2.5">
-                {data.bundles.map((b) => (
-                  <button key={b.qty} disabled={!isOwner || busy !== null} onClick={() => run("sms" + b.qty, () => payFor("/api/billing/sms-topup", { qty: b.qty }), `${b.qty} SMS added.`)}
-                    className="flex min-h-14 flex-col items-center justify-center rounded-xl border border-[#c9cfd8] px-[18px] hover:bg-soft disabled:opacity-60"><span className="text-sm font-semibold">{b.qty.toLocaleString()} SMS</span><span className="text-[13px] text-muted">{ghs(b.price)}</span></button>
-                ))}
+        {isGhana && (
+          <section aria-label="SMS alerts" className={`${box} flex min-w-0 flex-[1_1_340px] flex-col gap-3`}>
+            <h2 className={h2}>SMS alerts</h2>
+            <Locked feature="sms" title="SMS alerts">
+              <div className="flex flex-col gap-3">
+                <p className="text-sm leading-relaxed text-muted">{ws.plan.sms > 0 ? `Your plan includes ${ws.plan.sms} SMS a month. ${ws.usage.sms} used so far.${ws.sms_credits ? ` You also have ${ws.sms_credits} bought credits.` : ""}` : "Text alerts to Ghana numbers when a site goes down."} Need more? Top up a bundle and it is added straight away.</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {data.bundles.map((b) => (
+                    <button key={b.qty} disabled={!isOwner || busy !== null} onClick={() => run("sms" + b.qty, () => payFor("/api/billing/sms-topup", { qty: b.qty }), `${b.qty} SMS added.`)}
+                      className="flex min-h-14 flex-col items-center justify-center rounded-xl border border-[#c9cfd8] px-[18px] hover:bg-soft disabled:opacity-60"><span className="text-sm font-semibold">{b.qty.toLocaleString()} SMS</span><span className="text-[13px] text-muted">{ghs(b.price)}</span></button>
+                  ))}
+                </div>
               </div>
-            </>
-          ) : (
-            <>
-              <p className="text-sm leading-relaxed text-muted">SMS alerts are included from the Growth plan. The Free plan sends alerts by email only.</p>
-              <Link href="/pricing" className="flex min-h-11 items-center text-sm font-semibold text-brand">See plans with SMS</Link>
-            </>
-          )}
-        </section>
+            </Locked>
+          </section>
+        )}
       </div>
 
       <section aria-label="Invoices" className="overflow-hidden rounded-[14px] border border-line bg-surface">

@@ -169,7 +169,7 @@ export interface Workspace {
   usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number }; sms_credits?: number;
 }
 
-export interface User { id: number; pending_email?: string | null; email: string; first_name: string; last_name: string; phone: string; is_super: boolean; email_verified: boolean }
+export interface User { id: number; country?: string | null; pending_email?: string | null; email: string; first_name: string; last_name: string; phone: string; is_super: boolean; email_verified: boolean }
 
 export interface Me {
   authenticated: boolean; user: User | null;

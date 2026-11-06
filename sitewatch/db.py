@@ -191,6 +191,9 @@ ALTER TABLE workspaces ADD COLUMN deleted_at DOUBLE PRECISION;
     (6, """
 ALTER TABLE workspaces ADD COLUMN alerts_prompted INTEGER NOT NULL DEFAULT 0;
 """),
+    (7, """
+ALTER TABLE users ADD COLUMN country TEXT;
+"""),
 ]
 
 

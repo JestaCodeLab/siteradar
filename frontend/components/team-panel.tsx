@@ -1,6 +1,7 @@
 "use client";
 
 import { Select } from "./select";
+import { Locked, useFeature } from "./locked";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
@@ -56,6 +57,8 @@ const mi = "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm 
 
 export function TeamPanel() {
   const { user, isAdmin, role } = useMe();
+  const { allowed: teamAllowed } = useFeature("team");
+  const { allowed: clientsAllowed, plan: clientsPlan } = useFeature("clients");
   const { data, error, mutate } = useSWR<TeamData>("/api/team", fetcher);
   const { data: siteData } = useSWR<SitesResponse>("/api/sites", fetcher);
   const [open, setOpen] = useState(false);
@@ -69,6 +72,7 @@ export function TeamPanel() {
   if (!data) return <div className="flex flex-col gap-4"><Skeleton className="h-24" /><Skeleton className="h-64" /></div>;
   const sites = (siteData?.sites ?? []).map((s) => ({ id: s.id, name: s.name }));
   const used = data.usage.seats, cap = data.plan.members, full = used >= cap;
+  const teamLocked = isAdmin && !teamAllowed;
   const next = NEXT[data.plan.id];
   const canManage = (m: TeamData["members"][number]) => isAdmin && m.role !== "owner" && m.id !== user?.id && !(m.role === "admin" && role !== "owner");
 
@@ -87,7 +91,7 @@ export function TeamPanel() {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-[15px] text-muted">People who can sign in to this workspace.</p>
-        {isAdmin && <button onClick={() => { setOpen(!open); setErr(null); }} disabled={full} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-[#c9cfd8]">Invite member</button>}
+        {isAdmin && !teamLocked && <button onClick={() => { setOpen(!open); setErr(null); }} disabled={full} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:bg-[#c9cfd8]">Invite member</button>}
       </div>
 
       <section aria-label="Seats" className="flex flex-wrap items-center justify-between gap-4 rounded-[14px] border border-line bg-surface px-[22px] py-5">
@@ -100,18 +104,19 @@ export function TeamPanel() {
         {isAdmin && <Link href="/settings?tab=billing" className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold ${full && next ? "bg-brand text-white" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>{full && next ? `Upgrade to ${next}` : "See plans"}</Link>}
       </section>
 
-      {full && isAdmin && next && <p role="status" className="rounded-xl bg-warn-soft px-5 py-3.5 text-[15px] leading-relaxed text-warn">Your team is full. Upgrade to <b>{next}</b> to add more members, or remove someone first.</p>}
+      {full && isAdmin && next && !teamLocked && <p role="status" className="rounded-xl bg-warn-soft px-5 py-3.5 text-[15px] leading-relaxed text-warn">Your team is full. Upgrade to <b>{next}</b> to add more members, or remove someone first.</p>}
       {err && <p role="alert" className="rounded-lg bg-bad-soft px-4 py-3 text-sm text-bad">{err.text} {err.limit && <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link>}</p>}
 
-      {open && (
+      {(open || teamLocked) && (
+        <Locked feature="team" title="Invite your team">
         <form onSubmit={invite} className="flex flex-col gap-[18px] rounded-[14px] border border-line bg-surface p-[22px]">
           <h2 className="text-lg font-semibold">Invite a team member</h2>
           <div className="flex flex-wrap gap-[18px]">
             <div className="flex flex-[2_1_260px] flex-col gap-2"><label htmlFor="em" className="text-sm font-medium">Email address</label><input id="em" name="email" type="email" required placeholder="colleague@company.com" className={field} /></div>
             <div className="flex flex-[1_1_180px] flex-col gap-2"><label htmlFor="role" className="text-sm font-medium">Role</label>
-              <Select id="role" name="role" defaultValue="member" options={[{ value: "member", label: "Member" }, ...(role === "owner" ? [{ value: "admin", label: "Admin" }] : []), { value: "viewer", label: "Viewer (read only)" }]} /></div>
+              <Select id="role" name="role" defaultValue="member" options={[{ value: "member", label: "Member" }, ...(role === "owner" ? [{ value: "admin", label: "Admin" }] : []), { value: "viewer", label: "Viewer (read only)", locked: clientsAllowed ? undefined : clientsPlan ?? "Upgrade" }]} /></div>
             <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="acc" className="text-sm font-medium">Website access</label>
-              <Select id="acc" value={access} onChange={(v) => setAccess(v as "all" | "some")} options={[{ value: "all", label: "All websites" }, { value: "some", label: "Only selected websites" }]} /></div>
+              <Select id="acc" value={access} onChange={(v) => setAccess(v as "all" | "some")} options={[{ value: "all", label: "All websites" }, { value: "some", label: "Only selected websites", locked: clientsAllowed ? undefined : clientsPlan ?? "Upgrade" }]} /></div>
           </div>
           {access === "some" && <SiteChooser sites={sites} value={picked} onChange={setPicked} />}
           <div className="flex flex-wrap items-center justify-end gap-3">
@@ -120,6 +125,7 @@ export function TeamPanel() {
             <button disabled={busy || (access === "some" && picked.length === 0)} className="inline-flex min-h-11 items-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60">{busy ? "Sending…" : "Send invitation"}</button>
           </div>
         </form>
+        </Locked>
       )}
 
       <section aria-label="Members" className="overflow-hidden rounded-xl border border-line bg-surface">

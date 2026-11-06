@@ -40,7 +40,7 @@ def norm_email(email):
 
 def public_user(u):
     return {"id": u["id"], "pending_email": u.get("pending_email"), "email": u["email"], "first_name": u["first_name"], "last_name": u["last_name"],
-            "phone": u["phone"], "is_super": bool(u["is_super"]), "email_verified": bool(u["email_verified"])}
+            "phone": u["phone"], "country": u.get("country"), "is_super": bool(u["is_super"]), "email_verified": bool(u["email_verified"])}
 
 
 def user_by_email(email):
@@ -64,26 +64,37 @@ def _validate_password(pw):
 
 # ---- registration and codes -----------------------------------------------
 
-def register(data):
+def ghana_phone(raw):
+    """+233XXXXXXXXX for a Ghana number written any usual way, otherwise None."""
+    d = re.sub(r"\D", "", raw or "")
+    local = d[3:] if d.startswith("233") else d[1:] if d.startswith("0") else d
+    return "+233" + local if re.fullmatch(r"\d{9}", local) else None
+
+
+def register(data, country=None):
+    """country is the two-letter code we detected from the request, if any. Only Ghana signups give a phone number."""
     email = norm_email(data.get("email"))
     first, last = (data.get("first_name") or "").strip(), (data.get("last_name") or "").strip()
     if not first or not last:
         raise ValueError("Enter your first and last name.")
-    phone = re.sub(r"[^\d+]", "", data.get("phone") or "")
-    if len(re.sub(r"\D", "", phone)) < 9:
-        raise ValueError("Enter a valid phone number.")
+    country = (country or "").upper()[:2] or None
+    phone = ""
+    if country == "GH":
+        phone = ghana_phone(data.get("phone"))
+        if not phone:
+            raise ValueError("Enter a Ghana phone number, for example 024 123 4567.")
     _validate_password(data.get("password"))
     existing = user_by_email(email)
     if existing and existing["email_verified"]:
         raise AuthError("An account with this email already exists. Log in instead.", "exists", 409)
     pw = generate_password_hash(data["password"])
     if existing:     # started signing up before but never verified: let them try again
-        db.run("UPDATE users SET first_name=?, last_name=?, phone=?, password_hash=? WHERE id=?",
-               (first, last, phone, pw, existing["id"]))
+        db.run("UPDATE users SET first_name=?, last_name=?, phone=?, country=?, password_hash=? WHERE id=?",
+               (first, last, phone, country, pw, existing["id"]))
         uid = existing["id"]
     else:
-        uid = db.run("INSERT INTO users(email, first_name, last_name, phone, password_hash, created) VALUES (?,?,?,?,?,?)",
-                     (email, first, last, phone, pw, time.time()))
+        uid = db.run("INSERT INTO users(email, first_name, last_name, phone, country, password_hash, created) VALUES (?,?,?,?,?,?,?)",
+                     (email, first, last, phone, country, pw, time.time()))
     send_code(user_by_id(uid), "verify")
     return user_by_id(uid)
 
@@ -406,6 +417,8 @@ def invite(ws, inviter, email, role, site_ids=None):
              (ws["id"], email, time.time())):
         raise ValueError("That person already has a pending invitation.")
     plans.check_can_add_seat(ws, role)
+    if site_ids and not plans.limits(ws)["client_access"]:
+        raise plans.LimitError("Limiting someone to chosen websites is part of the Growth plan and above.")
     access = clean_access(ws["id"], site_ids)
     token = secrets.token_urlsafe(32)
     db.run("INSERT INTO invitations(workspace_id, email, role, token_hash, invited_by, created, expires, site_access) VALUES (?,?,?,?,?,?,?,?)",

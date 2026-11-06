@@ -15,6 +15,15 @@ LOGO_TYPES = {b"\x89PNG": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "
 _hits = defaultdict(list)
 
 
+def request_country():
+    """Two-letter country code from the hosting or CDN geo headers (Vercel, Cloudflare), or None."""
+    for h in ("X-Vercel-IP-Country", "CF-IPCountry", "X-Country-Code"):
+        v = (request.headers.get(h) or "").strip().upper()
+        if len(v) == 2 and v.isalpha() and v not in ("XX", "T1"):
+            return v
+    return os.environ.get("DEV_COUNTRY", "").strip().upper()[:2] or None
+
+
 def limited(bucket, per_minutes, maximum):
     """True when this caller already used up its attempts (kept in memory, per web process)."""
     ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
@@ -92,8 +101,14 @@ def blueprint(cfg):
     def register():
         if limited("register", 60, 10):
             return jsonify(error="Too many sign-ups from this network. Try again later."), 429
-        user = accounts.register(body())
+        data = body()
+        user = accounts.register(data, request_country() or str(data.get("country") or ""))
         return jsonify(email=user["email"]), 201
+
+    @bp.get("/geo")
+    def geo():
+        """Which country the visitor is in, from the headers our host or CDN adds. Null when unknown."""
+        return jsonify(country=request_country())
 
     @bp.post("/auth/verify")
     def verify():

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { FormError } from "@/components/auth-shell";
 import { btn, Field, input } from "@/components/ui";
 import { send } from "@/lib/api";
+import { countryName } from "@/lib/geo";
 import { useMe } from "@/lib/me";
 
 const kinds = ["Web agency", "Freelancer", "Business or online shop", "Church, school or organisation", "Something else"];
@@ -15,7 +16,7 @@ const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom"
 
 export default function CompanyStep() {
   const router = useRouter();
-  const { ws, mutate } = useMe();
+  const { ws, user, mutate } = useMe();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [typed, setTyped] = useState<string | null>(null);
@@ -84,7 +85,7 @@ export default function CompanyStep() {
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Websites you will monitor" htmlFor="sites"><Select id="sites" name="sites" defaultValue={siteCounts[0]} options={opts(siteCounts)} /></Field>
           <Field label="People who will use SiteRadar" htmlFor="team"><Select id="team" name="team" defaultValue={teamSizes[0]} options={opts(teamSizes)} /></Field>
-          <Field label="Country" htmlFor="country"><Select id="country" name="country" defaultValue={ws?.country ?? "Ghana"} options={opts(countries)} /></Field>
+          <Field label="Country" htmlFor="country"><Select key={countryName(user?.country) ?? "none"} id="country" name="country" defaultValue={ws?.country ?? countryName(user?.country) ?? "Ghana"} options={opts(countries)} /></Field>
         </div>
         <FormError message={error} />
         <div className="flex items-center justify-between gap-4"><span className="text-sm text-muted">Step 1 of 3</span>

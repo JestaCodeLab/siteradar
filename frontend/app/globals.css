@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans:
+    IBM Plex Sans, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
@@ -93,55 +95,173 @@ html.dark {
   --color-bad-soft: #3a1511;
   --color-bar-none: #3a4560;
 }
-html.dark .bg-white { background-color: #131a26; }
-html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), html.dark select, html.dark textarea { background-color: #0f1521; color: #e8ecf3; }
-html.dark input::placeholder, html.dark textarea::placeholder { color: #6f7b90; }
-html.dark input:disabled { background-color: #182131; }
-html.dark .bg-\[\#E3F4EC\]{background-color:#12301f}
-html.dark .bg-\[\#E5ECFF\]{background-color:#1b2a4d}
-html.dark .bg-\[\#E8EBF0\]{background-color:#263247}
-html.dark .bg-\[\#EFEAFF\]{background-color:#251f4d}
-html.dark .bg-\[\#F3F4F6\]{background-color:#0b0f17}
-html.dark .bg-\[\#F5F1FF\]{background-color:#1f1a3d}
-html.dark .bg-\[\#F8F9FB\]{background-color:#182131}
-html.dark .bg-\[\#FBE7E5\]{background-color:#3a1511}
-html.dark .bg-\[\#FFF1D6\]{background-color:#3a2a08}
-html.dark .bg-\[\#c9cfd8\]{background-color:#3a4560}
-html.dark .bg-\[\#e8ebf0\]{background-color:#263247}
-html.dark .bg-\[\#f5f1ff\]{background-color:#1f1a3d}
-html.dark .bg-\[\#f5f8ff\]{background-color:#16223d}
-html.dark .bg-\[\#fff1d6\]{background-color:#3a2a08}
-html.dark .border-\[\#9aa5b8\]{border-color:#55627a}
-html.dark .border-\[\#B3261E\]{border-color:#ff8a7a}
-html.dark .border-\[\#C9CFD8\]{border-color:#3a4560}
-html.dark .border-\[\#E2E5EA\]{border-color:#263247}
-html.dark .border-\[\#EDEFF3\]{border-color:#1d2738}
-html.dark .border-\[\#c9cfd8\]{border-color:#3a4560}
-html.dark .border-\[\#d9dde4\]{border-color:#33405a}
-html.dark .disabled\:bg-\[\#c9cfd8\]:disabled{background-color:#3a4560}
-html.dark .disabled\:bg-\[\#f3f4f6\]:disabled{background-color:#0b0f17}
-html.dark .hover\:bg-\[\#F5F1FF\]:hover{background-color:#1f1a3d}
-html.dark .hover\:bg-\[\#F8F9FB\]:hover{background-color:#182131}
-html.dark .hover\:bg-\[\#FBE7E5\]:hover{background-color:#3a1511}
-html.dark .hover\:bg-\[\#FBFAFF\]:hover{background-color:#182131}
-html.dark .hover\:bg-\[\#c9cfd8\]:hover{background-color:#3a4560}
-html.dark .ring-\[\#D9CFFF\]{--tw-ring-color:#3b2f7a}
-html.dark .text-\[\#0B7A4B\]{color:#4fd08f}
-html.dark .text-\[\#12151C\]{color:#e8ecf3}
-html.dark .text-\[\#1F4FD8\]{color:#8fb0ff}
-html.dark .text-\[\#3F4857\]{color:#b4bdcc}
-html.dark .text-\[\#4A33B0\]{color:#b6a6ff}
-html.dark .text-\[\#4a33b0\]{color:#b6a6ff}
-html.dark .text-\[\#5B6472\]{color:#8f9bb0}
-html.dark .text-\[\#8A5A00\]{color:#f5c04a}
-html.dark .text-\[\#B3261E\]{color:#ff8a7a}
+html.dark .bg-white {
+  background-color: #131a26;
+}
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+html.dark select,
+html.dark textarea {
+  background-color: #0f1521;
+  color: #e8ecf3;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6f7b90;
+}
+html.dark input:disabled {
+  background-color: #182131;
+}
+html.dark .bg-\[\#E3F4EC\] {
+  background-color: #12301f;
+}
+html.dark .bg-\[\#E5ECFF\] {
+  background-color: #1b2a4d;
+}
+html.dark .bg-\[\#E8EBF0\] {
+  background-color: #263247;
+}
+html.dark .bg-\[\#EFEAFF\] {
+  background-color: #251f4d;
+}
+html.dark .bg-\[\#F3F4F6\] {
+  background-color: #0b0f17;
+}
+html.dark .bg-\[\#F5F1FF\] {
+  background-color: #1f1a3d;
+}
+html.dark .bg-\[\#F8F9FB\] {
+  background-color: #182131;
+}
+html.dark .bg-\[\#FBE7E5\] {
+  background-color: #3a1511;
+}
+html.dark .bg-\[\#FFF1D6\] {
+  background-color: #3a2a08;
+}
+html.dark .bg-\[\#c9cfd8\] {
+  background-color: #3a4560;
+}
+html.dark .bg-\[\#e8ebf0\] {
+  background-color: #263247;
+}
+html.dark .bg-\[\#f5f1ff\] {
+  background-color: #1f1a3d;
+}
+html.dark .bg-\[\#f5f8ff\] {
+  background-color: #16223d;
+}
+html.dark .bg-\[\#fff1d6\] {
+  background-color: #3a2a08;
+}
+html.dark .border-\[\#9aa5b8\] {
+  border-color: #55627a;
+}
+html.dark .border-\[\#B3261E\] {
+  border-color: #ff8a7a;
+}
+html.dark .border-\[\#C9CFD8\] {
+  border-color: #3a4560;
+}
+html.dark .border-\[\#E2E5EA\] {
+  border-color: #263247;
+}
+html.dark .border-\[\#EDEFF3\] {
+  border-color: #1d2738;
+}
+html.dark .border-\[\#c9cfd8\] {
+  border-color: #3a4560;
+}
+html.dark .border-\[\#d9dde4\] {
+  border-color: #33405a;
+}
+html.dark .disabled\:bg-\[\#c9cfd8\]:disabled {
+  background-color: #3a4560;
+}
+html.dark .disabled\:bg-\[\#f3f4f6\]:disabled {
+  background-color: #0b0f17;
+}
+html.dark .hover\:bg-\[\#F5F1FF\]:hover {
+  background-color: #1f1a3d;
+}
+html.dark .hover\:bg-\[\#F8F9FB\]:hover {
+  background-color: #182131;
+}
+html.dark .hover\:bg-\[\#FBE7E5\]:hover {
+  background-color: #3a1511;
+}
+html.dark .hover\:bg-\[\#FBFAFF\]:hover {
+  background-color: #182131;
+}
+html.dark .hover\:bg-\[\#c9cfd8\]:hover {
+  background-color: #3a4560;
+}
+html.dark .ring-\[\#D9CFFF\] {
+  --tw-ring-color: #3b2f7a;
+}
+html.dark .text-\[\#0B7A4B\] {
+  color: #4fd08f;
+}
+html.dark .text-\[\#12151C\] {
+  color: #e8ecf3;
+}
+html.dark .text-\[\#1F4FD8\] {
+  color: #8fb0ff;
+}
+html.dark .text-\[\#3F4857\] {
+  color: #b4bdcc;
+}
+html.dark .text-\[\#4A33B0\] {
+  color: #b6a6ff;
+}
+html.dark .text-\[\#4a33b0\] {
+  color: #b6a6ff;
+}
+html.dark .text-\[\#5B6472\] {
+  color: #8f9bb0;
+}
+html.dark .text-\[\#8A5A00\] {
+  color: #f5c04a;
+}
+html.dark .text-\[\#B3261E\] {
+  color: #ff8a7a;
+}
 
 /* links and brand-coloured text use a darker orange so they stay readable on white */
-.text-brand, .hover\:text-brand:hover { color: var(--color-link); }
+.text-brand,
+.hover\:text-brand:hover {
+  color: var(--color-link);
+}
 
 /* toasts and pickers ease in; skipped for people who ask for less motion */
-@keyframes toast-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-@keyframes pop-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-.toast-in { animation: toast-in .18s ease-out; }
-.pop-in { animation: pop-in .12s ease-out; }
-@media (prefers-reduced-motion: reduce) { .toast-in, .pop-in { animation: none; } }
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-in {
+  animation: toast-in 0.18s ease-out;
+}
+.pop-in {
+  animation: pop-in 0.12s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-in,
+  .pop-in {
+    animation: none;
+  }
+}

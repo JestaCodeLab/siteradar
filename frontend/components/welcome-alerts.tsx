@@ -30,7 +30,7 @@ function Row({ icon: Glyph, title, sub, locked, children }: {
 
 /** Shown once, the first time an owner or admin reaches the dashboard. Everything here can be changed later in Settings. */
 export function WelcomeAlerts() {
-  const { ws, isAdmin, mutate } = useMe();
+  const { ws, isAdmin, isGhana, mutate } = useMe();
   const toast = useToast();
   const dialog = useRef<HTMLDialogElement>(null);
   const { data } = useSWR<SettingsData>(ws && isAdmin && ws.onboarded && !ws.alerts_prompted ? "/api/settings" : null, fetcher);
@@ -54,7 +54,7 @@ export function WelcomeAlerts() {
         const payload: Record<string, string[]> = {};
         const emails = String(save.get("emails") ?? "").split(/[,\s]+/).filter(Boolean);
         if (emails.length) payload.alert_emails = emails;
-        if (sms) {
+        if (sms && isGhana) {
           const raw = String(save.get("phone") ?? "").trim();
           const phone = raw ? ghanaPhone(raw) : null;
           if (raw && !phone) { setError("Enter a Ghana number, like 024 123 4567."); setBusy(false); return; }
@@ -94,11 +94,11 @@ export function WelcomeAlerts() {
           <Row icon={Mail} title="Email" sub="Always on. Separate several addresses with commas.">
             <input name="emails" aria-label="Alert emails" defaultValue={data.alerts.emails.join(", ")} placeholder="you@company.com" className={input} />
           </Row>
-          <Row icon={Smartphone} title="SMS" sub="Ghana numbers only." locked={sms ? undefined : "Growth plan"}>
+          {isGhana && <Row icon={Smartphone} title="SMS" sub="Ghana numbers only." locked={sms ? undefined : "Growth plan"}>
             {sms
               ? <input name="phone" inputMode="tel" aria-label="Ghana phone number" placeholder="024 123 4567" className={input} />
               : <p className="text-[13px] text-muted">SMS alerts come with the Growth plan. <Link href="/settings?tab=billing" className="font-semibold text-brand underline">See plans</Link></p>}
-          </Row>
+          </Row>}
           <Row icon={Hash} title="Slack" sub="Paste an incoming webhook URL." locked={chat ? undefined : "Starter plan"}>
             {chat ? <input name="slack" type="url" aria-label="Slack webhook URL" placeholder="https://hooks.slack.com/services/…" className={input} />
               : <p className="text-[13px] text-muted">Chat alerts come with the Starter plan. <Link href="/settings?tab=billing" className="font-semibold text-brand underline">See plans</Link></p>}

@@ -1,10 +1,10 @@
 "use client";
 
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, ChevronDown, Lock, Search } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
 import { Popover } from "./popover";
 
-export interface Option { value: string; label: string; hint?: string }
+export interface Option { value: string; label: string; hint?: string; /** Shown but not choosable; badge says why, e.g. a plan name. */ locked?: string }
 
 const trigger =
   "flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-[#c9cfd8] bg-surface px-3.5 text-left text-[15px] text-ink hover:border-[#9aa5b8] disabled:opacity-60";
@@ -36,6 +36,7 @@ export function Select({ options, value, defaultValue, onChange, name, id, ariaL
     setOpen(true);
   };
   const choose = (o: Option) => {
+    if (o.locked) return;
     setInner(o.value); onChange?.(o.value); close(); btn.current?.focus();
   };
 
@@ -87,10 +88,12 @@ export function Select({ options, value, defaultValue, onChange, name, id, ariaL
                 key={o.value} role="option" aria-selected={o.value === current}
                 ref={(el) => { if (el && i === active) el.scrollIntoView({ block: "nearest" }); }}
                 onMouseEnter={() => setActive(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(o)}
-                className={`flex min-h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm ${i === active ? "bg-soft" : ""} ${o.value === current ? "font-semibold text-ink" : "text-ink-2"}`}
+                aria-disabled={o.locked ? true : undefined}
+                className={`flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 text-sm ${o.locked ? "cursor-not-allowed text-muted" : "cursor-pointer"} ${i === active ? "bg-soft" : ""} ${o.value === current ? "font-semibold text-ink" : o.locked ? "" : "text-ink-2"}`}
               >
                 <span className="min-w-0"><span className="block truncate">{o.label}</span>{o.hint && <span className="block truncate text-xs font-normal text-muted">{o.hint}</span>}</span>
-                {o.value === current && <Check aria-hidden="true" size={16} className="shrink-0 text-brand" />}
+                {o.locked ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-line-soft px-2 py-0.5 text-xs font-semibold text-ink-2"><Lock aria-hidden="true" size={11} />{o.locked}</span>
+                  : o.value === current && <Check aria-hidden="true" size={16} className="shrink-0 text-brand" />}
               </li>
             ))}
           </ul>
