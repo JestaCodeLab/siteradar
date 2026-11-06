@@ -10,7 +10,10 @@ import { btnOrange, btnOutlineDark, card, eyebrow, h2, h2Small, iconTile, monoLa
 
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring for businesses",
-  description: "Know your website is up before your customers tell you it is not. Uptime, SSL and domain expiry alerts, visitor stats and a plain monthly report.",
+  absoluteTitle: "Website Monitoring for Businesses | SiteRadar",
+  description: "Monitor your business website, uptime, speed, SSL, domains and email health. Get alerts, actionable insights and monthly reports with SiteRadar.",
+  ogTitle: "Protect and Monitor Your Business’s Digital Presence | SiteRadar",
+  ogDescription: "Keep your business website healthy. Monitor uptime, performance, SSL, domain expiry and email health with timely alerts and clear reports.",
   path: "/businesses",
   image: "/og/og-businesses.png",
 });

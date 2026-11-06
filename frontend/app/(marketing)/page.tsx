@@ -9,8 +9,10 @@ import { SITE_URL, organization, pageMeta } from "@/lib/seo";
 
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring",
-  absoluteTitle: "SiteRadar · Know when your websites break, expire or slow down",
-  description: "Uptime, SSL, domain and DNS checks, visitor stats and monthly reports for every website you look after, with alerts by SMS, email, Slack and Teams.",
+  absoluteTitle: "Website Monitoring Software & Alerts | SiteRadar",
+  description: "Monitor website uptime, speed, SSL certificates, domain expiry and DNS health. Get instant alerts, actionable insights and monthly reports with SiteRadar.",
+  ogTitle: "SiteRadar — Website Monitoring & Digital Presence Intelligence",
+  ogDescription: "Keep every website healthy. Monitor uptime, performance, SSL, domains and DNS while getting actionable insights and monthly reports.",
   path: "/",
   image: "/og/og-home.png",
 });
@@ -34,8 +36,10 @@ export default function Home() {
       <JsonLd data={[
         organization,
         { "@context": "https://schema.org", "@type": "WebSite", name: "SiteRadar", url: SITE_URL },
-        { "@context": "https://schema.org", "@type": "SoftwareApplication", name: "SiteRadar", applicationCategory: "BusinessApplication", operatingSystem: "Web",
-          url: SITE_URL, description: "Website monitoring for uptime, SSL, domain and DNS health, visitor stats and monthly reports." },
+        {
+          "@context": "https://schema.org", "@type": "SoftwareApplication", name: "SiteRadar", applicationCategory: "BusinessApplication", operatingSystem: "Web",
+          url: SITE_URL, description: "Website monitoring for uptime, SSL, domain and DNS health, visitor stats and monthly reports."
+        },
       ]} />
       {/* hero */}
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
@@ -77,7 +81,7 @@ export default function Home() {
       <Container className="flex flex-col gap-10 py-24">
         <div className="flex max-w-[720px] flex-col gap-3">
           <span className={`${eyebrow} text-[#C2410C]`}>What SiteRadar watches</span>
-          <h2 className={h2}>Everything a website can quietly get wrong, on one radar.</h2>
+          <h2 className={h2}>Website Monitoring That Covers More Than Uptime.</h2>
           <p className="text-lg text-[#475569]">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record goes missing. SiteRadar checks all of it every day.</p>
         </div>
         <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>

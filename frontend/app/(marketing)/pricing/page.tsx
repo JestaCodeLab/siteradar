@@ -51,7 +51,7 @@ export default function Pricing() {
         <Rings className="-right-[260px] -top-[180px] size-[900px]" />
         <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
-          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Plans that grow with you.</h1>
+          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Monitoring Plans for Every Business.</h1>
           <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Clear monthly pricing in {plans[0]?.currency === "USD" ? "US dollars" : "Ghana cedis"}. Choose the plan that fits the websites you look after, and move up as you grow.</p>
           <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>

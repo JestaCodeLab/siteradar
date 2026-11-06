@@ -9,8 +9,11 @@ import { SolutionPlans } from "@/components/solution-plans";
 import { btnOrange, btnOutlineInk, card, eyebrow, h2, h2Small, iconTile, monoLabel } from "@/lib/mkt-styles";
 
 export const metadata: Metadata = pageMeta({
-  title: "Website monitoring for agencies",
-  description: "Put every client website on the radar. Uptime and SSL alerts, monthly reports with your logo, and read-only access for clients, all from one dashboard.",
+  title: "Client monitoring for agencies",
+  absoluteTitle: "Client Monitoring & Reporting for Agencies | SiteRadar",
+  description: "Monitor client websites, track social media campaigns and post performance, and generate professional reports with SiteRadar for agencies.",
+  ogTitle: "Smart Client Monitoring for Digital Agencies | SiteRadar",
+  ogDescription: "Manage client websites, monitor performance, catch issues early and deliver professional reports with SiteRadar.",
   path: "/agencies",
   image: "/og/og-agencies.png",
 });
@@ -38,7 +41,7 @@ export default function Agencies() {
         <Container className="relative flex flex-wrap items-center gap-14 py-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-5">
             <span className={`${eyebrow} self-start rounded-full bg-[#FFEDD5] px-3 py-1.5 text-[#9A3412]`}>Solutions for agencies</span>
-            <h1 className="text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Every client website, on one radar.</h1>
+            <h1 className="text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
             <p className="text-[19px] text-[#475569]">For digital marketing agencies, web development agencies and consultants managing multiple clients. Catch problems before your clients call, and prove the value of your work every month.</p>
             <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
           </div>
