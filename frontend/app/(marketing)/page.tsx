@@ -4,8 +4,15 @@ import { Activity, BarChart3, Clock, FileText, Mail, ListChecks, Receipt, Shield
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { btnOrange, btnOutlineDark, card, eyebrow, h2, iconTile } from "@/lib/mkt-styles";
 import { HomePlans } from "@/components/home-plans";
+import { JsonLd } from "@/components/json-ld";
+import { SITE_URL, organization, pageMeta } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Know when your websites break, expire or slow down" };
+export const metadata: Metadata = pageMeta({
+  title: "Website monitoring",
+  absoluteTitle: "SiteRadar · Know when your websites break, expire or slow down",
+  description: "Uptime, SSL, domain and DNS checks, visitor stats and monthly reports for every website you look after, with alerts by SMS, email, Slack and Teams.",
+  path: "/",
+});
 
 const slow = [12, 21, 28];
 const features = [
@@ -23,6 +30,12 @@ const mono = "font-mono";
 export default function Home() {
   return (
     <>
+      <JsonLd data={[
+        organization,
+        { "@context": "https://schema.org", "@type": "WebSite", name: "SiteRadar", url: SITE_URL },
+        { "@context": "https://schema.org", "@type": "SoftwareApplication", name: "SiteRadar", applicationCategory: "BusinessApplication", operatingSystem: "Web",
+          url: SITE_URL, description: "Website monitoring for uptime, SSL, domain and DNS health, visitor stats and monthly reports." },
+      ]} />
       {/* hero */}
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
         <Rings className="-right-[260px] -top-[180px] size-[900px]" />

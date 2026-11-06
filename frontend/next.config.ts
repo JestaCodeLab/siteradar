@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
       "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
     },
   },
+  // Signed-in and one-off pages stay out of search results.
+  async headers() {
+    const paths = ["/admin/:path*", "/overview/:path*", "/websites/:path*", "/subscriptions/:path*", "/settings/:path*", "/activity/:path*", "/billing/:path*", "/team/:path*",
+      "/onboarding/:path*", "/verify", "/forgot", "/invite/:path*", "/auth/:path*"];
+    return paths.map((source) => ({ source, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }));
+  },
   async rewrites() {
     return [
       { source: "/api/:path*", destination: `${backend}/api/:path*` },

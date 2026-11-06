@@ -51,8 +51,8 @@ export default function Pricing() {
         <Rings className="-right-[260px] -top-[180px] size-[900px]" />
         <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
-          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Start free, upgrade when you grow.</h1>
-          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Simple plans in Ghana cedis. The Free plan is free for ever, and no card is needed.</p>
+          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Plans that grow with you.</h1>
+          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Clear monthly pricing in Ghana cedis. Choose the plan that fits the websites you look after, and move up as you grow.</p>
           <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
             <button aria-pressed={yearly} onClick={() => setYearly(true)} className={tab(yearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${yearly ? "bg-[#0F172A]/15" : "bg-[#F97316]/20 text-[#FDBA74]"}`}>Save {disc}%</span></button>

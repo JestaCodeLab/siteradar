@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { pageMeta } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowRight, Mail, MessageCircle, Phone } from "lucide-react";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow, monoLabel } from "@/lib/mkt-styles";
 
-export const metadata: Metadata = { title: "Contact", description: "Talk to a real person about your websites." };
+export const metadata: Metadata = pageMeta({ title: "Contact", description: "Talk to a real person about your websites. Reach the SiteRadar team on WhatsApp, by phone or by email.", path: "/contact" });
 
 /** Contact details come from the environment so they can change without touching the code. A card with no value is left out. */
 const env = process.env;

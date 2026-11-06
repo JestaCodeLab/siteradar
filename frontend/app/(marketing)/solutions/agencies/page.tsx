@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { breadcrumbs } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Bell, CalendarDays, Check, SearchCheck, Users } from "lucide-react";
 import { Container, CtaBand } from "@/components/mkt";
 import { SolutionPlans } from "@/components/solution-plans";
 import { btnOrange, btnOutlineInk, card, eyebrow, h2, h2Small, iconTile, monoLabel } from "@/lib/mkt-styles";
 
-export const metadata: Metadata = { title: "SiteRadar for agencies" };
+export const metadata: Metadata = pageMeta({
+  title: "Website monitoring for agencies",
+  description: "Put every client website on the radar. Uptime and SSL alerts, monthly reports with your logo, and read-only access for clients, all from one dashboard.",
+  path: "/solutions/agencies",
+});
 
 const clients = [["Shop", "shop.example.com", "Up"], ["Jesta Digital Solutions", "jestadigitalsolutions.com", "Slow"], ["Church", "church.example.org", "Up"], ["Blog", "blog.example.com", "Up"]];
 const who = [
@@ -23,6 +30,7 @@ const grid = [
 export default function Agencies() {
   return (
     <>
+      <JsonLd data={breadcrumbs([["Home", "/"], ["For agencies", "/solutions/agencies"]])} />
       {/* hero: light */}
       <section className="relative overflow-hidden border-b border-[#F5E6D3] bg-[#FFF7ED]">
         <svg viewBox="0 0 600 600" aria-hidden="true" className="pointer-events-none absolute -bottom-[380px] -left-[300px] size-[760px]"><g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="300" cy="300" r="100" strokeOpacity="0.3" /><circle cx="300" cy="300" r="190" strokeOpacity="0.2" /><circle cx="300" cy="300" r="280" strokeOpacity="0.1" /></g></svg>

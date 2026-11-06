@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { pageMeta } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
+import { breadcrumbs } from "@/lib/seo";
 import type { Metadata } from "next";
 import { BarChart3, FileText, ScrollText, SearchCheck } from "lucide-react";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { SolutionPlans } from "@/components/solution-plans";
 import { btnOrange, btnOutlineDark, card, eyebrow, h2, h2Small, iconTile, monoLabel } from "@/lib/mkt-styles";
 
-export const metadata: Metadata = { title: "SiteRadar for businesses" };
+export const metadata: Metadata = pageMeta({
+  title: "Website monitoring for businesses",
+  description: "Know your website is up before your customers tell you it is not. Uptime, SSL and domain expiry alerts, visitor stats and a plain monthly report.",
+  path: "/solutions/businesses",
+});
 
 const who = [
   ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and a Free plan to start with."],
@@ -23,6 +30,7 @@ const manage = [
 export default function Businesses() {
   return (
     <>
+      <JsonLd data={breadcrumbs([["Home", "/"], ["For businesses", "/solutions/businesses"]])} />
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
         <Rings className="-bottom-[420px] -right-[300px] size-[900px]" />
         <Container className="relative flex flex-wrap items-center gap-14 py-[88px]">
