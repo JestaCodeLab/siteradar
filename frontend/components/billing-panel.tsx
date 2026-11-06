@@ -162,9 +162,9 @@ export function BillingPanel() {
 
         {isGhana && (
           <section aria-label="SMS alerts" className={`${box} flex min-w-0 flex-[1_1_340px] flex-col gap-3`}>
-            <h2 className={h2}>SMS alerts</h2>
-            <Locked feature="sms" icon={MessageSquare} title="SMS alerts" text="Get a text message the moment a website goes down, and top up bundles when you need more." chips={["Instant", "Ghana numbers"]}>
+            <Locked bare feature="sms" icon={MessageSquare} title="SMS alerts" text="Get a text message the moment a website goes down, and top up bundles when you need more." chips={["Instant", "Ghana numbers"]}>
               <div className="flex flex-col gap-3">
+                <h2 className={h2}>SMS alerts</h2>
                 <p className="text-sm leading-relaxed text-muted">{ws.plan.sms > 0 ? `Your plan includes ${ws.plan.sms} SMS a month. ${ws.usage.sms} used so far.${ws.sms_credits ? ` You also have ${ws.sms_credits} bought credits.` : ""}` : "Text alerts to Ghana numbers when a site goes down."} Need more? Top up a bundle and it is added straight away.</p>
                 <div className="flex flex-wrap gap-2.5">
                   {data.bundles.map((b) => (
