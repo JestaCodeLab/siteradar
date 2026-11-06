@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (isLoading || !me) return;
     if (!me.authenticated) { send("POST", "/api/auth/logout").catch(() => {}).finally(() => router.replace("/login")); return; }
     if (!ws) router.replace(me.user?.is_super ? "/admin" : "/onboarding/company");
-    else if (!ws.onboarded && !me.support) router.replace("/onboarding/company");
+    else if (!ws.onboarded && !me.support) router.replace("/onboarding/plan");
   }, [me, ws, isLoading, router]);
 
   if (!me?.authenticated || !ws) return <PageLoader />;

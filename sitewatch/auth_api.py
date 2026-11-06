@@ -1,4 +1,5 @@
 """Public and account endpoints: plans, contact form, sign up, login, onboarding, team, billing."""
+import hmac
 import logging
 import os
 import secrets
@@ -7,7 +8,7 @@ import time
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
 from . import accounts, billing, db, google_auth, mailer, plans, storage
-from .security import client_ip, limited
+from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
@@ -147,6 +148,9 @@ def blueprint(cfg):
         state = secrets.token_urlsafe(24)
         session.clear()
         session["oauth_state"] = state
+        ua, net, family = browser_bind()
+        db.exec("INSERT INTO oauth_states(state_hash, created, ua_hash, ip_net, ip_family) VALUES (?,?,?,?,?)", (sha(state), time.time(), ua, net, family))
+        db.exec("DELETE FROM oauth_states WHERE created<?", (time.time() - 3600,))
         return redirect(google_auth.auth_url(state))
 
     @bp.get("/auth/google/callback")
@@ -155,11 +159,17 @@ def blueprint(cfg):
         if request.args.get("error"):
             log.warning("Google sign-in refused by Google: %s", request.args.get("error"))
             return redirect(app_url() + "/login?error=google")
-        if not expected or request.args.get("state") != expected or not request.args.get("code"):
-            # no saved state means the cookie from /auth/google/start did not come back: usually the site was opened on a
-            # different address than APP_URL (www or not, http or https), so the browser sent it to another host
-            log.warning("Google sign-in: state check failed (cookie present: %s, site address the browser used: %s, APP_URL: %s)", bool(expected), request.headers.get("X-Forwarded-Host") or request.host, app_url())
+        state, code = request.args.get("state", ""), request.args.get("code")
+        # The state must be one we issued, used once, within ten minutes. It is proved to belong to this browser either by the cookie saved
+        # at the start, or, when the browser dropped that cookie, by the database row matching this browser's user agent and network.
+        row = db.q1("UPDATE oauth_states SET used=1 WHERE state_hash=? AND used=0 AND created>? RETURNING *", (sha(state), time.time() - 600)) if state else None
+        cookie_ok = bool(expected) and bool(state) and hmac.compare_digest(expected, state)
+        if not code or not (cookie_ok or (row and same_browser(row))):
+            log.warning("Google sign-in: state check failed (cookie present: %s, state known: %s, same browser: %s, APP_URL: %s)",
+                        bool(expected), bool(row), bool(row and same_browser(row)), app_url())
             return redirect(app_url() + "/login?error=google")
+        if not cookie_ok:
+            log.info("Google sign-in accepted without the cookie (the browser did not send it back)")
         try:
             user, _created = accounts.google_user(google_auth.profile_for(request.args["code"]), request_country())
         except accounts.AuthError as e:
@@ -167,11 +177,33 @@ def blueprint(cfg):
         except Exception:
             log.exception("Google sign-in failed")
             return redirect(app_url() + "/login?error=google")
-        sign_in(user)
         mine = accounts.memberships(user["id"])
-        if mine:
-            session["ws"] = mine[0]["id"]
-        return redirect(app_url() + "/auth/done")
+        ws_id = mine[0]["id"] if mine else None
+        # Signing in on this redirect needs the browser to keep a cookie set on a redirect, which some do not. So also hand back a one-time
+        # ticket that the /auth/done page trades for the session with an ordinary request.
+        ticket = secrets.token_urlsafe(32)
+        ua, net, family = browser_bind()
+        db.exec("INSERT INTO login_tickets(token_hash, user_id, ws_id, created, ua_hash, ip_net, ip_family) VALUES (?,?,?,?,?,?,?)",
+                (sha(ticket), user["id"], ws_id, time.time(), ua, net, family))
+        db.exec("DELETE FROM login_tickets WHERE created<?", (time.time() - 3600,))
+        sign_in(user, ws_id)
+        return redirect(app_url() + "/auth/done?t=" + ticket)
+
+    @bp.post("/auth/ticket")
+    def exchange_ticket():
+        """Trade the one-time ticket from Google sign-in for a session. Valid for two minutes, once, from the same browser."""
+        if limited("ticket", 5, 20):
+            return jsonify(error="Too many attempts. Try again later."), 429
+        t = str(body().get("t") or "")
+        row = db.q1("UPDATE login_tickets SET used=1 WHERE token_hash=? AND used=0 AND created>? RETURNING *", (sha(t), time.time() - 120)) if t else None
+        if not row or not same_browser(row):
+            return jsonify(error="That sign-in link has expired. Please try again.", code="bad_ticket"), 400
+        user = accounts.user_by_id(row["user_id"])
+        if not user or user["disabled"]:
+            return jsonify(error="This account is not available.", code="disabled"), 403
+        sign_in(user, row["ws_id"])
+        g.user, g.ws, g.role, g.impersonating = user, None, None, None
+        return jsonify(me_payload())
 
     @bp.post("/auth/extend")
     @login_required
@@ -315,7 +347,10 @@ def blueprint(cfg):
             out = billing.checkout(cfg, g.ws, g.user, d.get("plan") or "free", d.get("cycle") or "monthly")
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
-        db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (g.ws["id"],))   # a paid plan switches on when payment confirms
+        # Onboarding ends when a plan is really in place: the Free plan (or a test-mode payment) at once, a paid plan only once the
+        # payment is confirmed (billing.confirm). Starting a checkout and walking away must not skip the step.
+        if out.get("done"):
+            db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (g.ws["id"],))
         return jsonify(out)
 
     @bp.post("/account/alerts-prompted")

@@ -212,6 +212,16 @@ UPDATE workspaces SET currency='USD' WHERE country IS NOT NULL AND country <> 'G
 CREATE TABLE rate_hits (id BIGSERIAL PRIMARY KEY, bucket TEXT NOT NULL, key TEXT NOT NULL, ts DOUBLE PRECISION NOT NULL);
 CREATE INDEX idx_rate_hits ON rate_hits(bucket, key, ts);
 """),
+    (11, """
+CREATE TABLE oauth_states (
+    state_hash TEXT PRIMARY KEY, created DOUBLE PRECISION NOT NULL, ua_hash TEXT, ip_net TEXT, ip_family INTEGER NOT NULL DEFAULT 0,
+    used INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE login_tickets (
+    token_hash TEXT PRIMARY KEY, user_id BIGINT NOT NULL, ws_id BIGINT, created DOUBLE PRECISION NOT NULL, ua_hash TEXT, ip_net TEXT,
+    ip_family INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0
+);
+"""),
 ]
 
 

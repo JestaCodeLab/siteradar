@@ -19,6 +19,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     if (isLoading) return;
     if (!me?.authenticated) { router.replace("/login"); return; }
     if (ws?.onboarded && !path.endsWith("/done")) router.replace("/overview");
+    else if (!ws?.onboarded && path.endsWith("/done")) router.replace(ws ? "/onboarding/plan" : "/onboarding/company");   // no plan yet: no finish page
+    else if (!ws && path.endsWith("/plan")) router.replace("/onboarding/company");                                        // no company yet: no plan step
   }, [me, ws, isLoading, path, router]);
 
   async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate(); router.replace("/login"); }

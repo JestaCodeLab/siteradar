@@ -1,5 +1,7 @@
 """Request-level protections: who the caller really is, rate limits, cross-site request checks and response headers."""
+import hashlib
 import hmac
+import ipaddress
 import os
 import time
 from urllib.parse import urlparse
@@ -86,3 +88,29 @@ def harden(resp):
     if request.path.startswith("/api/") and "Cache-Control" not in h:
         h["Cache-Control"] = "no-store"          # signed-in answers are never kept by a browser or a proxy
     return resp
+
+
+# ---- tying a sign-in step to the browser that started it, without a cookie ---------------------------------------
+# Google sign-in goes to another site and back. Some browsers drop the cookie that normally proves it is the same browser coming
+# back, so the check is also kept in the database, tied to the browser's user agent and network (the /24 or /48 it comes from).
+
+def sha(value):
+    return hashlib.sha256(str(value).encode()).hexdigest()
+
+
+def browser_bind():
+    """(user agent hash, network, address family) of the caller, as stored with a sign-in step."""
+    ua = sha(request.headers.get("User-Agent", ""))
+    try:
+        ip = ipaddress.ip_address(client_ip())
+    except ValueError:
+        return ua, "", 0
+    prefix = 24 if ip.version == 4 else 48
+    return ua, str(ipaddress.ip_network(f"{ip}/{prefix}", strict=False)), ip.version
+
+
+def same_browser(row):
+    """True when this request looks like the one that started the step: same user agent, and the same network unless the
+    address family changed in between (a phone moving between IPv4 and IPv6 is not an attack)."""
+    ua, net, family = browser_bind()
+    return row["ua_hash"] == ua and (not family or not row["ip_family"] or row["ip_family"] != family or row["ip_net"] == net)

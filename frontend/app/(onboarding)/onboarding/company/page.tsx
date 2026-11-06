@@ -23,7 +23,8 @@ export default function CompanyStep() {
   const [typed, setTyped] = useState<string | null>(null);
   const name = typed ?? ws?.name ?? "";
   const setName = setTyped;
-  const [kind, setKind] = useState(kinds[1]);
+  const [picked, setKind] = useState<string | null>(null);
+  const kind = picked ?? (ws?.industry && kinds.includes(ws.industry) ? ws.industry : kinds[1]);        // what they saved before, if they come back
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [drag, setDrag] = useState(false);
@@ -90,7 +91,7 @@ export default function CompanyStep() {
         </fieldset>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Websites you will monitor" htmlFor="sites"><Select id="sites" name="sites" defaultValue={siteCounts[0]} options={opts(siteCounts)} /></Field>
-          <Field label="People who will use SiteRadar" htmlFor="team"><Select id="team" name="team" defaultValue={teamSizes[0]} options={opts(teamSizes)} /></Field>
+          <Field label="People who will use SiteRadar" htmlFor="team"><Select key={ws?.size ?? "none"} id="team" name="team" defaultValue={ws?.size && teamSizes.includes(ws.size) ? ws.size : teamSizes[0]} options={opts(teamSizes)} /></Field>
           <Field label="Country" htmlFor="country"><Select key={countryName(user?.country) ?? "none"} id="country" name="country" defaultValue={ws?.country ?? countryName(user?.country) ?? "Ghana"} options={opts(countries)} /></Field>
         </div>
         <FormError message={error} />

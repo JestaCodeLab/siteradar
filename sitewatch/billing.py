@@ -125,6 +125,7 @@ def confirm(cfg, reference):
         db.exec("UPDATE workspaces SET sms_bonus=sms_bonus+? WHERE id=?", (int(pay["plan_id"][3:]), ws["id"]))
         return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
     switch_plan(cfg, ws, pay["plan_id"], pay["cycle"], base + PERIOD[pay["cycle"]])
+    db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (ws["id"],))      # paying for a plan also completes onboarding
     _receipt(accounts.workspace(ws["id"]), pay)
     return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
 
