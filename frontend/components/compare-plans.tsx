@@ -51,7 +51,7 @@ function Value({ c }: { c: Cell }) {
 export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boolean }) {
   const hot = (p: PlanInfo) => p.id === "growth";
   const tint = (p: PlanInfo) => (hot(p) ? "bg-[#FFF7ED]" : "");
-  const price = (p: PlanInfo) => (p.price_month === 0 ? 0 : yearly ? Math.round(p.price_year_month) : p.price_month);
+  const price = (p: PlanInfo) => (p.price_month === 0 ? 0 : yearly ? p.price_year : p.price_month);
   return (
     <section aria-labelledby="compare-title" className="mx-auto flex max-w-[1320px] flex-col gap-6 px-6 pb-12 pt-24">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -70,7 +70,8 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
               {plans.map((p) => (
                 <th key={p.id} scope="col" className={`px-[22px] pb-5 pt-9 text-left align-bottom ${tint(p)} ${hot(p) ? "border-t-4 border-[#F97316]" : "border-t-4 border-transparent"}`}>
                   <div className={`text-lg font-bold ${hot(p) ? "text-[#9A3412]" : ""}`}>{p.name}</div>
-                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{ghs(price(p))}</span><span className="text-[13px] font-normal text-[#475569]"> / month</span></div>
+                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{ghs(price(p))}</span><span className="text-[13px] font-normal text-[#475569]"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></div>
+                  {yearly && p.price_month > 0 && <div className="whitespace-nowrap text-[13px] font-normal text-[#475569]">{ghs(Math.round(p.price_year_month))} a month</div>}
                 </th>
               ))}
             </tr>

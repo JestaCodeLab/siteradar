@@ -59,7 +59,8 @@ export default function PlanStep() {
             className={`relative flex flex-col gap-3 rounded-2xl bg-surface p-5 text-left ${plan === p.id ? "border-2 border-brand" : "border border-line"}`}>
             {hint === p.id && <span className="absolute -top-3 left-5 rounded-full bg-ok px-3 py-1 text-xs font-semibold text-white">Suggested for you</span>}
             <span className="text-lg font-semibold">{p.name}</span>
-            <span className="text-[28px] font-semibold leading-none">{priceLine(p, yearly)}<span className="text-sm font-normal text-muted"> / month</span></span>
+            <span className="text-[28px] font-semibold leading-none">{yearly && p.price_month > 0 ? ghs(p.price_year) : priceLine(p, false)}<span className="text-sm font-normal text-muted"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></span>
+            {yearly && p.price_month > 0 && <span className="-mt-2 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
             <ul className="flex flex-col gap-1.5 text-[13px] text-ink-2">{planFeatures(p).slice(0, 5).map((f) => <li key={f} className="flex gap-2"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f}</li>)}</ul>
           </button>
         ))}

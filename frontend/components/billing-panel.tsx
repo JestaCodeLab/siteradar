@@ -124,7 +124,8 @@ export function BillingPanel() {
             return (
               <div key={p.id} className={`flex flex-col gap-2.5 rounded-xl p-[18px] ${isCur ? "border-2 border-brand bg-brand-soft/40" : "border border-line bg-surface"}`}>
                 <div className="flex items-center justify-between"><span className="text-base font-semibold">{p.name}</span>{isCur && <span className="rounded-full bg-brand-soft px-2.5 py-[3px] text-xs font-semibold text-brand-ink">Current</span>}</div>
-                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{priceLine(p, isYearly)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : "/ month"}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly && p.price_month > 0 ? ghs(p.price_year) : priceLine(p, false)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : isYearly ? "/ year" : "/ month"}</span></div>
+                {isYearly && p.price_month > 0 && <span className="-mt-1.5 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
                 <span className="flex-1 text-[13px] leading-snug text-muted">{planLine(p)}</span>
                 {here ? <span className="flex min-h-11 items-center justify-center text-sm font-semibold text-muted">Your plan</span>
                   : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${idx > curIdx ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
