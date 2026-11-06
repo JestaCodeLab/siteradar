@@ -43,17 +43,21 @@ export default function Home() {
       ]} />
       {/* hero */}
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
-        <Rings className="-right-[260px] -top-[180px] size-[900px]" />
-        <Container className="relative flex flex-wrap items-center gap-14 pb-24 pt-[88px]">
-          <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
+        <Rings className="-right-[260px] -top-[180px] hidden size-[900px] md:block" />
+        <Container className="relative flex flex-wrap items-center gap-14 pb-9 pt-10 md:pb-24 md:pt-[88px]">
+          <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-[18px] md:gap-6">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-medium text-[#FDBA74]`}>Digital Presence Intelligence</span>
-            <h1 className="text-[clamp(38px,5vw,62px)] font-bold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
-            <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
-            <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
+            <h1 className="text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(38px,5vw,62px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
+            <p className="max-w-[560px] text-base text-[#CBD5E1] md:text-[19px]"><span className="md:hidden">Uptime, SSL, domains, DNS, email health and visitors for every website you look after, plus a monthly report for your clients.</span><span className="hidden md:inline">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</span></p>
+            <div className="mt-1 flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
+            <div role="img" aria-label="Example: uptime 99.98%, response 6.1 seconds, SSL valid 74 days, audit score 81" className="mt-1.5 grid grid-cols-2 gap-2 md:hidden">
+              {[["Uptime", "99.98%", ""], ["Response", "6.1 s", "text-[#FDBA74]"], ["SSL expires", "74 days", ""], ["Audit score", "81", ""]].map(([k, v, c]) => (
+                <div key={k} className="rounded-xl bg-[#1E293B] p-3"><div className="text-xs text-[#94A3B8]">{k}</div><div className={`${mono} text-xl font-semibold ${c}`}>{v}</div></div>))}
+            </div>
           </div>
 
           <div role="img" aria-label="SiteRadar dashboard showing a website marked Slow, 99.98% uptime, 6.1 second response time, SSL valid for 74 days and an audit score of 81"
-            className="flex min-w-0 flex-[1_1_520px] flex-col gap-4 rounded-[20px] bg-white p-6 text-[#0F172A] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
+            className="hidden min-w-0 flex-[1_1_520px] flex-col gap-4 rounded-[20px] bg-white p-6 text-[#0F172A] md:flex shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2.5"><span className="text-xl font-bold tracking-[-0.02em]">Jesta Digital Solutions</span><span className="rounded-full bg-[#FEF3C7] px-2.5 py-[3px] text-xs font-bold text-[#92400E]">● Slow</span></div>
@@ -78,31 +82,38 @@ export default function Home() {
       </section>
 
       {/* features */}
-      <Container className="flex flex-col gap-10 py-24">
+      <Container className="flex flex-col gap-5 py-12 md:gap-10 md:py-24">
         <div className="flex max-w-[720px] flex-col gap-3">
           <span className={`${eyebrow} text-[#C2410C]`}>What SiteRadar watches</span>
           <h2 className={h2}>Website Monitoring That Covers More Than Uptime.</h2>
-          <p className="text-lg text-[#475569]">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record goes missing. SiteRadar checks all of it every day.</p>
+          <p className="hidden text-lg text-[#475569] md:block">Most outages are not dramatic. A certificate lapses, a domain is not renewed, an email record goes missing. SiteRadar checks all of it every day.</p>
         </div>
-        <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+        <div className="grid grid-cols-2 gap-2.5 md:gap-5 md:[grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
           {features.map(({ Icon, title, text }) => (
-            <div key={title} className={card}><span className={iconTile}><Icon size={22} aria-hidden="true" /></span><h3 className="text-lg font-bold">{title}</h3><p className="text-[15px] text-[#475569]">{text}</p></div>))}
+            <div key={title} className="flex flex-col gap-2 rounded-[14px] border border-[#EFE4D8] bg-white p-3.5 md:gap-2.5 md:rounded-2xl md:p-6"><span className="flex size-9 items-center justify-center rounded-[10px] bg-[#FFEDD5] text-[#C2410C] md:size-11 md:rounded-xl"><Icon size={18} aria-hidden="true" className="md:size-[22px]" /></span><h3 className="text-[15px] font-bold leading-tight md:text-lg">{title}</h3><p className="hidden text-[15px] text-[#475569] md:block">{text}</p></div>))}
         </div>
       </Container>
 
       {/* how it works */}
       <section className="border-y border-[#EFE4D8] bg-white">
-        <Container className="flex flex-col gap-10 py-24">
+        <Container className="flex flex-col gap-5 py-12 md:gap-10 md:py-24">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="flex max-w-[760px] flex-col gap-3">
               <span className={`${eyebrow} text-[#C2410C]`}>How it works</span>
               <h2 className={h2}>On your radar in 5 minutes.</h2>
-              <p className="text-lg text-[#475569]">Three steps, no installation on your server, and nothing to maintain afterwards.</p>
+              <p className="hidden text-lg text-[#475569] md:block">Three steps, no installation on your server, and nothing to maintain afterwards.</p>
             </div>
-            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#EFE4D8] bg-[#FFF7ED] px-5 py-3.5 text-base font-bold text-[#9A3412]"><Clock size={20} aria-hidden="true" />About 5 minutes to set up</span>
+            <span className="hidden items-center gap-2.5 rounded-full border border-[#EFE4D8] bg-[#FFF7ED] px-5 py-3.5 md:inline-flex text-base font-bold text-[#9A3412]"><Clock size={20} aria-hidden="true" />About 5 minutes to set up</span>
           </div>
 
-          <ol className="grid gap-6 lg:grid-cols-3">
+          <ol className="flex flex-col gap-5 md:hidden">
+            {[["01", "Add your websites", "Paste each address. Checks start straight away.", false], ["02", "Install one line", "See visitors and real page speed.", false], ["03", "Relax, we will tell you", "Alerts when needed, a report every month.", true]].map(([n, t, d, dark]) => (
+              <li key={String(n)} className="flex gap-3.5">
+                <span className={`flex size-9 flex-none items-center justify-center rounded-full font-mono text-sm font-semibold ${dark ? "bg-[#0F172A] text-[#FDBA74]" : "bg-[#F97316] text-white"}`}>{n}</span>
+                <div><div className="font-bold">{t}{n === "02" && <span className="ml-2 text-xs font-semibold text-[#475569]">(optional)</span>}</div><div className="text-[15px] text-[#475569]">{d}</div></div>
+              </li>))}
+          </ol>
+          <ol className="hidden gap-6 md:grid lg:grid-cols-3">
             {[
               { n: "01", dark: false, title: "Add your websites", text: "Paste the address of each site. SiteRadar starts checking straight away and takes a picture of the homepage." },
               { n: "02", dark: false, title: "Install one line", optional: true, text: "Paste a tiny cookieless script on each site to see visitors and real page speed." },
@@ -148,31 +159,31 @@ export default function Home() {
       {/* alerts */}
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
         <svg viewBox="0 0 600 600" aria-hidden="true" className="pointer-events-none absolute -bottom-[300px] -left-[260px] size-[640px]"><g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="300" cy="300" r="120" strokeOpacity="0.18" /><circle cx="300" cy="300" r="210" strokeOpacity="0.12" /><circle cx="300" cy="300" r="290" strokeOpacity="0.07" /></g></svg>
-        <Container className="relative flex flex-wrap items-center gap-14 py-24">
-          <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-[18px]">
+        <Container className="relative flex flex-wrap items-center gap-8 py-12 md:gap-14 md:py-24">
+          <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4 md:gap-[18px]">
             <span className={`${eyebrow} text-[#FDBA74]`}>Alerts</span>
             <h2 className={h2}>Alerts that reach you where you are.</h2>
-            <p className="text-lg text-[#CBD5E1]">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack or Teams for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</p>
+            <p className="text-base text-[#CBD5E1] md:text-lg"><span className="md:hidden">Only after two failed checks, so you are not woken up by a blip.</span><span className="hidden md:inline">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack or Teams for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</span></p>
             <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams"].map((c) => <span key={c} className="rounded-full bg-[#1E293B] px-3 py-1.5 text-[13px] font-semibold text-[#E2E8F0]">{c}</span>)}</div>
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5">
             {[["SMS · SiteRadar · 14:02", <><b>DOWN:</b> shop.example.com has failed 2 checks in a row. We will text you when it is back.</>, "border-[#DC2626]", ""],
             ["SMS · SiteRadar · 14:21", <><b>UP:</b> shop.example.com is back after 19 minutes.</>, "border-[#16A34A]", "md:ml-10"],
             ["Email · 30 days before expiry", <>Your domain example.com expires on 31 Jan 2027. Renew it with your registrar before then.</>, "border-[#F97316]", ""]].map(([k, v, b, m], i) => (
-              <div key={i} className={`rounded-[14px] border-l-[5px] bg-white px-[18px] py-4 text-[#0F172A] shadow-[0_10px_30px_rgba(0,0,0,0.3)] ${b} ${m}`}><div className="text-xs text-[#475569]">{k}</div><div className="text-[15px]">{v}</div></div>))}
+              <div key={i} className={`rounded-xl border-l-[5px] bg-white px-4 py-3.5 text-[#0F172A] shadow-[0_10px_30px_rgba(0,0,0,0.3)] md:rounded-[14px] md:px-[18px] md:py-4 ${i > 0 ? "hidden md:block" : ""} ${b} ${m}`}><div className="text-xs text-[#475569]">{k}</div><div className="text-[15px]">{v}</div></div>))}
           </div>
         </Container>
       </section>
 
       {/* report */}
-      <Container className="flex flex-wrap items-center gap-14 py-24">
-        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-[18px]">
+      <Container className="flex flex-wrap items-center gap-14 py-12 md:py-24">
+        <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5 md:gap-[18px]">
           <span className={`${eyebrow} text-[#C2410C]`}>Monthly reports</span>
           <h2 className={h2}>A monthly report your clients will actually read.</h2>
-          <p className="text-lg text-[#475569]">On the 1st of every month SiteRadar emails a clean PDF for each website: uptime, incidents, speed, visitors, domain and DNS health, and a short list of what to do next, in plain language.</p>
+          <p className="hidden text-lg text-[#475569] md:block">On the 1st of every month SiteRadar emails a clean PDF for each website: uptime, incidents, speed, visitors, domain and DNS health, and a short list of what to do next, in plain language.</p>
           <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[#334155]"><li>Send it to your client, your team, or both</li><li>Your company logo on every report, and no watermark on paid plans</li><li>Track domains, hosting and tool subscriptions with their invoices</li></ul>
         </div>
-        <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-[18px] rounded-[20px] border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_50px_rgba(124,45,18,0.12)]">
+        <div className="hidden min-w-0 flex-[1_1_440px] flex-col gap-[18px] rounded-[20px] border border-[#EFE4D8] bg-white p-7 md:flex shadow-[0_20px_50px_rgba(124,45,18,0.12)]">
           <div className="flex items-center justify-between border-b-[3px] border-[#F97316] pb-3.5">
             <div className="flex flex-col gap-0.5"><span className="text-xs font-bold tracking-[0.08em] text-[#475569]">MONTHLY REPORT · OCTOBER 2026</span><span className="text-[22px] font-bold tracking-[-0.02em]">shop.example.com</span></div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,9 +198,10 @@ export default function Home() {
 
       {/* pricing teaser */}
       <section className="border-t border-[#EFE4D8] bg-white">
-        <Container className="flex flex-col gap-8 py-24">
-          <div className="flex flex-wrap items-end justify-between gap-4"><h2 className={h2}>Start free, upgrade when you grow.</h2><Link href="/pricing" className="text-base font-bold text-[#C2410C] hover:text-[#7C2D12]">Compare all plans →</Link></div>
+        <Container className="flex flex-col gap-3.5 py-12 md:gap-8 md:py-24">
+          <div className="flex flex-wrap items-end justify-between gap-4"><h2 className={h2}>Plans that grow with you.</h2><Link href="/pricing" className="hidden text-base font-bold text-[#C2410C] hover:text-[#7C2D12] md:block">Compare all plans →</Link></div>
           <HomePlans />
+          <Link href="/pricing" className="font-bold text-[#C2410C] md:hidden">Compare all plans →</Link>
         </Container>
       </section>
 

@@ -15,7 +15,20 @@ export function HomePlans({ ids, short = false }: { ids?: string[]; short?: bool
   const all = usePlans()?.plans ?? [];
   const plans = ids ? ids.map((i) => all.find((p) => p.id === i)).filter((p): p is (typeof all)[number] => !!p) : all;
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))" }}>
+    <>
+    <div className="flex flex-col gap-3.5 md:hidden">
+      {plans.filter((p) => p.id !== "free").map((p) => {
+        const pop = p.id === "growth";
+        const line = p.id === "starter" ? `${p.sites} websites · ${p.members} team members` : p.id === "growth" ? `${p.sites} websites · SMS alerts` : `${p.sites} websites · every minute`;
+        return (
+          <div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3.5 ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] !px-[15px] !py-[13px]" : "border border-[#EFE4D8]"}`}>
+            <div><div className={`font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</div><div className="text-[13px] text-[#475569]">{line}</div></div>
+            <span className="font-mono font-semibold">{money(p.price_month, p.currency)}</span>
+          </div>
+        );
+      })}
+    </div>
+    <div className="hidden gap-4 md:grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))" }}>
       {plans.map((p) => {
         const pop = p.id === "growth";
         return (
@@ -27,5 +40,6 @@ export function HomePlans({ ids, short = false }: { ids?: string[]; short?: bool
         );
       })}
     </div>
+    </>
   );
 }

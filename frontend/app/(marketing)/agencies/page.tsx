@@ -20,15 +20,15 @@ export const metadata: Metadata = pageMeta({
 
 const clients = [["Shop", "shop.example.com", "Up"], ["Jesta Digital Solutions", "jestadigitalsolutions.com", "Slow"], ["Church", "church.example.org", "Up"], ["Blog", "blog.example.com", "Up"]];
 const who = [
-  ["Digital marketing agencies", "#F97316", "Show results every month. Cookieless visitor analytics, an SEO and speed audit, and a client-ready PDF that explains what changed and what to do next."],
-  ["Web development agencies", "#FBA23C", "Care plans that run themselves after launch. Uptime, SSL, domain and DNS change alerts, plus a daily audit of about 50 checks for every site you build."],
-  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on SMS, email, Slack or Teams."],
+  ["Digital marketing agencies", "#F97316", "Show results every month. Cookieless visitor analytics, an SEO and speed audit, and a client-ready PDF that explains what changed and what to do next.", "Analytics, SEO audit and a client-ready monthly PDF."],
+  ["Web development agencies", "#FBA23C", "Care plans that run themselves after launch. Uptime, SSL, domain and DNS change alerts, plus a daily audit of about 50 checks for every site you build.", "Care plans that run themselves after launch."],
+  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on SMS, email, Slack or Teams.", "Look after clients like a full team would."],
 ];
 const grid = [
-  { Icon: CalendarDays, t: "Renewals on autopilot", d: "Every client’s domains, hosting and tools with renewal dates, reminders, invoice PDFs and a monthly spend report." },
-  { Icon: Bell, t: "Alerts before the client calls", d: "SMS, email, Slack or Teams, only after two failed checks, so your team is not chasing blips." },
-  { Icon: SearchCheck, t: "Upsell with evidence", d: "The daily audit turns about 50 checks into a prioritised fix list, a ready-made scope for your next piece of work." },
-  { Icon: Users, t: "The right access for everyone", d: "Full admins, team members and read-only client viewers, each seeing exactly what they should." },
+  { Icon: CalendarDays, short: "Renewals and invoices tracked", t: "Renewals on autopilot", d: "Every client’s domains, hosting and tools with renewal dates, reminders, invoice PDFs and a monthly spend report." },
+  { Icon: Bell, short: "Alerts before the client calls", t: "Alerts before the client calls", d: "SMS, email, Slack or Teams, only after two failed checks, so your team is not chasing blips." },
+  { Icon: SearchCheck, short: "Daily audit with a fix list", t: "Upsell with evidence", d: "The daily audit turns about 50 checks into a prioritised fix list, a ready-made scope for your next piece of work." },
+  { Icon: Users, short: "Team and client access", t: "The right access for everyone", d: "Full admins, team members and read-only client viewers, each seeing exactly what they should." },
 ];
 
 export default function Agencies() {
@@ -37,16 +37,16 @@ export default function Agencies() {
       <JsonLd data={breadcrumbs([["Home", "/"], ["For agencies", "/agencies"]])} />
       {/* hero: light */}
       <section className="relative overflow-hidden border-b border-[#F5E6D3] bg-[#FFF7ED]">
-        <svg viewBox="0 0 600 600" aria-hidden="true" className="pointer-events-none absolute -bottom-[380px] -left-[300px] size-[760px]"><g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="300" cy="300" r="100" strokeOpacity="0.3" /><circle cx="300" cy="300" r="190" strokeOpacity="0.2" /><circle cx="300" cy="300" r="280" strokeOpacity="0.1" /></g></svg>
-        <Container className="relative flex flex-wrap items-center gap-14 py-[88px]">
-          <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-5">
+        <svg viewBox="0 0 600 600" aria-hidden="true" className="pointer-events-none absolute -bottom-[380px] -left-[300px] hidden size-[760px] md:block"><g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="300" cy="300" r="100" strokeOpacity="0.3" /><circle cx="300" cy="300" r="190" strokeOpacity="0.2" /><circle cx="300" cy="300" r="280" strokeOpacity="0.1" /></g></svg>
+        <Container className="relative flex flex-wrap items-center gap-14 py-10 md:py-[88px]">
+          <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 md:gap-5">
             <span className={`${eyebrow} self-start rounded-full bg-[#FFEDD5] px-3 py-1.5 text-[#9A3412]`}>Solutions for agencies</span>
-            <h1 className="text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
-            <p className="text-[19px] text-[#475569]">For digital marketing agencies, web development agencies and consultants managing multiple clients. Catch problems before your clients call, and prove the value of your work every month.</p>
-            <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
+            <h1 className="text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
+            <p className="text-base text-[#475569] md:text-[19px]">For digital marketing agencies, web development agencies and consultants managing multiple clients.<span className="hidden md:inline"> Catch problems before your clients call, and prove the value of your work every month.</span></p>
+            <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
           </div>
           <div role="img" aria-label="Agency client list: four client websites, three up and one slow, with an SSL certificate expiring in 28 days"
-            className="flex min-w-0 flex-[1_1_440px] flex-col gap-3 rounded-[20px] border border-[#EFE4D8] bg-white p-6 shadow-[0_24px_60px_rgba(124,45,18,0.14)]">
+            className="hidden min-w-0 flex-[1_1_440px] flex-col gap-3 rounded-[20px] border border-[#EFE4D8] bg-white p-6 shadow-[0_24px_60px_rgba(124,45,18,0.14)] md:flex">
             <div className="flex justify-between text-sm"><span className="font-bold">Your clients</span><span className="font-mono text-[#475569]">3 up · 1 slow</span></div>
             {clients.map(([n, h, s]) => (
               <div key={n} className="flex items-center justify-between gap-3 rounded-xl border border-[#EFE4D8] px-3.5 py-3"><div className="min-w-0"><div className="font-semibold">{n}</div><div className="truncate font-mono text-[13px] text-[#475569]">{h}</div></div>
@@ -57,18 +57,18 @@ export default function Agencies() {
       </section>
 
       {/* who */}
-      <Container className="flex flex-col gap-10 py-24">
+      <Container className="flex flex-col gap-3.5 py-12 md:gap-10 md:py-24">
         <div className="flex max-w-[720px] flex-col gap-3"><span className={`${eyebrow} text-[#C2410C]`}>Built for the way agencies work</span><h2 className={h2}>However you serve your clients, SiteRadar keeps watch.</h2></div>
-        <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
-          {who.map(([t, c, d]) => <div key={t} style={{ borderTopColor: c }} className="flex flex-col gap-3 rounded-2xl border border-t-4 border-[#EFE4D8] bg-white p-7"><h3 className="text-[21px] font-bold">{t}</h3><p className="text-base text-[#475569]">{d}</p></div>)}
+        <div className="grid gap-3 md:gap-5 md:[grid-template-columns:repeat(auto-fit,minmax(300px,1fr))]">
+          {who.map(([t, c, d, short]) => <div key={t} style={{ "--c": c } as React.CSSProperties} className="flex flex-col gap-1 rounded-[14px] border border-l-4 border-[#EFE4D8] border-l-[var(--c)] bg-white p-4 md:gap-3 md:rounded-2xl md:border-l md:border-l-[#EFE4D8] md:border-t-4 md:border-t-[var(--c)] md:p-7"><h3 className="font-bold md:text-[21px]">{t}</h3><p className="text-[15px] text-[#475569] md:text-base"><span className="md:hidden">{short}</span><span className="hidden md:inline">{d}</span></p></div>)}
         </div>
       </Container>
 
       {/* reports */}
       <section className="border-y border-[#EFE4D8] bg-white">
-        <Container className="flex flex-wrap-reverse items-center gap-14 py-24">
+        <Container className="flex flex-wrap-reverse items-center gap-14 py-12 md:py-24">
           <div role="img" aria-label="Monthly client report with the agency's logo, showing uptime 99.97%, 4,212 visitors and a health score of 81"
-            className="flex min-w-0 flex-[1_1_440px] flex-col gap-[18px] rounded-[20px] border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_50px_rgba(124,45,18,0.12)]">
+            className="hidden min-w-0 flex-[1_1_440px] flex-col gap-[18px] rounded-[20px] border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_50px_rgba(124,45,18,0.12)] md:flex">
             <div className="flex items-center justify-between gap-3 border-b-[3px] border-[#F97316] pb-3.5">
               <div className="flex flex-col gap-0.5"><span className="text-xs font-bold tracking-[0.08em] text-[#475569]">MONTHLY REPORT · OCTOBER 2026</span><span className="text-[22px] font-bold tracking-[-0.02em]">shop.example.com</span></div>
               <span className="rounded-lg border-[1.5px] border-dashed border-[#CBD5E1] px-3 py-2.5 text-xs font-bold text-[#475569]">YOUR LOGO</span>
@@ -81,7 +81,7 @@ export default function Agencies() {
           <div className="flex min-w-0 flex-[1_1_440px] flex-col gap-4">
             <span className={monoLabel}>Client reporting</span>
             <h2 className={h2Small}>A report with your name on it, sent on the 1st.</h2>
-            <p className="text-lg text-[#475569]">Every client gets a clean PDF covering uptime, incidents, speed, visitors, domain and DNS health, with a short list of what to do next in plain language.</p>
+            <p className="hidden text-lg text-[#475569] md:block">Every client gets a clean PDF covering uptime, incidents, speed, visitors, domain and DNS health, with a short list of what to do next in plain language.</p>
             <ul className="flex flex-col gap-3">{["Your agency logo, and no watermark on paid plans", "Sent to your client, your team, or both", "Read-only access for clients who want to look for themselves"].map((t) => (
               <li key={t} className="flex gap-3"><Check size={22} strokeWidth={2.4} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" /><span>{t}</span></li>))}</ul>
           </div>
@@ -89,10 +89,10 @@ export default function Agencies() {
       </section>
 
       {/* features */}
-      <Container className="flex flex-col gap-10 py-24">
+      <Container className="flex flex-col gap-3.5 py-12 md:gap-10 md:py-24">
         <h2 className={`${h2} max-w-[720px]`}>Run client care without the spreadsheet.</h2>
-        <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-          {grid.map(({ Icon, t, d }) => <div key={t} className={card}><span className={iconTile}><Icon size={22} aria-hidden="true" /></span><h3 className="text-lg font-bold">{t}</h3><p className="text-[15px] text-[#475569]">{d}</p></div>)}
+        <div className="grid gap-3 md:gap-5 md:[grid-template-columns:repeat(auto-fit,minmax(260px,1fr))]">
+          {grid.map(({ Icon, t, d, short }) => <div key={t} className="flex items-center gap-3 rounded-[14px] border border-[#EFE4D8] bg-white p-3.5 md:flex-col md:items-stretch md:gap-2.5 md:rounded-2xl md:p-6"><span className="flex size-9 flex-none items-center justify-center rounded-[10px] bg-[#FFEDD5] text-[#C2410C] md:size-11 md:rounded-xl"><Icon size={18} aria-hidden="true" className="md:size-[22px]" /></span><h3 className="font-bold md:text-lg"><span className="md:hidden">{short}</span><span className="hidden md:inline">{t}</span></h3><p className="hidden text-[15px] text-[#475569] md:block">{d}</p></div>)}
         </div>
       </Container>
 

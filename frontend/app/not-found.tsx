@@ -35,7 +35,7 @@ export default function NotFound() {
               <span className="relative bg-[#FFF7ED] px-3 py-1 font-mono text-[clamp(72px,12vw,120px)] font-bold leading-none tracking-[-0.04em]">404</span>
             </div>
             <span className={`${eyebrow} text-[#C2410C]`}>Page not found</span>
-            <h1 className="max-w-[760px] text-[clamp(34px,4.4vw,54px)] font-bold leading-[1.05] tracking-[-0.035em]">This page dropped off the radar.</h1>
+            <h1 className="max-w-[760px] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(34px,4.4vw,54px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">This page dropped off the radar.</h1>
             <p className="max-w-[560px] text-[19px] text-[#475569]">The page you are looking for may have moved, been renamed, or never existed. Let&rsquo;s get you back on track.</p>
             <div className="mt-1 flex flex-wrap justify-center gap-3">
               <Link href="/" className="rounded-xl bg-[#F97316] px-6 py-[15px] text-base font-bold text-white hover:bg-[#EA580C]">Back to home</Link>

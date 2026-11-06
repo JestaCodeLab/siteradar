@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { ComparePlans } from "@/components/compare-plans";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow } from "@/lib/mkt-styles";
@@ -29,6 +29,15 @@ function features(p: PlanInfo): string[] {
   return out;
 }
 
+/** What a plan leaves out, for the phone layout where the comparison table is replaced by a list on each card. */
+function missing(p: PlanInfo): string[] {
+  const out: string[] = [];
+  if (!p.sms) out.push("SMS alerts");
+  if (!p.clean_reports) out.push("Reports without a watermark");
+  if (p.interval_minutes > 1) out.push("1-minute checks");
+  return out;
+}
+
 const faq = [
   ["Is the Free plan really free?", "Yes. It is free for ever and you do not need a card to sign up."],
   ["Will I get woken up by a blip?", "No. Alerts only fire after two failed checks in a row, and you hear again when the site is back."],
@@ -48,20 +57,20 @@ export default function Pricing() {
   return (
     <>
       <section className="relative overflow-hidden bg-[#0F172A] text-white">
-        <Rings className="-right-[260px] -top-[180px] size-[900px]" />
-        <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
+        <Rings className="-right-[260px] -top-[180px] hidden size-[900px] md:block" />
+        <Container className="relative flex flex-col items-start gap-3 pb-[88px] pt-10 text-left md:items-center md:gap-4 md:pb-[150px] md:pt-20 md:text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
-          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Monitoring Plans for Every Business.</h1>
-          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Clear monthly pricing in {plans[0]?.currency === "USD" ? "US dollars" : "Ghana cedis"}. Choose the plan that fits the websites you look after, and move up as you grow.</p>
-          <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
+          <h1 className="max-w-[760px] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Monitoring Plans for Every Business.</h1>
+          <p className="max-w-[600px] text-base text-[#CBD5E1] md:text-[19px]">Clear monthly pricing in {plans[0]?.currency === "USD" ? "US dollars" : "Ghana cedis"}.<span className="hidden md:inline"> Choose the plan that fits the websites you look after, and move up as you grow.</span></p>
+          <div role="group" aria-label="Billing period" className="mt-2 inline-flex gap-1 md:mt-3 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
             <button aria-pressed={yearly} onClick={() => setYearly(true)} className={tab(yearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${yearly ? "bg-[#0F172A]/15" : "bg-[#F97316]/20 text-[#FDBA74]"}`}>Save {disc}%</span></button>
           </div>
         </Container>
       </section>
 
-      <Container className="relative -mt-24">
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
+      <Container className="relative -mt-16 md:-mt-24">
+        <div className="grid gap-4 md:[grid-template-columns:repeat(auto-fit,minmax(250px,1fr))]">
           {plans.map((p) => {
             const pop = p.id === "growth", free = p.price_month === 0;
             return (
@@ -70,19 +79,21 @@ export default function Pricing() {
                 <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{free ? money(0, p.currency) : money(yearly ? p.price_year : p.price_month, p.currency)}</span><span className="text-sm text-[#475569]"> / {!free && yearly ? "year" : "month"}</span>
                   {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">{money(Math.round(p.price_year_month), p.currency)} a month, billed yearly</div>}</div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
-                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
+                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#DCFCE7] md:size-auto md:bg-transparent"><Check size={14} strokeWidth={2.8} className="text-[#15803D] md:size-[18px] md:text-[#F97316]" aria-hidden="true" /></span>{b}</li>)}
+                  {missing(p).map((b) => <li key={b} className="flex gap-2.5 text-[#64748B] md:hidden"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#F1F5F9]"><X size={12} strokeWidth={2.6} className="text-[#94A3B8]" aria-hidden="true" /></span><span className="flex-1">{b}</span><span className="text-xs font-semibold">Not available</span></li>)}</ul>
               </div>
             );
           })}
         </div>
       </Container>
 
-      <ComparePlans plans={plans} yearly={yearly} />
+      <div className="hidden md:block"><ComparePlans plans={plans} yearly={yearly} /></div>
 
-      <Container className="flex flex-wrap gap-12 pb-24 pt-12">
-        <h2 className="min-w-[280px] flex-[1_1_280px] text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">Questions</h2>
+      <Container className="flex flex-wrap gap-4 pb-12 pt-9 md:gap-12 md:pb-24 md:pt-12">
+        <h2 className="min-w-[280px] flex-[1_1_280px] text-xl font-semibold leading-[1.1] tracking-[-0.02em] md:text-[clamp(28px,3.2vw,40px)] md:font-bold md:tracking-[-0.03em]">Questions</h2>
         <div className="flex min-w-0 flex-[2_1_520px] flex-col border-b border-[#EFE4D8]">
-          {faq.map(([q, a]) => <div key={q} className="border-t border-[#EFE4D8] py-5"><h3 className="mb-1.5 text-lg font-bold">{q}</h3><p className="text-[#475569]">{a}</p></div>)}
+          <div className="md:hidden">{faq.map(([q, a]) => <details key={q} className="group border-t border-[#EFE4D8] py-3.5"><summary className="flex cursor-pointer list-none items-center justify-between gap-3 marker:hidden [&::-webkit-details-marker]:hidden"><h3 className="text-base font-bold">{q}</h3><span aria-hidden="true" className="text-[#C2410C] group-open:hidden">+</span><span aria-hidden="true" className="hidden text-[#C2410C] group-open:inline">−</span></summary><p className="mt-2 text-[15px] text-[#475569]">{a}</p></details>)}</div>
+          <div className="hidden md:block">{faq.map(([q, a]) => <div key={q} className="border-t border-[#EFE4D8] py-5"><h3 className="mb-1.5 text-lg font-bold">{q}</h3><p className="text-[#475569]">{a}</p></div>)}</div>
         </div>
       </Container>
 

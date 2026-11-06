@@ -22,27 +22,27 @@ export function SolutionPlans({ variant, eyebrowText, title }: { variant: "agenc
   const set = SETS[variant];
   return (
     <section className="bg-[#0F172A] text-white">
-      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-12 px-6 py-[88px]">
-        <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
-          <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#FDBA74]">{eyebrowText}</span>
-          <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">{title}</h2>
-          <Link href="/pricing" className="font-bold text-[#FDBA74] hover:text-white">Compare all plans →</Link>
+      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-3.5 px-5 py-12 md:gap-12 md:px-6 md:py-[88px]">
+        <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5 max-md:contents">
+          <span className="w-full text-[13px] font-bold uppercase tracking-[0.08em] text-[#FDBA74] md:w-auto">{eyebrowText}</span>
+          <h2 className="hidden text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] md:block">{title}</h2>
+          <Link href="/pricing" className="order-last font-bold text-[#FDBA74] hover:text-white md:order-none">Compare all plans →</Link>
         </div>
-        <div className="grid min-w-0 gap-4" style={{ flex: set.flex, gridTemplateColumns: `repeat(auto-fit, minmax(${set.min}px, 1fr))` }}>
+        <div className="grid w-full min-w-0 gap-3.5 md:w-auto md:gap-4 md:[flex:var(--flex)] md:[grid-template-columns:repeat(auto-fit,minmax(var(--min),1fr))]" style={{ "--flex": set.flex, "--min": `${set.min}px` } as React.CSSProperties}>
           {set.tiles.map((t) => {
             const p = plans.find((x) => x.id === t.id);
             if (!p) return null;
             return t.highlight ? (
-              <div key={t.id} className="flex flex-col gap-2 rounded-[18px] border-2 border-[#F97316] bg-[#FFF7ED] p-6 text-[#0F172A]">
+              <div key={t.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 rounded-2xl border-2 border-[#F97316] bg-[#FFF7ED] p-[18px] text-[#0F172A] md:flex md:flex-col md:items-stretch md:gap-2 md:rounded-[18px] md:p-6">
                 <span className="font-bold text-[#9A3412]">{p.name}</span>
-                <span><span className="font-mono text-[34px] font-semibold">{money(p.price_month, p.currency)}</span><span className="text-[#475569]">{t.per}</span></span>
-                <span className="text-[#334155]">{t.line(p)}</span>
+                <span className="row-span-2 col-start-2 row-start-1 md:contents"><span className="font-mono text-lg font-semibold md:text-[34px]">{money(p.price_month, p.currency)}</span><span className="hidden text-[#475569] md:inline">{t.per}</span></span>
+                <span className="text-[13px] text-[#475569] md:text-base md:text-[#334155]">{t.line(p)}</span>
               </div>
             ) : (
-              <div key={t.id} className="flex flex-col gap-2 rounded-[18px] border border-[#334155] bg-[#1E293B] p-6">
+              <div key={t.id} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 rounded-2xl border border-[#334155] bg-[#1E293B] p-[18px] md:flex md:flex-col md:items-stretch md:gap-2 md:rounded-[18px] md:p-6">
                 <span className="font-bold text-[#E2E8F0]">{p.name}</span>
-                <span><span className="font-mono text-[34px] font-semibold">{money(p.price_month, p.currency)}</span><span className="text-[#CBD5E1]">{t.per}</span></span>
-                <span className="text-[#CBD5E1]">{t.line(p)}</span>
+                <span className="row-span-2 col-start-2 row-start-1 md:contents"><span className="font-mono text-lg font-semibold md:text-[34px]">{money(p.price_month, p.currency)}</span><span className="hidden text-[#CBD5E1] md:inline">{t.per}</span></span>
+                <span className="text-[13px] text-[#CBD5E1] md:text-base">{t.line(p)}</span>
               </div>
             );
           })}

@@ -70,13 +70,22 @@ export function MktHeader() {
     document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [menu]);
+  useEffect(() => { setOpen(false); }, [path]);
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("keydown", key);
+    return () => { document.body.style.overflow = prev; document.removeEventListener("keydown", key); };
+  }, [open]);
   const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${path === href ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
   const inSolutions = path.startsWith("/agencies") || path.startsWith("/businesses");
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#EFE4D8] bg-white">
-      <nav aria-label="Main" className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-6 py-3">
-        <Link href="/" aria-label="SiteRadar home"><Logo height={50} /></Link>
+      <nav aria-label="Main" className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-5 py-3 md:px-6">
+        <Link href="/" aria-label="SiteRadar home"><Logo height={50} className="hidden md:block" /><Logo height={40} className="md:hidden" /></Link>
         <div className="hidden items-center gap-1 md:flex">
           <Link href="/" className={link("/")}>Home</Link>
           <div ref={ref} className="relative">
@@ -100,18 +109,35 @@ export function MktHeader() {
             <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started</Link>
           </>}
         </div>
-        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#FFF7ED] md:hidden">{open ? <X size={22} /> : <Menu size={22} />}</button>
+        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Open menu" className="flex size-11 items-center justify-center rounded-[10px] border border-[#EFE4D8] hover:bg-[#FFF7ED] md:hidden"><Menu size={22} aria-hidden="true" /></button>
       </nav>
       {open && (
-        <div className="flex flex-col gap-1 border-t border-[#EFE4D8] px-6 py-3 md:hidden">
-          {[["/", "Home"], ["/agencies", "Solutions: Agencies"], ["/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
-            <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-normal text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
-          {user ? (
-            <Link href="/overview" onClick={() => setOpen(false)} className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Go to dashboard</Link>
-          ) : <>
-            <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
-            <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started</Link>
-          </>}
+        <div role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
+          <div className="flex items-center justify-between border-b border-[#EFE4D8] px-5 py-3">
+            <Link href="/" aria-label="SiteRadar home" onClick={() => setOpen(false)}><Logo height={40} /></Link>
+            <button onClick={() => setOpen(false)} aria-label="Close menu" className="flex size-11 items-center justify-center rounded-[10px] bg-[#0F172A] text-white"><X size={22} aria-hidden="true" /></button>
+          </div>
+          <nav aria-label="Main" className="flex flex-1 flex-col overflow-y-auto px-5 py-3">
+            <Link href="/" onClick={() => setOpen(false)} className="border-b border-[#F1E8DD] py-4 text-xl font-bold">Home</Link>
+            <div className="flex flex-col gap-1.5 border-b border-[#F1E8DD] pb-2 pt-4">
+              <span className="text-xl font-bold">Solutions</span>
+              {solutions.map(({ href, label, Icon, text }) => (
+                <Link key={href} href={href} onClick={() => setOpen(false)} className="flex gap-3 rounded-xl bg-[#FFF7ED] p-2.5">
+                  <span className="flex size-9 flex-none items-center justify-center rounded-[10px] bg-[#FFEDD5] text-[#C2410C]"><Icon size={18} aria-hidden="true" /></span>
+                  <span className="flex flex-col"><span className="font-bold">{label}</span><span className="text-[13px] leading-snug text-[#475569]">{text}</span></span>
+                </Link>))}
+            </div>
+            <Link href="/pricing" onClick={() => setOpen(false)} className="border-b border-[#F1E8DD] py-4 text-xl font-bold">Pricing</Link>
+            <Link href="/contact" onClick={() => setOpen(false)} className="border-b border-[#F1E8DD] py-4 text-xl font-bold">Contact</Link>
+          </nav>
+          <div className="flex flex-col gap-2.5 border-t border-[#EFE4D8] p-5">
+            {user ? (
+              <Link href="/overview" onClick={() => setOpen(false)} className="rounded-xl bg-[#F97316] py-[15px] text-center text-base font-bold text-white">Go to dashboard</Link>
+            ) : <>
+              <Link href="/signup" onClick={() => setOpen(false)} className="rounded-xl bg-[#F97316] py-[15px] text-center text-base font-bold text-white">Get started</Link>
+              <Link href="/login" onClick={() => setOpen(false)} className="rounded-xl border-[1.5px] border-[#0F172A] py-[15px] text-center text-base font-semibold">Log in</Link>
+            </>}
+          </div>
         </div>
       )}
     </header>
@@ -122,20 +148,23 @@ export function MktFooter() {
   const col = "text-[#CBD5E1] hover:text-white";
   return (
     <footer className="bg-[#0F172A] text-[#CBD5E1]">
-      <div className="mx-auto flex max-w-[1320px] flex-col gap-12 px-6 pb-8 pt-16">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-[22px] px-5 pb-7 pt-9 md:gap-12 md:px-6 md:pb-8 md:pt-16">
         <div className="flex flex-wrap justify-between gap-10">
           <div className="flex max-w-[360px] flex-col gap-4">
-            <Link href="/" aria-label="SiteRadar home"><Logo dark height={52} /></Link>
-            <p className="text-[15px]">Website monitoring, domain and DNS health, analytics and monthly reports for the people who look after websites.</p>
+            <Link href="/" aria-label="SiteRadar home"><Logo dark height={40} className="md:hidden" /><Logo dark height={52} className="hidden md:block" /></Link>
+            <p className="hidden text-[15px] md:block">Website monitoring, domain and DNS health, analytics and monthly reports for the people who look after websites.</p>
           </div>
-          <div className="flex flex-wrap gap-16">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[15px] md:hidden">
+            {[["/agencies", "For agencies"], ["/businesses", "For businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"], ["/login", "Log in"], ["/signup", "Sign up"], ["/terms-of-service", "Terms of Service"], ["/privacy", "Privacy Policy"]].map(([h, l]) => <Link key={h} href={h} className={`${col} py-1.5`}>{l}</Link>)}
+          </div>
+          <div className="hidden flex-wrap gap-16 md:flex">
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
               <Link href="/agencies" className={col}>For agencies</Link><Link href="/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link><Link href="/terms-of-service" className={col}>Terms of Service</Link><Link href="/privacy" className={col}>Privacy Policy</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>
         </div>
-        <div className="flex flex-wrap justify-between gap-3 border-t border-[#1E293B] pt-6 text-sm text-[#94A3B8]">
+        <div className="flex flex-col gap-1 border-t border-[#1E293B] pt-4 text-[13px] text-[#94A3B8] md:flex-row md:flex-wrap md:justify-between md:gap-3 md:pt-6 md:text-sm">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
           <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#E2E8F0] hover:text-white">{POWERED_BY.name}</a></span>
         </div>
@@ -156,16 +185,16 @@ export function Rings({ className = "", color = "#F97316", opacity = 1 }: { clas
 
 export function CtaBand({ title, text, primary, secondary, onPage = false }: { title: string; text: string; primary: { href: string; label: string }; secondary?: { href: string; label: string }; onPage?: boolean }) {
   return (
-    <section className={`px-6 ${onPage ? "bg-[#FBF8F4] py-24" : "bg-white pb-24"}`}>
-      <div className="relative mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
-        <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] size-[420px]"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
+    <section className={`px-5 md:px-6 ${onPage ? "bg-[#FBF8F4] py-12 md:py-24" : "bg-white pb-12 md:pb-24"}`}>
+      <div className="relative mx-auto flex max-w-[1320px] flex-col gap-3.5 overflow-hidden rounded-[20px] bg-[#F97316] px-[22px] py-7 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-6 md:rounded-3xl md:px-12 md:py-14">
+        <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] hidden size-[420px] md:block"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
         <div className="relative flex max-w-[640px] flex-col gap-2">
-          <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] text-white">{title}</h2>
-          <p className="text-lg text-white/95">{text}</p>
+          <h2 className="text-2xl font-bold leading-[1.15] tracking-[-0.03em] text-white md:text-[clamp(28px,3.2vw,40px)] md:leading-[1.1]">{title}</h2>
+          <p className="hidden text-lg text-white/95 md:block">{text}</p>
         </div>
-        <div className="relative flex flex-wrap gap-3">
-          <Link href={primary.href} className="rounded-xl bg-[#0F172A] px-6 py-4 text-base font-bold text-white hover:bg-[#1E293B]">{primary.label}</Link>
-          {secondary && <Link href={secondary.href} className="rounded-xl bg-[#FFF7ED] px-6 py-4 text-base font-bold text-[#0F172A] hover:bg-white">{secondary.label}</Link>}
+        <div className="relative flex flex-col gap-3 md:flex-row md:flex-wrap">
+          <Link href={primary.href} className="rounded-xl bg-[#0F172A] px-6 py-[15px] text-center text-base font-bold text-white hover:bg-[#1E293B] md:py-4">{primary.label}</Link>
+          {secondary && <Link href={secondary.href} className="hidden rounded-xl bg-[#FFF7ED] px-6 py-4 text-base font-bold md:block text-[#0F172A] hover:bg-white">{secondary.label}</Link>}
         </div>
       </div>
     </section>

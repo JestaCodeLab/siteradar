@@ -13,7 +13,7 @@ export function LegalPage({ label, title, intro, sections }: { label: string; ti
         <Rings className="-right-[260px] -top-[260px] size-[900px]" opacity={0.9} />
         <Container className="relative flex flex-col gap-4 pb-14 pt-[72px]">
           <span className={`${eyebrow} text-[#C2410C]`}>{label}</span>
-          <h1 className="max-w-[860px] text-[clamp(34px,4.2vw,52px)] font-bold leading-[1.06] tracking-[-0.035em] text-[#0F172A]">{title}</h1>
+          <h1 className="max-w-[860px] text-[28px] font-semibold leading-[1.12] tracking-[-0.025em] md:text-[clamp(34px,4.2vw,52px)] md:font-bold md:leading-[1.06] md:tracking-[-0.035em] text-[#0F172A]">{title}</h1>
           <p className="text-[15px] text-[#475569]">Last updated {LEGAL.updated}</p>
         </Container>
       </section>
