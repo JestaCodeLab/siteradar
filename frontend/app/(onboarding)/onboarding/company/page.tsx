@@ -104,7 +104,7 @@ export default function CompanyStep() {
           <p className="mb-1 font-semibold text-ink">Why we ask</p>
           Your company name and logo appear on your monthly reports and in team invitations. The number of websites and people helps us recommend a plan, and you can change your mind on the next step.
         </div>
-        <p className="text-sm text-muted">Free to start. You choose a plan on the next step, and the Free plan needs no card.</p>
+        <p className="text-sm text-muted">You choose a plan on the next step.</p>
       </aside>
     </div>
   );

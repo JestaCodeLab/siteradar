@@ -31,7 +31,7 @@ export default function LoginPage() {
       <form onSubmit={submit} aria-label="Log in" className="flex flex-col gap-5">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-[32px] font-bold tracking-[-0.03em]">Log in</h2>
-          <p className="text-[#475569]">New to SiteRadar? <Link href="/signup" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Create a free account</Link></p>
+          <p className="text-[#475569]">New to SiteRadar? <Link href="/signup" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Create an account</Link></p>
         </div>
         <div className="flex flex-col gap-1.5"><label htmlFor="email" className={authLabel}>Email</label><input id="email" name="email" type="email" autoComplete="email" required placeholder="you@company.com" className={authInput} /></div>
         <div className="flex flex-col gap-1.5">

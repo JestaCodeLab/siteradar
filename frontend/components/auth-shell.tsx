@@ -3,7 +3,7 @@ import { Check } from "lucide-react";
 import { Logo } from "./logo";
 
 const CHECKS = {
-  signup: { title: "Put your first website on the radar in minutes.", points: ["The Free plan is free for ever. No card needed.", "Uptime, SSL, domain, DNS and email checks start straight away.", "Alerts only after two failed checks, so no false alarms.", "A clear report in your inbox on the 1st of every month."] },
+  signup: { title: "Put your first website on the radar in minutes.", points: ["Add your first website in about two minutes.", "Uptime, SSL, domain, DNS and email checks start straight away.", "Alerts only after two failed checks, so no false alarms.", "A clear report in your inbox on the 1st of every month."] },
   verify: { title: "One quick step to keep your account safe.", text: "We email a 6-digit code to confirm that the address is yours.", points: ["The code expires in 15 minutes", "Check your spam folder if it does not arrive", "You can ask for a new code any time"] },
   forgot: { title: "Locked out? It happens.", text: "Enter your email and we will send a 6-digit code to set a new password.", points: ["The code expires in 15 minutes", "Your websites keep being monitored meanwhile", "You can ask for a new code any time"] },
   invite: { title: "You have been invited to join a team.", text: "Set a password and you will see the websites your team looks after.", points: ["See uptime, speed and reports", "Get alerts for the sites you choose", "Your access is set by the team admin"] },

@@ -31,7 +31,7 @@ export default function Agencies() {
             <span className={`${eyebrow} self-start rounded-full bg-[#FFEDD5] px-3 py-1.5 text-[#9A3412]`}>Solutions for agencies</span>
             <h1 className="text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Every client website, on one radar.</h1>
             <p className="text-[19px] text-[#475569]">For digital marketing agencies, web development agencies and consultants managing multiple clients. Catch problems before your clients call, and prove the value of your work every month.</p>
-            <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
+            <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
           </div>
           <div role="img" aria-label="Agency client list: four client websites, three up and one slow, with an SSL certificate expiring in 28 days"
             className="flex min-w-0 flex-[1_1_440px] flex-col gap-3 rounded-[20px] border border-[#EFE4D8] bg-white p-6 shadow-[0_24px_60px_rgba(124,45,18,0.14)]">
@@ -85,7 +85,7 @@ export default function Agencies() {
       </Container>
 
       <SolutionPlans variant="agencies" eyebrowText="Plans for agencies" title="Grow your client list without growing your workload." />
-      <CtaBand title="Put every client on the radar." text="Start free with one site, then move your whole client list across when you are ready." primary={{ href: "/signup", label: "Get started free" }} secondary={{ href: "/contact", label: "Talk to us" }} onPage />
+      <CtaBand title="Put every client on the radar." text="Start free with one site, then move your whole client list across when you are ready." primary={{ href: "/signup", label: "Get started" }} secondary={{ href: "/contact", label: "Talk to us" }} onPage />
     </>
   );
 }

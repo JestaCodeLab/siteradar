@@ -54,7 +54,7 @@ export function MktHeader() {
         </div>
         <div className="hidden items-center gap-2.5 md:flex">
           <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
-          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started free</Link>
+          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started</Link>
         </div>
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#FFF7ED] md:hidden">{open ? <X size={22} /> : <Menu size={22} />}</button>
       </nav>
@@ -63,7 +63,7 @@ export function MktHeader() {
           {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
             <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-normal text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
           <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started free</Link>
+          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started</Link>
         </div>
       )}
     </header>
@@ -82,7 +82,7 @@ export function MktFooter() {
           </div>
           <div className="flex flex-wrap gap-16">
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
-              <Link href="/solutions/agencies" className={col}>For agencies</Link><Link href="/solutions/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started free</Link></div>
+              <Link href="/solutions/agencies" className={col}>For agencies</Link><Link href="/solutions/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>

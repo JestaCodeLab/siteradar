@@ -35,7 +35,7 @@ function Form() {
   return (
     <form onSubmit={submit} aria-label="Create your account" className="flex flex-col gap-[18px]">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-[32px] font-bold tracking-[-0.03em]">Create your free account</h2>
+        <h2 className="text-[32px] font-bold tracking-[-0.03em]">Create your account</h2>
         <p className="text-[#475569]">Already have an account? <Link href="/login" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Log in</Link></p>
       </div>
       <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
@@ -48,7 +48,7 @@ function Form() {
       <label className="flex cursor-pointer items-start gap-2.5 text-sm text-[#334155]"><input type="checkbox" required className="mt-px size-[18px] flex-none accent-[#F97316]" />
         <span>I agree to the <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Terms of Service</Link> and <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Privacy Policy</Link>.</span></label>
       <FormError message={error} />
-      <button type="submit" disabled={busy} className={authButton}>{busy ? "Creating account…" : "Create free account"}</button>
+      <button type="submit" disabled={busy} className={authButton}>{busy ? "Creating account…" : "Create account"}</button>
     </form>
   );
 }

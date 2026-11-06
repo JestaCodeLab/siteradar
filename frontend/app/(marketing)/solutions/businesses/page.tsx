@@ -30,7 +30,7 @@ export default function Businesses() {
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 text-[#FDBA74]`}>Solutions for businesses</span>
             <h1 className="text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Your digital presence, watched around the clock.</h1>
             <p className="text-[19px] text-[#CBD5E1]">For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence. Know about problems before your customers do, and get a plain-language list of what to fix.</p>
-            <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/contact" className={btnOutlineDark}>Talk to us</Link></div>
+            <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineDark}>Talk to us</Link></div>
           </div>
           <div role="img" aria-label="Digital presence status: website up, SSL valid for 74 days, domain renews in 87 days, DMARC missing, 4.2 thousand visitors in 30 days"
             className="flex min-w-0 flex-[1_1_440px] flex-col gap-3 rounded-[20px] bg-white p-6 text-[#0F172A] shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
@@ -75,7 +75,7 @@ export default function Businesses() {
       </Container>
 
       <SolutionPlans variant="businesses" eyebrowText="Plans for businesses" title="Start free with one site. Scale up to 50." />
-      <CtaBand title="Stop finding out from your customers." text="Create a free account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started free" }} secondary={{ href: "/contact", label: "Talk to us" }} onPage />
+      <CtaBand title="Stop finding out from your customers." text="Create an account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started" }} secondary={{ href: "/contact", label: "Talk to us" }} onPage />
     </>
   );
 }

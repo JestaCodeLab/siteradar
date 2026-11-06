@@ -31,7 +31,7 @@ export default function Home() {
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-medium text-[#FDBA74]`}>Digital Presence Intelligence</span>
             <h1 className="text-[clamp(38px,5vw,62px)] font-bold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
-            <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
+            <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
             <p className="text-sm text-[#94A3B8]">The Free plan is free for ever. No card needed.</p>
           </div>
 
@@ -176,7 +176,7 @@ export default function Home() {
         </Container>
       </section>
 
-      <CtaBand title="Stop finding out from your customers." text="Create a free account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started free" }} />
+      <CtaBand title="Stop finding out from your customers." text="Create an account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started" }} />
     </>
   );
 }
