@@ -1,5 +1,6 @@
 "use client";
 
+import { AddWebsiteProvider } from "./add-website";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -65,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const owner = ws.owner_name ?? "the owner";
 
   return (
+    <AddWebsiteProvider>
     <div className="min-h-screen">
       {me.support && <SupportBanner {...me.support} workspace={ws.name} owner={owner} />}
       <Sidebar open={menu} onClose={() => setMenu(false)} />
@@ -97,5 +99,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
+    </AddWebsiteProvider>
   );
 }

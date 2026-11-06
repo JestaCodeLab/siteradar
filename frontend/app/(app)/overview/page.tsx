@@ -1,5 +1,6 @@
 "use client";
 
+import { AddWebsiteButton, useAddWebsite } from "@/components/add-website";
 import Link from "next/link";
 import { CalendarClock, Check, Globe, ShieldCheck, Timer } from "lucide-react";
 import useSWR from "swr";
@@ -28,7 +29,7 @@ export default function DashboardPage() {
     <>
       <WelcomeAlerts />
       <PageHeader title={`Welcome, ${user?.first_name ?? ""}`.trim().replace(/,$/, "")} subtitle={ws ? `Here is how ${ws.name}'s websites are doing.` : ""}
-        actions={canWrite ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : (
+        actions={canWrite ? <AddWebsiteButton className={btn.primary} /> : (
           <div className="flex flex-col items-end gap-1"><span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>
             <span className="text-xs text-muted">{me?.support ? "Disabled in view-only mode" : "View-only access"}</span></div>)} />
 
@@ -40,11 +41,11 @@ export default function DashboardPage() {
           </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
             {steps.map((st) => (
-              <Link key={st.title} href={st.href} className="flex min-h-11 items-start gap-3 rounded-xl border border-line p-3.5 hover:bg-soft">
+              <StepLink key={st.title} href={st.href} className="flex min-h-11 w-full items-start gap-3 rounded-xl border border-line p-3.5 text-left hover:bg-soft">
                 {st.done ? <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-ok text-white"><Check size={14} strokeWidth={3} aria-hidden="true" /></span>
                   : <span className="size-6 shrink-0 rounded-full border-2 border-[#c9cfd8]" />}
                 <span className="flex flex-col gap-0.5"><span className="text-sm font-semibold">{st.title}</span><span className="text-[13px] leading-snug text-muted">{st.sub}</span></span>
-              </Link>
+              </StepLink>
             ))}
           </div>
         </section>
@@ -66,4 +67,12 @@ export default function DashboardPage() {
       
     </>
   );
+}
+
+/** A checklist row. The "add a website" row opens the dialog instead of going to a page. */
+function StepLink({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
+  const { open } = useAddWebsite();
+  return href === "/websites/new"
+    ? <button type="button" onClick={open} className={className}>{children}</button>
+    : <Link href={href} className={className}>{children}</Link>;
 }

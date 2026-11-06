@@ -1,5 +1,6 @@
 "use client";
 
+import { AddWebsiteButton } from "@/components/add-website";
 import Link from "next/link";
 import useSWR from "swr";
 import { SitesTable } from "@/components/sites-table";
@@ -22,7 +23,7 @@ export default function WebsitesPage() {
       <PageHeader title="Websites"
         subtitle={s ? (atLimit ? `${s.total} websites monitored · checks every ${s.check_interval_minutes} minutes`
           : `${s.total} website${s.total === 1 ? "" : "s"} monitored · last check ${fmtAgo(s.latest_check)} · checks every ${s.check_interval_minutes} minutes`) : "Loading…"}
-        actions={canWrite && !atLimit ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : (
+        actions={canWrite && !atLimit ? <AddWebsiteButton className={btn.primary} /> : (
           <div className="flex flex-col items-end gap-1"><span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>
             <span className="text-xs text-muted">{atLimit ? "Website limit reached" : "View-only access"}</span></div>)} />
 
