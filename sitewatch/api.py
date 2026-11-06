@@ -396,6 +396,50 @@ def blueprint(cfg):
             d = (d + dt.timedelta(days=32)).replace(day=1)
         return jsonify(months=months[::-1], recipients=sites.get(g.ws["id"], site_id).get("report_to", []))
 
+    @bp.get("/sites/<site_id>/report-history")
+    def report_history(site_id):
+        """Every monthly report for a site with its headline figures, newest first, for the Reports page."""
+        s = site_or_404(site_id)
+        keep = plans.limits(g.ws)["history_months"]
+        first = db.q1("SELECT MIN(ts) t FROM checks WHERE site_id=?", (site_id,))["t"] or time.time()
+        today = dt.date.today()
+        d, months = dt.date.fromtimestamp(first).replace(day=1), []
+        while d <= today:
+            months.append(d)
+            d = (d + dt.timedelta(days=32)).replace(day=1)
+        out = []
+        for d in months[::-1][:keep + 1]:           # the month in progress plus as many finished ones as the plan keeps
+            since, until = report.month_bounds(d.year, d.month)
+            eff = min(until, time.time())
+            up = monitor.uptime_stats(site_id, since, eff)
+            audit = db.latest_audit(site_id, before=until)
+            visitors = db.q1("SELECT COUNT(DISTINCT visitor) n FROM hits WHERE site_id=? AND ts>=? AND ts<?", (site_id, since, eff))["n"]
+            period = d.strftime("%Y-%m")
+            stored = storage.info(f"report/{site_id}-{period}.html")
+            last_day = dt.date.fromtimestamp(max(since, eff - 1)).day
+            out.append({
+                "period": period, "label": d.strftime("%B %Y"), "range": f"1\u2013{last_day} {d:%b %Y}",
+                "in_progress": (d.year, d.month) == (today.year, today.month),
+                "uptime": up["uptime"], "avg_ms": up["avg_ms"], "incidents": len(up["incidents"]),
+                "audit": audit["scores"].get("Overall") if audit else None, "visitors": visitors or None,
+                "generated": stored["ts"] if stored else None,
+                "auto": bool(db.last_alert(site_id, f"report:{period}")),
+            })
+        return jsonify(months=out, keep_months=keep, recipients=s.get("report_to", []))
+
+    @bp.post("/sites/<site_id>/reports/<period>/generate")
+    @need("member")
+    def generate_report(site_id, period):
+        """Make (or remake) one month's report now, replacing the stored copy."""
+        s = site_or_404(site_id)
+        try:
+            year, month = map(int, period.split("-"))
+            dt.date(year, month, 1)
+        except ValueError:
+            abort(404)
+        paths = report.generate(cfg, s, year, month, pdf=True)
+        return jsonify(ok=True, period=period, pdf="pdf" in paths)
+
     @bp.get("/sites/<site_id>/reports/<period>.<fmt>")
     def site_report_file(site_id, period, fmt):
         s = site_or_404(site_id)

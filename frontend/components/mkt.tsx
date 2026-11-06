@@ -6,8 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { Building2, ChevronDown, LayoutGrid, LogOut, Menu, Settings, Users, X } from "lucide-react";
 import { POWERED_BY } from "@/lib/brand";
 import { Logo } from "./logo";
-import { send } from "@/lib/api";
 import { homeFor, useMe } from "@/lib/me";
+import { useLogoutConfirm } from "./confirm-logout";
 
 export { Logo } from "./logo";
 
@@ -30,12 +30,12 @@ function MktAccount() {
     document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [open]);
+  const { ask: askLogout, dialog: logoutDialog } = useLogoutConfirm(async () => { await mutate(); });
   if (!user || !me) return null;
   const name = `${user.first_name} ${user.last_name}`.trim() || "Account";
   const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
   const home = homeFor(me);
   const row = "flex min-h-11 items-center gap-3 rounded-lg px-3 text-[15px] text-[#0F172A] hover:bg-[#FFF7ED]";
-  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate(); setOpen(false); }
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex min-h-11 items-center gap-2 rounded-xl px-1.5 hover:bg-[#FFF7ED]">
@@ -49,10 +49,11 @@ function MktAccount() {
           <div className="flex flex-col gap-0.5 pt-2">
             <Link role="menuitem" href={home} onClick={() => setOpen(false)} className={row}><LayoutGrid size={18} aria-hidden="true" className="text-[#C2410C]" />{home === "/overview" ? "Go to dashboard" : "Continue setup"}</Link>
             {home === "/overview" && <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={row}><Settings size={18} aria-hidden="true" className="text-[#C2410C]" />Settings</Link>}
-            <button role="menuitem" onClick={logout} className={`${row} w-full text-left !text-[#B3261E] hover:!bg-[#FEE2E2]`}><LogOut size={18} aria-hidden="true" />Log out</button>
+            <button role="menuitem" onClick={() => { setOpen(false); askLogout(); }} className={`${row} w-full text-left !text-[#B3261E] hover:!bg-[#FEE2E2]`}><LogOut size={18} aria-hidden="true" />Log out</button>
           </div>
         </div>
       )}
+      {logoutDialog}
     </div>
   );
 }
@@ -60,7 +61,9 @@ function MktAccount() {
 export function MktHeader() {
   const { user } = useMe();
   const path = usePathname();
-  const [open, setOpen] = useState(false);
+  const [openFor, setOpenFor] = useState<string | null>(null);
+  const open = openFor === path;          // the phone menu is opened on one page; moving to another page closes it
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) => setOpenFor((cur) => ((typeof v === "function" ? v(cur === path) : v) ? path : null));
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -70,12 +73,11 @@ export function MktHeader() {
     document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [menu]);
-  useEffect(() => { setOpen(false); }, [path]);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpenFor(null); };
     document.addEventListener("keydown", key);
     return () => { document.body.style.overflow = prev; document.removeEventListener("keydown", key); };
   }, [open]);

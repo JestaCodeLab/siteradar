@@ -3,51 +3,14 @@
 import { AddWebsiteProvider } from "./add-website";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Eye } from "lucide-react";
+import { useEffect, useState } from "react";
 import { send } from "@/lib/api";
 import { POWERED_BY } from "@/lib/brand";
 import { useMe } from "@/lib/me";
 import { PageLoader } from "./page-loader";
 import { Sidebar } from "./sidebar";
+import { SupportFrame } from "./support-session";
 import { Topbar } from "./topbar";
-
-function mmss(sec: number) {
-  const s = Math.max(0, Math.floor(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
-function SupportBanner({ until, reason, mode, workspace, owner }: { until: number; reason: string; mode: "view" | "edit"; workspace: string; owner: string }) {
-  const router = useRouter();
-  const { mutate } = useMe();
-  const ref = useRef<HTMLDivElement>(null);
-  const [now, setNow] = useState(0);
-  useEffect(() => { const tick = () => setNow(Date.now() / 1000); const t = setInterval(tick, 1000); const first = setTimeout(tick, 0); return () => { clearInterval(t); clearTimeout(first); }; }, []);
-  useEffect(() => { if (now && until - now <= 0) { mutate().then(() => router.replace("/admin")); } }, [now, until, mutate, router]);
-  // the sidebar and top bar sit below the banner, whatever height it wraps to
-  useEffect(() => {
-    const el = ref.current; if (!el) return;
-    const set = () => document.documentElement.style.setProperty("--support-h", `${el.offsetHeight}px`);
-    set(); const ro = new ResizeObserver(set); ro.observe(el);
-    return () => { ro.disconnect(); document.documentElement.style.removeProperty("--support-h"); };
-  }, []);
-  const full = mode === "edit";
-  async function exit() { await send("POST", "/api/admin/support/stop").catch(() => {}); await mutate(); router.replace("/admin"); }
-  async function toggleMode() { await send("POST", "/api/admin/support/mode", { mode: full ? "view" : "edit" }); await mutate(); }
-  return (
-    <div ref={ref} role="status" style={{ background: full ? "#8A5A00" : "#4A33B0" }} className="relative z-[60] flex flex-wrap items-center justify-between gap-x-5 gap-y-2.5 px-4 py-2.5 text-white lg:px-6">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5">
-        <span className="inline-flex items-center gap-2 text-sm font-semibold"><Eye size={18} aria-hidden="true" />Viewing {workspace} as {owner}</span>
-        <span className="rounded-full bg-white/[0.18] px-2.5 py-0.5 text-[13px] font-semibold">{full ? "Full access" : "View only"}</span>
-        <span className="text-[13px] opacity-90">Reason: {reason} · session ends in <span className="font-mono">{now ? mmss(until - now) : "…"}</span> · the customer is not notified</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <button onClick={toggleMode} className="min-h-11 rounded-lg border border-white/50 px-4 text-[13px] font-semibold hover:bg-white/10">{full ? "Back to view only" : "Switch to full access"}</button>
-        <button onClick={exit} className="min-h-11 rounded-lg bg-white px-[18px] text-[13px] font-semibold text-[#12151C]">Exit session</button>
-      </div>
-    </div>
-  );
-}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [menu, setMenu] = useState(false);
@@ -63,12 +26,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!me?.authenticated || !ws) return <PageLoader />;
   void mutate;
-  const owner = ws.owner_name ?? "the owner";
 
   return (
     <AddWebsiteProvider>
     <div className="min-h-screen">
-      {me.support && <SupportBanner {...me.support} workspace={ws.name} owner={owner} />}
+      <SupportFrame />
       <Sidebar open={menu} onClose={() => setMenu(false)} />
       <div className="flex min-h-screen flex-col lg:pl-64">
         {me.announcement && <p role="status" className="bg-[#EFEAFF] px-4 py-2.5 text-sm text-[#4A33B0] lg:px-6">{me.announcement}</p>}

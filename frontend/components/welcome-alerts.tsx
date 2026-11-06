@@ -31,16 +31,17 @@ function Row({ icon: Glyph, title, sub, locked, children }: {
 
 /** Shown once, the first time an owner or admin reaches the dashboard. Everything here can be changed later in Settings. */
 export function WelcomeAlerts() {
-  const { ws, isAdmin, isGhana, mutate } = useMe();
+  const { me, ws, isAdmin, isGhana, mutate } = useMe();
+  const asOwner = !me?.support;        // a support agent never answers the customer's first-visit questions
   const toast = useToast();
   const dialog = useRef<HTMLDialogElement>(null);
-  const { data } = useSWR<SettingsData>(ws && isAdmin && ws.onboarded && !ws.alerts_prompted ? "/api/settings" : null, fetcher);
+  const { data } = useSWR<SettingsData>(asOwner && ws && isAdmin && ws.onboarded && !ws.alerts_prompted ? "/api/settings" : null, fetcher);
   const [busy, setBusy] = useState(false);
   const [closed, setClosed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [sched, setSched] = useState<{ day: string; at: string } | null>(null);
-  const show = !!data && !closed && !!ws && isAdmin && ws.onboarded && !ws.alerts_prompted;
+  const show = !!data && !closed && asOwner && !!ws && isAdmin && ws.onboarded && !ws.alerts_prompted;
 
   useEffect(() => {
     const d = dialog.current;

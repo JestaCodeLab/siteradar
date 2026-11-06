@@ -2,7 +2,7 @@
 
 import { AddWebsiteButton, useAddWebsite } from "@/components/add-website";
 import Link from "next/link";
-import { CalendarClock, Check, Globe, ShieldCheck, Timer } from "lucide-react";
+import { CalendarClock, Check, Globe, Lock, ShieldCheck, Timer } from "lucide-react";
 import useSWR from "swr";
 import { SitesTable } from "@/components/sites-table";
 import { WelcomeAlerts } from "@/components/welcome-alerts";
@@ -30,8 +30,10 @@ export default function DashboardPage() {
       <WelcomeAlerts />
       <PageHeader title={`Welcome, ${user?.first_name ?? ""}`.trim().replace(/,$/, "")} subtitle={ws ? `Here is how ${ws.name}'s websites are doing.` : ""}
         actions={canWrite ? <AddWebsiteButton className={btn.primary} /> : (
-          <div className="flex flex-col items-end gap-1"><span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>
-            <span className="text-xs text-muted">{me?.support ? "Disabled in view-only mode" : "View-only access"}</span></div>)} />
+          <div className="flex flex-col items-end gap-1">{me?.support
+              ? <span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-[10px] border border-dashed border-[#A5B4FC] bg-[#EEF2FF] px-[18px] text-sm font-bold text-[#4338CA]"><Lock aria-hidden="true" size={16} />Add website</span>
+              : <span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>}
+            <span className={`text-xs ${me?.support ? "text-[#4338CA]" : "text-muted"}`}>{me?.support ? "Locked in view-only support mode" : "View-only access"}</span></div>)} />
 
       {steps.length > 0 && done < steps.length && (
         <section aria-label="Getting started" className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface px-6 py-[22px]">

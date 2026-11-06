@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR from "swr";
-import { Globe, History, StickyNote } from "lucide-react";
+import { Globe, History, StickyNote, Trash2 } from "lucide-react";
+import { EraseCustomerDialog } from "@/components/admin/erase-customer";
 import { Avatar, AdminCard, EmptyState, Pill, aBtn, aInput, money, shortDate, statusTone, whenAgo } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
@@ -39,6 +40,7 @@ export default function CustomerPage() {
   const [mode, setMode] = useState<"view" | "edit">("view");
   const setNote = useNoteToast();
   const [busy, setBusy] = useState(false);
+  const [erasing, setErasing] = useState(false);
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
@@ -198,6 +200,18 @@ export default function CustomerPage() {
               <span className="max-w-[120px] text-right text-xs leading-snug text-[#5B6472]">{fmtDateTime(a.ts)}</span></div>))}
         </AdminCard>
       </div>
+
+      <AdminCard label="Danger zone" className="flex flex-wrap items-center justify-between gap-4 !border-[#F3C5C0]">
+        <div className="min-w-0 flex-[1_1_320px]">
+          <h2 className="text-lg font-semibold text-[#B3261E]">Delete this customer</h2>
+          <p className="mt-1 text-sm leading-relaxed text-[#5B6472]">Permanently removes the workspace and everything it owns: websites and their history, subscriptions, invoices, files and the team&apos;s accounts. Payment records are kept for accounting.</p>
+        </div>
+        <button onClick={() => setErasing(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#B3261E] bg-white px-[18px] text-sm font-semibold text-[#B3261E] hover:bg-[#FBE7E5]"><Trash2 size={16} aria-hidden="true" />Delete customer</button>
+      </AdminCard>
+      {erasing && (
+        <EraseCustomerDialog id={id} name={c.name} sites={data.sites.length} people={data.team.members.length} onClose={() => setErasing(false)}
+          onDone={() => { setNote({ ok: true, text: `${c.name} was deleted.` }); router.push("/admin/customers"); }} />
+      )}
     </>
   );
 }

@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, CreditCard, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Building2, CreditCard, Headphones, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import useSWR from "swr";
-import { fetcher, send, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
+import { fetcher, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
 import { ThemeToggle } from "./theme";
 import { Icon } from "./ui";
+import { useLogoutConfirm } from "./confirm-logout";
+import { SupportPill } from "./support-session";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
   useEffect(() => {
@@ -156,16 +158,12 @@ function Profile() {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
-  const { user, ws, role, isAdmin, mutate } = useMe();
+  const { me, user, ws, role, isAdmin, mutate } = useMe();
   const name = user ? `${user.first_name} ${user.last_name}`.trim() : "Account";
   const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "A";
   const roleName = role ? role[0].toUpperCase() + role.slice(1) : "";
 
-  async function logout() {
-    await send("POST", "/api/auth/logout").catch(() => {});
-    await mutate();
-    router.replace("/login");
-  }
+  const { ask: askLogout, dialog: logoutDialog } = useLogoutConfirm(async () => { await mutate(); router.replace("/login"); });
 
   const item = "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm hover:bg-soft";
   const ico = "shrink-0 text-muted";
@@ -173,7 +171,8 @@ function Profile() {
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu"
         className="flex min-h-11 items-center gap-2 rounded-lg px-1.5 hover:bg-soft">
-        <span className="flex size-8 items-center justify-center rounded-full bg-nav text-xs font-semibold text-white">{initials}</span>
+        <span className="relative flex size-8 items-center justify-center rounded-full bg-nav text-xs font-semibold text-white">{initials}
+          {me?.support && <span title="Signed in through support" className="absolute -bottom-0.5 -right-0.5 flex size-[18px] items-center justify-center rounded-full border-2 border-surface bg-[#4F46E5]"><Headphones aria-hidden="true" size={10} className="text-white" /></span>}</span>
         <span className="hidden max-w-36 truncate text-sm font-medium sm:block">{name}</span>
         <Icon.chevronDown className="hidden text-muted sm:block" />
       </button>
@@ -191,9 +190,10 @@ function Profile() {
             <Link role="menuitem" href="/admin" onClick={close} className="flex min-h-11 items-center gap-3 rounded-lg bg-[#f5f1ff] px-3 text-sm font-semibold text-[#4a33b0]">
               <ShieldCheck aria-hidden="true" size={18} />Super admin<span className="ml-auto text-[11px] uppercase tracking-[0.06em]">Staff only</span></Link>
           )}
-          <button role="menuitem" onClick={logout} className={`${item} w-full text-left text-bad`}><LogOut aria-hidden="true" size={18} />Log out</button>
+          <button role="menuitem" onClick={() => { close(); askLogout(); }} className={`${item} w-full text-left text-bad`}><LogOut aria-hidden="true" size={18} />Log out</button>
         </div>
       )}
+      {logoutDialog}
     </div>
   );
 }
@@ -214,6 +214,7 @@ function PlanPill() {
 
 // ---- bar ----------------------------------------------------------------------
 export function Topbar({ onMenu }: { onMenu: () => void }) {
+  const { me } = useMe();
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
@@ -226,16 +227,18 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
 
   return (
     <>
-      <header className="sticky top-[var(--support-h,0px)] z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
+      <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
         <button onClick={onMenu} aria-label="Open menu" className={`${iconBtn} lg:hidden`}><Icon.menu /></button>
-        <div className="flex-1"><PlanPill /></div>
+        <div className="flex min-w-0 flex-1 items-center gap-2"><span className="hidden sm:block"><SupportPill /></span><PlanPill /></div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={iconBtn}><Icon.search /></button>
+          <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={`${iconBtn} max-sm:hidden`}><Icon.search /></button>
           <Notifications />
           <Profile />
         </div>
       </header>
+      {/* phones: the support session has no room in the bar, so it gets a strip of its own right under it */}
+      {me?.support && <div className="sticky top-14 z-20 flex items-center border-b border-line bg-surface px-3 py-1.5 sm:hidden"><SupportPill /></div>}
       {searching && <SearchDialog onClose={() => setSearching(false)} />}
     </>
   );

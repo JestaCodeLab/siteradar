@@ -81,7 +81,7 @@ def blueprint(cfg):
                           "last_login": owner["last_login"]} if owner else None}
 
     def all_workspaces():
-        return [accounts._ws(r) for r in db.q("SELECT * FROM workspaces ORDER BY created DESC")]
+        return [accounts._ws(r) for r in db.q("SELECT * FROM workspaces WHERE name != '[deleted]' ORDER BY created DESC")]
 
     # ---- attention and summary ---------------------------------------------------
     def health_services():
@@ -140,14 +140,14 @@ def blueprint(cfg):
             if s["tone"] != "ok" and s["status"] != "Not configured":
                 items.append({"tag": "SMS" if "SMS" in s["name"] else "System", "tone": "warn" if s["tone"] == "warn" else "bad",
                               "title": f"{s['name']}: {s['status'].lower()}", "sub": s["detail"], "href": "/admin/health"})
-        susp = db.q1("SELECT COUNT(*) n FROM workspaces WHERE suspended=1")["n"]
+        susp = db.q1("SELECT COUNT(*) n FROM workspaces WHERE suspended=1 AND name != '[deleted]'")["n"]
         if susp:
             items.append({"tag": "Support", "tone": "muted", "title": f"{susp} suspended workspace{'s' if susp != 1 else ''}", "sub": "Check whether they are waiting on you.", "href": "/admin/customers?tab=suspended"})
         return items
 
     @bp.get("/summary")
     def summary():
-        n = db.q1("SELECT COUNT(*) n FROM workspaces")["n"]
+        n = db.q1("SELECT COUNT(*) n FROM workspaces WHERE name != '[deleted]'")["n"]
         failed = db.q1("SELECT COUNT(*) n FROM payments WHERE status IN ('failed','abandoned') AND created>?", (time.time() - 14 * 86400,))["n"]
         local = "localhost" in str(cfg.get("public_url", ""))
         return jsonify(customers=n, failed_payments=failed, attention=len(attention()), env="Local" if local else "Production")
@@ -157,7 +157,7 @@ def blueprint(cfg):
         """What needs attention now, plus what happened in the last week (signups, failed payments, messages)."""
         week = time.time() - 7 * 86400
         events = []
-        for w in db.q("SELECT id, name, plan_id, created FROM workspaces WHERE created>? ORDER BY created DESC LIMIT 10", (week,)):
+        for w in db.q("SELECT id, name, plan_id, created FROM workspaces WHERE created>? AND name != '[deleted]' ORDER BY created DESC LIMIT 10", (week,)):
             events.append({"ts": w["created"], "tag": "Signup", "tone": "ok", "title": f"{w['name']} signed up", "sub": f"{w['plan_id'].title()} plan", "href": f"/admin/customers/{w['id']}"})
         for p in db.q("""SELECT p.created, p.amount, p.workspace_id, w.name FROM payments p JOIN workspaces w ON w.id=p.workspace_id
                          WHERE p.status IN ('failed','abandoned') AND p.created>? ORDER BY p.created DESC LIMIT 10""", (week,)):
@@ -175,7 +175,7 @@ def blueprint(cfg):
             return jsonify(results=[])
         like = f"%{q}%"
         rows = db.q("""SELECT DISTINCT w.* FROM workspaces w LEFT JOIN users u ON u.id=w.owner_id LEFT JOIN sites s ON s.workspace_id=w.id
-                       WHERE lower(w.name) LIKE ? OR lower(u.email) LIKE ? OR lower(s.url) LIKE ? OR lower(s.name) LIKE ? LIMIT 8""", (like, like, like, like))
+                       WHERE w.name != '[deleted]' AND (lower(w.name) LIKE ? OR lower(u.email) LIKE ? OR lower(s.url) LIKE ? OR lower(s.name) LIKE ?) LIMIT 8""", (like, like, like, like))
         out = []
         for r in rows:
             w = accounts._ws(r); o = owner_of(w)
@@ -205,7 +205,7 @@ def blueprint(cfg):
                     "pct": round(100 * by.get(p["id"], {}).get("count", 0) / total, 1), "color": PLAN_COLORS.get(p["id"], "#9DB4F5")} for p in cat.values()]
         days = max(1, int((now - start) / 86400) + 1)
         series = {r["d"]: r["n"] for r in db.q("""SELECT to_char(to_timestamp(created) AT TIME ZONE ?, 'YYYY-MM-DD') d, COUNT(*) n FROM workspaces
-                                                   WHERE created>=? GROUP BY d""", (db.TZ, start))}
+                                                   WHERE created>=? AND name != '[deleted]' GROUP BY d""", (db.TZ, start))}
         days_list = [(dt.date.fromtimestamp(start) + dt.timedelta(days=i)) for i in range(days) if dt.date.fromtimestamp(start) + dt.timedelta(days=i) <= today]
         signups = [{"d": d.isoformat(), "n": series.get(d.isoformat(), 0)} for d in days_list]
         failed = db.q("SELECT amount, currency FROM payments WHERE status IN ('failed','abandoned') AND created>?", (start,))
@@ -348,6 +348,25 @@ def blueprint(cfg):
         audit("customer.update", ws_id, "; ".join(changes))
         return customer(ws_id)
 
+    @bp.post("/customers/<int:ws_id>/delete")
+    def customer_delete(ws_id):
+        """Delete a customer and everything it owns, for good. The workspace name must be typed back, and a reason is kept in the audit trail."""
+        if session.get("imp"):
+            abort(403, "Not available in a support session.")
+        w, d = ws_or_404(ws_id), body()
+        if (d.get("confirm") or "").strip() != w["name"]:
+            raise ValueError("Type the workspace name exactly to confirm.")
+        reason = (d.get("reason") or "").strip()
+        if len(reason) < 5:
+            raise ValueError("Give a reason, so the audit trail shows why.")
+        if db.q1("SELECT 1 FROM memberships WHERE workspace_id=? AND user_id=?", (ws_id, g.user["id"])):
+            raise ValueError("You are a member of this workspace, so you cannot delete it from here.")
+        name = w["name"]
+        removed = accounts.erase_workspace(cfg, ws_id)
+        audit("customer.delete", ws_id, f"Deleted {name}: {removed['websites']} websites, {removed['subscriptions']} subscriptions, {removed['invoices']} invoices, "
+                                         f"{removed['files']} files, {removed['people']} people. Reason: {reason}")
+        return jsonify(ok=True, removed=removed)
+
     @bp.post("/customers/<int:ws_id>/notes")
     def add_note(ws_id):
         ws_or_404(ws_id)
@@ -410,7 +429,7 @@ def blueprint(cfg):
 
     # ---- plans and prices ----------------------------------------------------------------------
     def plans_payload():
-        counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces GROUP BY plan_id")}
+        counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces WHERE name != '[deleted]' GROUP BY plan_id")}
         wm = plans.watermark()
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
                 "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES), "sms_bundles": billing.sms_bundles()}
@@ -582,7 +601,7 @@ def blueprint(cfg):
                 add(u["created"], "accounts", "ok", f"{u['first_name']} {u['last_name']} created an account".strip(), u["email"])
             for u in db.q("SELECT email, first_name, last_name, last_login FROM users WHERE last_login IS NOT NULL AND last_login<? ORDER BY last_login DESC LIMIT ?", (before, limit)):
                 add(u["last_login"], "accounts", "muted", f"{u['first_name']} {u['last_name']} logged in".strip(), u["email"])
-            for w in db.q("SELECT id, name, created FROM workspaces WHERE created<? ORDER BY created DESC LIMIT ?", (before, limit)):
+            for w in db.q("SELECT id, name, created FROM workspaces WHERE created<? AND name != '[deleted]' ORDER BY created DESC LIMIT ?", (before, limit)):
                 add(w["created"], "accounts", "ok", f"Workspace {w['name']} was created", "", w["id"], w["name"])
         if want("billing"):
             for p in db.q("""SELECT p.*, w.name wname FROM payments p JOIN workspaces w ON w.id=p.workspace_id WHERE COALESCE(p.paid,p.created)<? ORDER BY COALESCE(p.paid,p.created) DESC LIMIT ?""", (before, limit)):

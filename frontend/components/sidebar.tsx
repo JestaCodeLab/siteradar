@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Clock, Globe, LayoutGrid, Receipt, Settings } from "lucide-react";
+import { Check, ChevronsUpDown, Clock, FileText, Globe, LayoutGrid, Receipt, Settings } from "lucide-react";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { Logo } from "./logo";
@@ -43,10 +43,10 @@ function WorkspaceSwitcher({ onClose }: { onClose: () => void }) {
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open} aria-label="Switch workspace"
-        className="flex min-h-14 w-full items-center gap-2.5 rounded-[10px] border border-[#222b3d] bg-[#151c2c] px-2.5 py-2 text-left">
+        className={`flex min-h-14 w-full items-center gap-2.5 rounded-[10px] border px-2.5 py-2 text-left ${me?.support ? (me.support.mode === "edit" ? "border-[#B45309] bg-[#B45309]/15" : "border-[#4F46E5] bg-[#4F46E5]/15") : "border-[#222b3d] bg-[#151c2c]"}`}>
         {ws.logo_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={ws.logo_url} alt="" className="size-8 shrink-0 rounded-lg bg-white object-contain" />
           : <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#26324a] text-xs font-semibold text-white">{initials}</span>}
-        <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-white">{ws.name}</span><span className="block text-xs text-[#fdba74]">{ws.plan.name} plan</span></span>
+        <span className="min-w-0 flex-1"><span className="block truncate font-semibold text-white">{ws.name}</span><span className={`block text-xs ${me?.support ? "text-[#C7D2FE]" : "text-[#fdba74]"}`}>{me?.support ? "Customer · " : ""}{ws.plan.name} plan</span></span>
         <ChevronsUpDown size={16} aria-hidden="true" />
       </button>
       {open && (
@@ -74,7 +74,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
     <>
       {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside aria-label="Sidebar"
-        className={`fixed bottom-0 left-0 top-[var(--support-h,0px)] z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+        className={`fixed bottom-0 left-0 top-0 z-50 flex w-64 flex-col gap-5 overflow-y-auto bg-nav px-3.5 py-5 text-sm text-nav-text transition-transform duration-200 lg:z-30 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <Link href="/overview" onClick={onClose} className="flex items-center px-1">
           <Logo dark height={46} />
         </Link>
@@ -84,6 +84,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
         <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
           <Item href="/overview" label="Overview" Icon={LayoutGrid} current={path === "/overview"} strong onClose={onClose} />
           <Item href="/websites" label="Websites" Icon={Globe} badge={ws?.usage.sites} current={is("/websites")} strong onClose={onClose} />
+          <Item href="/reports" label="Reports" Icon={FileText} current={is("/reports")} strong onClose={onClose} />
           <Item href="/subscriptions" label="Subscriptions" Icon={Receipt} current={is("/subscriptions")} strong onClose={onClose} />
         </nav>
 

@@ -88,6 +88,11 @@ export interface AuditResponse {
   running: boolean; categories: string[];
 }
 
+export interface ReportHistoryMonth {
+  period: string; label: string; range: string; in_progress: boolean; uptime: number | null; avg_ms: number | null; incidents: number;
+  audit: number | null; visitors: number | null; generated: number | null; auto: boolean;
+}
+export interface ReportHistory { months: ReportHistoryMonth[]; keep_months: number; recipients: string[] }
 export interface ReportMonths { months: { period: string; label: string; in_progress: boolean }[]; recipients: string[] }
 
 export type SubStatus = "active" | "soon" | "expired" | "cancelled";

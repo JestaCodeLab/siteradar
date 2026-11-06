@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Logo } from "@/components/mkt";
-import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
+import { useLogoutConfirm } from "@/components/confirm-logout";
 
 const steps = [["company", "Company"], ["plan", "Plan"], ["done", "Done"]];
 
@@ -23,7 +23,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     else if (!ws && path.endsWith("/plan")) router.replace("/onboarding/company");                                        // no company yet: no plan step
   }, [me, ws, isLoading, path, router]);
 
-  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate(); router.replace("/login"); }
+  const { ask: askLogout, dialog: logoutDialog } = useLogoutConfirm(async () => { await mutate(); router.replace("/login"); });
 
   return (
     <div className="min-h-screen bg-bg">
@@ -39,10 +39,11 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
               </li>
             ))}
           </ol>
-          <button onClick={logout} className="min-h-11 text-sm font-semibold text-ink-2 hover:text-ink">Log out</button>
+          <button onClick={askLogout} className="min-h-11 text-sm font-semibold text-ink-2 hover:text-ink">Log out</button>
         </div>
       </header>
       <main className="mx-auto max-w-[1100px] px-5 py-10">{children}</main>
+      {logoutDialog}
     </div>
   );
 }

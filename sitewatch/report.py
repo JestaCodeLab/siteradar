@@ -207,6 +207,8 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
     html = render(ctx)
     key = f"report/{site['id']}-{year}-{month:02d}"
     paths = publish(key, html, pdf or email, site.get("workspace_id"))
+    if email:        # the scheduler's monthly run: remembered, so the Reports page can tell automatic reports from ones made by hand
+        db.log_alert(site["id"], f"report:{year}-{month:02d}", "Monthly report created automatically")
     to = site.get("report_to") or (accounts.workspace(site.get("workspace_id")) or {}).get("alert_emails") or []
     to = accounts.filter_emails(to, "report")
     if email and to:

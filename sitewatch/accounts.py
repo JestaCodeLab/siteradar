@@ -590,17 +590,84 @@ def delete_workspace(ws_id):
     db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws_id,))
 
 
+SITE_DATA_TABLES = ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots")
+
+
+def _remove_files(pattern):
+    """Delete every stored file whose key matches the regular expression. Anchored patterns only: a loose one could reach another customer's files."""
+    n = 0
+    for r in db.q("SELECT key FROM assets WHERE key ~ ?", (pattern,)):
+        storage.remove(r["key"])
+        n += 1
+    return n
+
+
+def _wipe_workspace(ws_id):
+    """Remove everything a workspace owns: websites and their history, subscriptions, invoices, stored files, the team and invitations.
+    Payment records and the admin audit trail stay (accounting). Returns what was removed, for the audit trail."""
+    site_ids = [r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (ws_id,))]
+    out = {"websites": len(site_ids), "files": 0}
+    if site_ids:
+        for table in SITE_DATA_TABLES:
+            db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (site_ids,))
+        for sid in site_ids:
+            e = re.escape(sid)
+            out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+    out["files"] += _remove_files(rf"^report/subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+    invoices = db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (ws_id,))
+    for r in invoices:
+        storage.remove("invoice/" + r["filename"])
+    out["invoices"] = len(invoices)
+    out["files"] += len(invoices)
+    db.exec("DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE workspace_id=?)", (ws_id,))
+    out["subscriptions"] = db.q1("SELECT COUNT(*) n FROM subscriptions WHERE workspace_id=?", (ws_id,))["n"]
+    members = [r["user_id"] for r in db.q("SELECT user_id FROM memberships WHERE workspace_id=?", (ws_id,))]
+    for t in ("subscriptions", "sites", "memberships", "invitations", "sms_log"):
+        db.exec(f"DELETE FROM {t} WHERE workspace_id=?", (ws_id,))
+    db.exec("DELETE FROM kv WHERE key LIKE ?", (f"renewal-notice:{ws_id}:%",))
+    storage.remove(f"logo/{ws_id}")
+    out["people"] = _remove_orphaned_users(members)
+    return out
+
+
+def _remove_orphaned_users(user_ids):
+    """Delete the accounts of people who no longer belong to any workspace. Super admins and people who are in another workspace stay."""
+    n = 0
+    for uid in user_ids:
+        u = user_by_id(uid)
+        if not u or u["is_super"] or db.q1("SELECT 1 FROM memberships WHERE user_id=?", (uid,)):
+            continue
+        for t in ("email_codes", "login_tickets"):
+            db.exec(f"DELETE FROM {t} WHERE user_id=?", (uid,))
+        db.exec("DELETE FROM users WHERE id=?", (uid,))
+        n += 1
+    return n
+
+
+def _tombstone(ws_id):
+    """What is left of a removed workspace: an empty shell, so payment records and the audit trail still point at something."""
+    db.exec("""UPDATE workspaces SET name='[deleted]', owner_id=NULL, logo_url=NULL, website='', phone='', address='', alert_emails='[]', alert_phones='[]',
+               alert_webhooks='[]', paystack_auth=NULL, paystack_card=NULL, paystack_email=NULL, suspended=1, plan_status='lapsed',
+               deleted_at=COALESCE(deleted_at, ?) WHERE id=?""", (time.time(), ws_id))
+
+
+def erase_workspace(cfg, ws_id):
+    """Super admin: delete a customer now, with all its data. Returns what was removed."""
+    from . import sites
+    ws = workspace(ws_id)
+    if not ws or ws["name"] == "[deleted]":
+        raise ValueError("This customer has already been deleted.")
+    if db.q1("SELECT 1 FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=? AND u.is_super=1", (ws_id,)):
+        raise ValueError("A super admin belongs to this workspace, so it cannot be deleted from here.")
+    out = _wipe_workspace(ws_id)
+    db.exec("DELETE FROM admin_audit WHERE workspace_id=? AND action='note'", (ws_id,))       # internal notes about the customer
+    _tombstone(ws_id)
+    sites.refresh(cfg)
+    return out
+
+
 def purge_deleted():
     """Remove everything belonging to workspaces deleted more than DELETE_DAYS ago (payment records stay for accounting)."""
     for w in db.q("SELECT id FROM workspaces WHERE deleted_at IS NOT NULL AND deleted_at<? AND name != '[deleted]'", (time.time() - DELETE_DAYS * 86400,)):
-        ids = [r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (w["id"],))]
-        if ids:
-            for table in ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots"):
-                db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (ids,))
-        for r in db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (w["id"],)):
-            storage.remove("invoice/" + r["filename"])
-        db.exec("DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE workspace_id=?)", (w["id"],))
-        for t in ("subscriptions", "sites", "memberships", "invitations"):
-            db.exec(f"DELETE FROM {t} WHERE workspace_id=?", (w["id"],))
-        storage.remove(f"logo/{w['id']}")
-        db.exec("UPDATE workspaces SET name='[deleted]', owner_id=NULL, logo_url=NULL, alert_emails='[]', alert_phones='[]', alert_webhooks='[]' WHERE id=?", (w["id"],))
+        _wipe_workspace(w["id"])
+        _tombstone(w["id"])

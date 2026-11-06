@@ -6,9 +6,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, ChevronDown, LogOut, Menu, Search, Undo2 } from "lucide-react";
 import useSWR, { mutate } from "swr";
 import { EmptyState, initials, tones, type Tone } from "./ui";
-import { fetcher, send, type User } from "@/lib/api";
+import { fetcher, type User } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { ThemeToggle } from "../theme";
+import { useLogoutConfirm } from "../confirm-logout";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
   useEffect(() => {
@@ -165,7 +166,7 @@ export function AdminTopbar({ user, env, onMenu }: { user: User; env: string; on
     const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearching(true); } };
     document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey);
   }, []);
-  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate("/api/auth/me"); router.replace("/login"); }
+  const { ask: askLogout, dialog: logoutDialog } = useLogoutConfirm(async () => { await mutate("/api/auth/me"); router.replace("/login"); });
   return (
     <>
       <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 border-b border-[#E2E5EA] bg-white px-3 py-1.5 lg:px-6">
@@ -177,10 +178,11 @@ export function AdminTopbar({ user, env, onMenu }: { user: User; env: string; on
           <ThemeToggle />
           <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={iconBtn}><Search size={20} aria-hidden="true" /></button>
           <Notifications />
-          <Profile user={user} onLogout={logout} />
+          <Profile user={user} onLogout={askLogout} />
         </div>
       </header>
       {searching && <SearchDialog onClose={() => setSearching(false)} />}
+      {logoutDialog}
     </>
   );
 }

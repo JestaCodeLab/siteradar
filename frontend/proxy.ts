@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 // Pages that need a signed-in person. This only checks that a session cookie exists: the Flask API validates it on
 // every request, and the app sends people to the right place (login, onboarding) from /api/auth/me.
-const PRIVATE = ["/overview", "/websites", "/subscriptions", "/settings", "/activity", "/team", "/billing", "/onboarding", "/admin"];
+const PRIVATE = ["/overview", "/websites", "/reports", "/subscriptions", "/settings", "/activity", "/team", "/billing", "/onboarding", "/admin"];
 
 /** Requests to the API carry the visitor's real address and a shared secret, so the API can rate-limit the right person. Only this
  * proxy can send them: anything a visitor puts in those headers is thrown away first. Set the same PROXY_SECRET here and on the API. */

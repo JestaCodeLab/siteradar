@@ -7,7 +7,7 @@ import { Moon, Sun } from "lucide-react";
 const KEY = "sitewatch.theme";
 const EVENT = "sitewatch-theme";
 /** Pages that follow the theme. The marketing site and sign-in pages stay light. */
-export const THEMED = /^\/(overview|websites|subscriptions|settings|activity|billing|team|admin)(\/|$)/;
+export const THEMED = /^\/(overview|websites|reports|subscriptions|settings|activity|billing|team|admin)(\/|$)/;
 
 /** Run before the first paint (see the layout), so a dark page never flashes white. */
 export const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem('${KEY}');var d=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
