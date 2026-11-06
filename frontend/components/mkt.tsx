@@ -131,7 +131,7 @@ export function MktFooter() {
           <div className="flex flex-wrap gap-16">
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
               <Link href="/solutions/agencies" className={col}>For agencies</Link><Link href="/solutions/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
-            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link></div>
+            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link><Link href="/terms-of-service" className={col}>Terms of Service</Link><Link href="/privacy" className={col}>Privacy Policy</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>
         </div>

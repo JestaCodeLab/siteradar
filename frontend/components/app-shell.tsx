@@ -8,7 +8,7 @@ import { Eye } from "lucide-react";
 import { send } from "@/lib/api";
 import { POWERED_BY } from "@/lib/brand";
 import { useMe } from "@/lib/me";
-import { Skeleton } from "./ui";
+import { PageLoader } from "./page-loader";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
@@ -61,7 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     else if (!ws.onboarded && !me.support) router.replace("/onboarding/company");
   }, [me, ws, isLoading, router]);
 
-  if (!me?.authenticated || !ws) return <div className="p-8"><Skeleton className="h-10 w-64" /></div>;
+  if (!me?.authenticated || !ws) return <PageLoader />;
   void mutate;
   const owner = ws.owner_name ?? "the owner";
 

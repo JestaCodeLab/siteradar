@@ -47,7 +47,7 @@ function Form() {
       {inGhana && (<div className="flex flex-col gap-1.5"><label htmlFor="phone" className={authLabel}>Phone</label><input id="phone" name="phone" type="tel" autoComplete="tel" required placeholder="+233 20 000 0000" className={authInput} /></div>)}
       <div className="flex flex-col gap-1.5"><label htmlFor="password" className={authLabel}>Password</label><input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={authInput} /></div>
       <label className="flex cursor-pointer items-start gap-2.5 text-sm text-[#334155]"><input type="checkbox" required className="mt-px size-[18px] flex-none accent-[#F97316]" />
-        <span>I agree to the <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Terms of Service</Link> and <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Privacy Policy</Link>.</span></label>
+        <span>I agree to the <Link href="/terms-of-service" target="_blank" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Privacy Policy</Link>.</span></label>
       <FormError message={error} />
       <button type="submit" disabled={busy} className={authButton}>{busy ? "Creating account…" : "Create account"}</button>
     </form>

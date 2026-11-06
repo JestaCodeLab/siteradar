@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { PageLoader } from "@/components/page-loader";
 import { homeFor, useMe } from "@/lib/me";
 
 /** Pages that stay open to signed-in people: the Google return page and invitation links. */
@@ -22,6 +23,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     if (!open && signedIn && me) router.replace(homeFor(me));
   }, [open, signedIn, me, router]);
 
-  if (!open && (isLoading || signedIn)) return <main className="min-h-screen bg-[#FBF8F4]" aria-busy="true" />;
+  if (!open && (isLoading || signedIn)) return <PageLoader />;
   return children;
 }

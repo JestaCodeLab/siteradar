@@ -269,3 +269,20 @@ html.dark .text-\[\#B3261E\] {
 /* Tailwind v4 no longer sets a pointer on clickable things */
 button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, select, label:has(input[type="radio"]), label:has(input[type="checkbox"]), label:has(input[type="file"]), input[type="checkbox"], input[type="radio"] { cursor: pointer; }
 button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
+
+/* ---- page loader (components/page-loader.tsx) -------------------------------------------- */
+.sr-loader { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; background: #FBF8F4; transition: opacity .4s ease, visibility .4s ease; }
+.sr-loader--full { position: fixed; inset: 0; z-index: 9999; }
+.sr-loader--fill { min-height: 60vh; flex: 1; background: transparent; }
+.sr-loader--dark, html.dark .sr-loader--full { background: #0F172A; }
+.sr-loader.is-done { opacity: 0; visibility: hidden; }
+.sr-loader__label { font: 600 14px/1 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #475569; }
+.sr-loader--dark .sr-loader__label, html.dark .sr-loader__label { color: #CBD5E1; }
+.sr-loader svg { overflow: visible; }
+@keyframes sr-sweep { to { transform: rotate(360deg); } }
+@keyframes sr-ping { 0% { transform: scale(.25); opacity: .7; } 100% { transform: scale(1.2); opacity: 0; } }
+@keyframes sr-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+.sr-needle { transform-origin: 50px 50px; transform-box: view-box; animation: sr-sweep 1.6s linear infinite; }
+.sr-ping { transform-origin: 50px 50px; transform-box: view-box; animation: sr-ping 1.6s ease-out infinite; }
+.sr-inner { animation: sr-pulse 1.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sr-needle { animation-duration: 4s; } .sr-ping, .sr-inner { animation: none; } }

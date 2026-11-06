@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Activity, Clock, CreditCard, LayoutGrid, Star, Users } from "lucide-react";
 import useSWR from "swr";
-import { Skeleton } from "@/components/ui";
+import { PageLoader } from "@/components/page-loader";
 import { AdminTopbar } from "@/components/admin/topbar";
 import { Logo } from "@/components/logo";
 import { POWERED_BY } from "@/lib/brand";
@@ -34,7 +34,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     else if (!me.user?.is_super) router.replace("/overview");
   }, [me, isLoading, router]);
 
-  if (!user?.is_super) return <div className="p-8"><Skeleton className="h-10 w-64" /></div>;
+  if (!user?.is_super) return <PageLoader />;
   const is = (h: string) => (h === "/admin" ? path === h : path === h || path.startsWith(h + "/"));
 
   return (
