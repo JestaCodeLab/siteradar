@@ -27,7 +27,7 @@ export function MktHeader() {
     document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
     return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
   }, [menu]);
-  const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] ${path === href ? "bg-[#FFEDD5] font-semibold text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
+  const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${path === href ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
   const inSolutions = path.startsWith("/solutions");
 
   return (
@@ -38,7 +38,7 @@ export function MktHeader() {
           <Link href="/" className={link("/")}>Home</Link>
           <div ref={ref} className="relative">
             <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="true"
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-[15px] ${inSolutions ? "bg-[#FFEDD5] font-semibold text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`}>Solutions<ChevronDown size={16} aria-hidden="true" className={menu ? "rotate-180" : ""} /></button>
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${inSolutions ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`}>Solutions<ChevronDown size={16} aria-hidden="true" className={menu ? "rotate-180" : ""} /></button>
             {menu && (
               <div className="absolute left-0 top-[calc(100%+8px)] z-30 flex w-[360px] flex-col gap-1 rounded-[14px] border border-[#EFE4D8] bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
                 {solutions.map(({ href, label, Icon, text }) => (
@@ -60,7 +60,7 @@ export function MktHeader() {
       {open && (
         <div className="flex flex-col gap-1 border-t border-[#EFE4D8] px-6 py-3 md:hidden">
           {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
-            <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-medium text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
+            <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-normal text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
           <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
           <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started free</Link>
         </div>
