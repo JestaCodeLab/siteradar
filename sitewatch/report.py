@@ -3,11 +3,13 @@ import calendar
 import datetime as dt
 import logging
 import os
+import shutil
+import tempfile
 import time
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import accounts, alerts, analytics, db, health as health_mod, monitor, plans
+from . import accounts, alerts, analytics, db, health as health_mod, monitor, plans, storage
 from .charts import bar_chart, line_chart, uptime_strip
 
 log = logging.getLogger("sitewatch.report")
@@ -203,28 +205,43 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
         year, month = previous_month(today.year, today.month)
     ctx = build(cfg, site, year, month)
     html = render(ctx)
-    out_dir = os.path.join(cfg["data_dir"], "reports")
-    os.makedirs(out_dir, exist_ok=True)
-    base = os.path.join(out_dir, f"{site['id']}-{year}-{month:02d}")
-    with open(base + ".html", "w") as f:
-        f.write(html)
-    paths = {"html": base + ".html"}
-    if pdf or email:
-        try:
-            paths["pdf"] = to_pdf(base + ".html", base + ".pdf")
-        except Exception as e:
-            log.warning("PDF export unavailable (%s); sending HTML only.", e)
+    key = f"report/{site['id']}-{year}-{month:02d}"
+    paths = publish(key, html, pdf or email, site.get("workspace_id"))
     to = site.get("report_to") or (accounts.workspace(site.get("workspace_id")) or {}).get("alert_emails") or []
     to = accounts.filter_emails(to, "report")
     if email and to:
         attach = []
         if paths.get("pdf"):
-            attach.append((os.path.basename(paths["pdf"]), open(paths["pdf"], "rb").read(), "application/pdf"))
+            attach.append((os.path.basename(paths["pdf"]), paths["pdf_bytes"], "application/pdf"))
         summary = (f"Website report for {site['name']} – {ctx['period']}\n\n"
                    f"Uptime: {ctx['up']['uptime']:.2f}%\n" if ctx['up']['uptime'] is not None else "")
         alerts.send_email(cfg, to, f"Website report – {site['name']} – {ctx['period']}",
                           summary + "\nThe full report is attached.", html=html, attachments=attach)
     return paths
+
+
+def publish(key, html, pdf=False, workspace_id=None):
+    """Save a rendered report to file storage (Cloudinary when set up) as `key`.html and, when asked, `key`.pdf.
+    Chromium needs a real file to print, so the PDF is made in a throwaway folder that is removed afterwards.
+    Returns {"html": key, "pdf": key, "pdf_bytes": bytes}; the pdf entries are left out when it could not be made."""
+    out = {"html": key + ".html"}
+    storage.put(out["html"], html.encode("utf-8"), "text/html", workspace_id=workspace_id)
+    if pdf:
+        tmp = tempfile.mkdtemp(prefix="siteradar-report-")
+        try:
+            src = os.path.join(tmp, "report.html")
+            with open(src, "w", encoding="utf-8") as f:
+                f.write(html)
+            to_pdf(src, os.path.join(tmp, "report.pdf"))
+            with open(os.path.join(tmp, "report.pdf"), "rb") as f:
+                data = f.read()
+            storage.put(key + ".pdf", data, "application/pdf", workspace_id=workspace_id)
+            out.update(pdf=key + ".pdf", pdf_bytes=data)
+        except Exception as e:
+            log.warning("PDF export unavailable (%s); sending HTML only.", e)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+    return out
 
 
 def to_pdf(html_path, pdf_path):

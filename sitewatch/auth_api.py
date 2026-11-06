@@ -293,7 +293,7 @@ def blueprint(cfg):
         mime = next((m for sig, m in LOGO_TYPES.items() if data.startswith(sig)), None)
         if not mime:
             raise ValueError("Use a PNG, JPG or WebP image.")
-        storage.put(f"logo/{ws_id}", data, mime)
+        storage.put(f"logo/{ws_id}", data, mime, workspace_id=ws_id)
         url = f"{cfg['public_url'].rstrip('/')}/api/logos/{ws_id}?v={int(time.time())}"
         db.exec("UPDATE workspaces SET logo_url=?, logo_name=?, logo_size=? WHERE id=?", (url, (f.filename or "logo")[:80], len(data), ws_id))
         return url

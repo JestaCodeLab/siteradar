@@ -7,6 +7,7 @@ Every stored file gets a row in `assets` so the web service and the worker (sepa
 import hashlib
 import logging
 import os
+import re
 import time
 from urllib.parse import urlparse
 
@@ -47,17 +48,30 @@ def _local_path(key):
     return p
 
 
-def _public_id(key):
-    return "sitewatch/" + key
+def _folder(workspace_id):
+    """'sitewatch/acme-ltd-12' for a workspace: its name as typed at signup, plus the id so two companies never share a folder."""
+    w = db.q1("SELECT name FROM workspaces WHERE id=?", (workspace_id,)) if workspace_id else None
+    if not w:
+        return "sitewatch"
+    slug = re.sub(r"[^a-z0-9]+", "-", (w["name"] or "").lower()).strip("-")[:40]
+    return f"sitewatch/{slug + '-' if slug else ''}{workspace_id}"
 
 
-def put(key, data, mime="application/octet-stream", public=False):
-    """Store bytes under `key` (like 'invoice/abc.pdf'). Returns a URL for public files, else None."""
+def _parts(row, key):
+    """(kind, delivery type, public id) for a stored Cloudinary file. Files saved before folders existed have no 4th part."""
+    _, kind, typ, *pid = row["ref"].split(":", 3)
+    return kind, typ, (pid[0] if pid else "sitewatch/" + key)
+
+
+def put(key, data, mime="application/octet-stream", public=False, workspace_id=None):
+    """Store bytes under `key` (like 'invoice/abc.pdf'). Returns a URL for public files, else None.
+    With a workspace, Cloudinary keeps the file in that company's own folder; the folder is remembered per file, so renaming the company later breaks nothing."""
     creds = _creds()
     ref, url = "local", None
     if creds:
         cloud, api_key, secret = creds
-        params = {"public_id": _public_id(key), "timestamp": int(time.time()), "overwrite": "true", "invalidate": "true",
+        pid = f"{_folder(workspace_id)}/{key}"
+        params = {"public_id": pid, "timestamp": int(time.time()), "overwrite": "true", "invalidate": "true",
                   "type": "upload" if public else "authenticated"}
         kind = "image" if public else "raw"
         r = requests.post(f"https://api.cloudinary.com/v1_1/{cloud}/{kind}/upload",
@@ -66,7 +80,7 @@ def put(key, data, mime="application/octet-stream", public=False):
         if r.status_code >= 300:
             raise RuntimeError(f"Cloudinary upload failed: {r.text[:200]}")
         res = r.json()
-        ref = f"cloudinary:{kind}:{params['type']}"
+        ref = f"cloudinary:{kind}:{params['type']}:{pid}"
         url = res.get("secure_url") if public else None
     else:
         with open(_local_path(key), "wb") as f:
@@ -85,9 +99,9 @@ def get(key, legacy_path=None):
     """The file's bytes, or None. `legacy_path` is where files saved before this module existed live."""
     row = info(key)
     if row and row["ref"].startswith("cloudinary:"):
-        _, kind, typ = row["ref"].split(":")
+        kind, typ, pid = _parts(row, key)
         cloud, api_key, secret = _creds()
-        params = {"public_id": _public_id(key), "type": typ, "mode": "download", "timestamp": int(time.time())}
+        params = {"public_id": pid, "type": typ, "mode": "download", "timestamp": int(time.time())}
         r = requests.get(f"https://api.cloudinary.com/v1_1/{cloud}/{kind}/download",
                          params={**params, "api_key": api_key, "signature": _sign(params, secret)}, timeout=60)
         return r.content if r.status_code == 200 else None
@@ -101,9 +115,9 @@ def get(key, legacy_path=None):
 def remove(key, legacy_path=None):
     row = info(key)
     if row and row["ref"].startswith("cloudinary:"):
-        _, kind, typ = row["ref"].split(":")
+        kind, typ, pid = _parts(row, key)
         cloud, api_key, secret = _creds()
-        params = {"public_id": _public_id(key), "type": typ, "timestamp": int(time.time())}
+        params = {"public_id": pid, "type": typ, "timestamp": int(time.time())}
         try:
             requests.post(f"https://api.cloudinary.com/v1_1/{cloud}/{kind}/destroy",
                           data={**params, "api_key": api_key, "signature": _sign(params, secret)}, timeout=30)

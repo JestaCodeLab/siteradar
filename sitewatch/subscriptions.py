@@ -231,7 +231,7 @@ def add_invoice(cfg, sub_id, file_storage, period=None):
     if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period):
         raise ValueError("Period must look like 2026-10.")
     filename = uuid.uuid4().hex + ".pdf"
-    storage.put("invoice/" + filename, data, "application/pdf")
+    storage.put("invoice/" + filename, data, "application/pdf", workspace_id=ws_id)
     original = os.path.basename(file_storage.filename or "invoice.pdf")[:120]
     return db.run("INSERT INTO invoices(subscription_id, period, filename, original_name, size, uploaded) VALUES (?,?,?,?,?,?)",
                   (sub_id, period, filename, original, len(data), time.time()))

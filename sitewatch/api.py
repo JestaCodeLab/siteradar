@@ -8,7 +8,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, plans, report, screenshot, sites, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, plans, report, screenshot, sites, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -371,6 +371,18 @@ def blueprint(cfg):
         start_audit(site_or_404(site_id))
         return jsonify(started=True), 202
 
+    def report_response(key, fmt, download_name, in_progress, make):
+        """A finished month's report is made once and then served from file storage; the current month is rebuilt every time."""
+        data = None if in_progress else storage.get(key)
+        if data is None:
+            paths = make()
+            if fmt not in paths:
+                return jsonify(error="PDF export is not available on this server."), 501
+            data = paths["pdf_bytes"] if fmt == "pdf" else storage.get(paths["html"])
+        if fmt == "pdf":
+            return Response(data, mimetype="application/pdf", headers={"Content-Disposition": f'attachment; filename="{download_name}"'})
+        return Response(data, mimetype="text/html")
+
     @bp.get("/sites/<site_id>/reports")
     def site_reports(site_id):
         site_or_404(site_id)
@@ -394,13 +406,9 @@ def blueprint(cfg):
             dt.date(year, month, 1)
         except ValueError:
             abort(404)
-        paths = report.generate(cfg, s, year, month, pdf=(fmt == "pdf"))
-        if fmt == "pdf":
-            if "pdf" not in paths:
-                return jsonify(error="PDF export is not available on this server."), 501
-            return send_file(os.path.abspath(paths["pdf"]), as_attachment=True,
-                             download_name=f"{site_id}-report-{period}.pdf")
-        return send_file(os.path.abspath(paths["html"]))
+        key = f"report/{site_id}-{period}.{fmt}"
+        return report_response(key, fmt, f"{site_id}-report-{period}.pdf", (year, month) >= (dt.date.today().year, dt.date.today().month),
+                               lambda: report.generate(cfg, s, year, month, pdf=(fmt == "pdf")))
 
     # ---- subscriptions ---------------------------------------------------
     def form_or_json():
@@ -506,13 +514,10 @@ def blueprint(cfg):
     def subscription_report_file(period, fmt):
         if fmt not in ("html", "pdf"):
             abort(404)
-        paths = sub_report.generate(cfg, g.ws, *parse_period(period), pdf=(fmt == "pdf"))
-        if fmt == "pdf":
-            if "pdf" not in paths:
-                return jsonify(error="PDF export is not available on this server."), 501
-            return send_file(os.path.abspath(paths["pdf"]), as_attachment=True,
-                             download_name=f"subscriptions-{period}.pdf")
-        return send_file(os.path.abspath(paths["html"]))
+        year, month = parse_period(period)
+        key = f"report/subscriptions-{g.ws['id']}-{year}-{month:02d}.{fmt}"
+        return report_response(key, fmt, f"subscriptions-{period}.pdf", (year, month) >= (dt.date.today().year, dt.date.today().month),
+                               lambda: sub_report.generate(cfg, g.ws, year, month, pdf=(fmt == "pdf")))
 
     @bp.post("/subscription-reports/<period>/email")
     def subscription_report_email(period):

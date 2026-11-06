@@ -90,7 +90,7 @@ def main(argv=None):
             y, m = map(int, args.month.split("-"))
         for site in pick(args.site):
             paths = report.generate(cfg, site, y, m, pdf=args.pdf, email=args.email)
-            print(f"{site['name']}: " + ", ".join(paths.values()))
+            print(f"{site['name']}: " + ", ".join(v for k, v in paths.items() if k in ("html", "pdf")))
     elif args.cmd == "snippet":
         for site in cfg["sites"]:
             print(f"{site['name']}:\n  <script defer src=\"{cfg['public_url']}/t.js\" data-site=\"{site['id']}\"></script>\n")

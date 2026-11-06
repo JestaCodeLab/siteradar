@@ -66,7 +66,7 @@ def capture(cfg, site):
                     except Exception:
                         pass
                     page.wait_for_timeout(2000)                            # let fonts, sliders and lazy images settle
-                    storage.put(key(site["id"], device), page.screenshot(type="jpeg", quality=72), "image/jpeg")
+                    storage.put(key(site["id"], device), page.screenshot(type="jpeg", quality=72), "image/jpeg", workspace_id=site.get("workspace_id"))
                 finally:
                     ctx.close()
         finally:
