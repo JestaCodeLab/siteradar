@@ -26,7 +26,7 @@ export default function Contact() {
       <div className="relative flex min-w-0 flex-[1_1_380px] flex-col gap-5 overflow-hidden rounded-3xl bg-[#0F172A] p-10 text-white md:px-10 md:py-12">
         <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -bottom-[170px] -right-[170px] size-[460px]"><g fill="none" stroke="#F97316" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.22" /><circle cx="200" cy="200" r="190" strokeOpacity="0.12" /><path d="M200 200L320 80" strokeOpacity="0.4" /></g><circle cx="320" cy="80" r="9" fill="#F97316" fillOpacity="0.7" /></svg>
         <span className={`${eyebrow} relative text-[#FDBA74]`}>Contact</span>
-        <h1 className="relative text-[clamp(34px,4vw,50px)] font-extrabold leading-[1.05] tracking-[-0.035em]">Let’s put your websites on the radar.</h1>
+        <h1 className="relative text-[clamp(34px,4vw,50px)] font-bold leading-[1.05] tracking-[-0.035em]">Let’s put your websites on the radar.</h1>
         <p className="relative text-lg text-[#CBD5E1]">Questions about plans, a larger portfolio, or setting SiteRadar up for your clients? Send us a message and we will get back to you.</p>
         <div className="relative mt-3 flex flex-col gap-4">
           {details.filter(([, , v]) => v).map(([Icon, label, v]) => (

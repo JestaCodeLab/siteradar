@@ -27,7 +27,7 @@ export default function Agencies() {
         <Container className="relative flex flex-wrap items-center gap-14 pb-24 pt-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
             <span className={`${eyebrow} text-[#FDBA74]`}>Solutions for agencies</span>
-            <h1 className="text-[clamp(38px,5vw,60px)] font-extrabold leading-[1.05] tracking-[-0.035em]">Every client website, on one radar.</h1>
+            <h1 className="text-[clamp(38px,5vw,60px)] font-bold leading-[1.05] tracking-[-0.035em]">Every client website, on one radar.</h1>
             <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">For digital marketing agencies, web development agencies and consultants managing multiple clients. Catch problems before your clients call, and prove the value of your work every month.</p>
             <div className="flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/contact" className={btnOutlineDark}>Talk to us</Link></div>
           </div>

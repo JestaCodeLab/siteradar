@@ -13,9 +13,17 @@ const CTA: Record<string, string> = { free: "Start free", starter: "Choose Start
 const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth: "50", scale: "100" };
 const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 
-function bullets(p: PlanInfo): string[] {
-  const out = [`${p.sites} website${p.sites === 1 ? "" : "s"}`, p.members > 1 ? `${p.members} team members` : "Email alerts"];
-  out.push(p.id === "free" ? "Monthly report (watermarked)" : p.id === "starter" ? "Reports with your logo, no watermark" : p.id === "growth" ? "SMS alerts" : "Checks every minute");
+function features(p: PlanInfo): string[] {
+  const out = [
+    `${p.sites} website${p.sites === 1 ? "" : "s"}`, `${p.members} team member${p.members === 1 ? "" : "s"}`,
+    `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}`,
+    p.channels.includes("chat") ? "Email, Slack, Teams and Discord alerts" : "Email alerts only",
+  ];
+  if (p.sms) out.push(`${p.sms} SMS alerts a month`);
+  out.push("Domain, SSL, DNS and sitemap monitoring", "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled",
+    p.clean_reports ? "Monthly report with your logo, no watermark" : "Monthly report with a light watermark", "Your logo on every report", "Subscriptions and invoices tracker");
+  if (p.client_access) out.push("Read-only viewer access for clients");
+  out.push(`${p.history_months} month${p.history_months === 1 ? "" : "s"} of history`, `${SUPPORT[p.id] ?? "Email"} support`);
   return out;
 }
 
@@ -52,7 +60,7 @@ export default function Pricing() {
         <Rings className="-right-[260px] -top-[180px] size-[900px]" />
         <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
-          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-extrabold leading-[1.05] tracking-[-0.035em]">Start free, upgrade when you grow.</h1>
+          <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Start free, upgrade when you grow.</h1>
           <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Simple plans in Ghana cedis. The Free plan is free for ever, and no card is needed.</p>
           <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
@@ -71,7 +79,7 @@ export default function Pricing() {
                 <div><span className="font-mono text-[40px] font-semibold tracking-[-0.03em]">{free ? "GHS 0" : ghs(yearly ? Math.round(p.price_year_month) : p.price_month)}</span><span className="text-[15px] text-[#475569]"> / month</span>
                   {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">Billed {ghs(p.price_year)} a year</div>}</div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
-                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{bullets(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
+                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
               </div>
             );
           })}

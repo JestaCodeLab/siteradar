@@ -117,12 +117,12 @@ export function CtaBand({ title, text, primary, secondary }: { title: string; te
       <div className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
         <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] size-[420px]"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
         <div className="relative flex max-w-[640px] flex-col gap-2">
-          <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] text-[#0F172A]">{title}</h2>
-          <p className="text-lg text-[#1E293B]">{text}</p>
+          <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] text-white">{title}</h2>
+          <p className="text-lg text-white/95">{text}</p>
         </div>
         <div className="relative flex flex-wrap gap-3">
           <Link href={primary.href} className="rounded-xl bg-[#0F172A] px-6 py-4 text-base font-bold text-white hover:bg-[#1E293B]">{primary.label}</Link>
-          {secondary && <Link href={secondary.href} className="rounded-xl border-[1.5px] border-[#0F172A] px-6 py-4 text-base font-bold text-[#0F172A] hover:bg-[#0F172A] hover:text-white">{secondary.label}</Link>}
+          {secondary && <Link href={secondary.href} className="rounded-xl border-[1.5px] border-white px-6 py-4 text-base font-bold text-white hover:bg-white hover:text-[#C2410C]">{secondary.label}</Link>}
         </div>
       </div>
     </section>

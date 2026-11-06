@@ -30,7 +30,7 @@ export default function Home() {
         <Container className="relative flex flex-wrap items-center gap-14 pb-24 pt-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-semibold text-[#FDBA74]`}>Digital Presence Intelligence</span>
-            <h1 className="text-[clamp(38px,5vw,62px)] font-extrabold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
+            <h1 className="text-[clamp(38px,5vw,62px)] font-bold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
             <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
             <p className="text-sm text-[#94A3B8]">The Free plan is free for ever. No card needed.</p>
