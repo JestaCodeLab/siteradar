@@ -22,7 +22,7 @@ export function SolutionPlans({ variant, eyebrowText, title }: { variant: "agenc
   const set = SETS[variant];
   return (
     <section className="bg-[#0F172A] text-white">
-      <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-12 px-6 py-[88px]">
+      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center gap-12 px-6 py-[88px]">
         <div className="flex min-w-0 flex-[1_1_360px] flex-col gap-3.5">
           <span className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#FDBA74]">{eyebrowText}</span>
           <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em]">{title}</h2>

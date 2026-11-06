@@ -32,7 +32,7 @@ export function MktHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#EFE4D8] bg-white">
-      <nav aria-label="Main" className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 py-3">
+      <nav aria-label="Main" className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-6 py-3">
         <Link href="/" aria-label="SiteRadar home"><Logo height={50} /></Link>
         <div className="hidden items-center gap-1 md:flex">
           <Link href="/" className={link("/")}>Home</Link>
@@ -73,7 +73,7 @@ export function MktFooter() {
   const col = "text-[#CBD5E1] hover:text-white";
   return (
     <footer className="bg-[#0F172A] text-[#CBD5E1]">
-      <div className="mx-auto flex max-w-[1200px] flex-col gap-12 px-6 pb-8 pt-16">
+      <div className="mx-auto flex max-w-[1320px] flex-col gap-12 px-6 pb-8 pt-16">
         <div className="flex flex-wrap justify-between gap-10">
           <div className="flex max-w-[360px] flex-col gap-4">
             <Link href="/" aria-label="SiteRadar home"><Logo dark height={52} /></Link>
@@ -108,7 +108,7 @@ export function Rings({ className = "", color = "#F97316", opacity = 1 }: { clas
 export function CtaBand({ title, text, primary, secondary, onPage = false }: { title: string; text: string; primary: { href: string; label: string }; secondary?: { href: string; label: string }; onPage?: boolean }) {
   return (
     <section className={`px-6 ${onPage ? "bg-[#FBF8F4] py-24" : "bg-white pb-24"}`}>
-      <div className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
+      <div className="relative mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
         <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] size-[420px]"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
         <div className="relative flex max-w-[640px] flex-col gap-2">
           <h2 className="text-[clamp(28px,3.2vw,40px)] font-bold leading-[1.1] tracking-[-0.03em] text-white">{title}</h2>
@@ -124,6 +124,6 @@ export function CtaBand({ title, text, primary, secondary, onPage = false }: { t
 }
 
 export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`mx-auto max-w-[1200px] px-6 ${className}`}>{children}</div>;
+  return <div className={`mx-auto max-w-[1320px] px-6 ${className}`}>{children}</div>;
 }
 
