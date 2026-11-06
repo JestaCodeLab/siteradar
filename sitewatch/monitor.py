@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from . import alerts, db
+from . import alerts, db, netguard
 
 log = logging.getLogger("sitewatch.monitor")
 UA = "SiteRadar-Monitor/1.0 (+uptime check)"
@@ -26,7 +26,7 @@ def ssl_info(url, timeout=10):
         return None
     host, port = u.hostname, u.port or 443
     ctx = ssl.create_default_context()
-    with socket.create_connection((host, port), timeout=timeout) as sock:
+    with netguard.connect_tls(host, port, timeout) as sock:
         with ctx.wrap_socket(sock, server_hostname=host) as s:
             cert = s.getpeercert()
     expires = dt.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z").replace(tzinfo=dt.timezone.utc)
@@ -43,7 +43,7 @@ def check_site(cfg, site):
     result = {"ok": False, "status_code": None, "response_ms": None, "error": None, "ssl_days_left": None, "ssl_expires": None}
     start = time.perf_counter()
     try:
-        r = requests.get(site["url"], timeout=cfg["timeout_seconds"],
+        r = netguard.get(site["url"], timeout=cfg["timeout_seconds"],
                          headers={"User-Agent": UA}, allow_redirects=True)
         result["response_ms"] = int((time.perf_counter() - start) * 1000)
         result["status_code"] = r.status_code

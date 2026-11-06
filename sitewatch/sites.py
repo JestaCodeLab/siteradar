@@ -5,7 +5,7 @@ import secrets
 import time
 from urllib.parse import urlparse
 
-from . import db, plans
+from . import db, netguard, plans
 
 LIST_FIELDS = ("report_to", "alert_to")
 
@@ -32,6 +32,8 @@ def normalise_url(url):
     p = urlparse(url)
     if not p.netloc or "." not in p.netloc:
         raise ValueError("Enter a valid website address, for example https://www.example.com")
+    if not netguard.is_public_url(url):
+        raise ValueError("That address points to a private network and cannot be monitored.")
     return url.rstrip("/") or url
 
 

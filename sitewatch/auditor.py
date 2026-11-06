@@ -15,7 +15,7 @@ from urllib.parse import urljoin, urlparse, urldefrag
 import requests
 from bs4 import BeautifulSoup
 
-from . import db
+from . import db, netguard
 
 log = logging.getLogger("sitewatch.audit")
 UA = "Mozilla/5.0 (compatible; SiteRadar-Audit/1.0)"
@@ -143,7 +143,7 @@ class Auditor:
         self.cfg, self.site = cfg, site
         self.base = site["url"]
         self.host = urlparse(self.base).hostname
-        self.s = requests.Session()
+        self.s = netguard.SafeSession()
         self.s.headers["User-Agent"] = UA
         self.timeout = cfg["timeout_seconds"]
         self.findings = defaultdict(list)    # rule -> list of (url, detail)
@@ -346,7 +346,7 @@ class Auditor:
             self.flag("no_https", self.base)
         else:
             try:
-                r = requests.get(self.base.replace("https://", "http://", 1), timeout=self.timeout,
+                r = netguard.get(self.base.replace("https://", "http://", 1), timeout=self.timeout,
                                  allow_redirects=True, headers={"User-Agent": UA})
                 if not r.url.startswith("https://"):
                     self.flag("http_no_redirect", self.base.replace("https://", "http://", 1))

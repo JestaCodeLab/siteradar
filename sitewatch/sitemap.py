@@ -8,6 +8,8 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
+from . import netguard
+
 log = logging.getLogger("sitewatch.sitemap")
 UA = {"User-Agent": "Mozilla/5.0 (compatible; SiteRadar-Sitemap/1.0)"}
 MAX_URLS = 5000
@@ -15,7 +17,7 @@ SAMPLE = 50
 
 
 def _get(url, timeout=15):
-    return requests.get(url, headers=UA, timeout=timeout, allow_redirects=True)
+    return netguard.get(url, headers=UA, timeout=timeout, allow_redirects=True)
 
 
 def _tag(el):
@@ -44,7 +46,7 @@ def discover(base):
         return found
     for path in ("/sitemap.xml", "/sitemap_index.xml", "/wp-sitemap.xml", "/sitemap.xml.gz"):
         try:
-            r = requests.head(base + path, headers=UA, timeout=10, allow_redirects=True)
+            r = netguard.head(base + path, headers=UA, timeout=10, allow_redirects=True)
             if r.status_code == 200:
                 return [base + path]
         except requests.RequestException:
@@ -74,7 +76,7 @@ def collect(sitemaps):
 
 def _status(url):
     try:
-        r = requests.get(url, headers=UA, timeout=12, allow_redirects=False, stream=True)
+        r = netguard.get(url, headers=UA, timeout=12, allow_redirects=False, stream=True)
         code = r.status_code
         r.close()
         return url, code

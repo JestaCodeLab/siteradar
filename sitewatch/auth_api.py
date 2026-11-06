@@ -3,17 +3,16 @@ import logging
 import os
 import secrets
 import time
-from collections import defaultdict
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
 from . import accounts, billing, db, google_auth, mailer, plans, storage
+from .security import client_ip, limited
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
 LOGO_MAX = 1536 * 1024
 LOGO_TYPES = {b"\x89PNG": "image/png", b"\xff\xd8\xff": "image/jpeg", b"RIFF": "image/webp"}
-_hits = defaultdict(list)
 
 
 def request_country():
@@ -27,17 +26,6 @@ def request_country():
 
 def app_url():
     return os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
-
-
-def limited(bucket, per_minutes, maximum):
-    """True when this caller already used up its attempts (kept in memory, per web process)."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
-    k, now = (bucket, ip), time.time()
-    _hits[k] = [t for t in _hits[k] if now - t < per_minutes * 60]
-    if len(_hits[k]) >= maximum:
-        return True
-    _hits[k].append(now)
-    return False
 
 
 def blueprint(cfg):
@@ -137,7 +125,7 @@ def blueprint(cfg):
 
     @bp.post("/auth/login")
     def login():
-        if limited("login", 15, 10):
+        if limited("login", 15, 10) or limited("login-account", 15, 10, key=(body().get("email") or "").strip().lower()[:200] or "-"):
             return jsonify(error="Too many attempts. Try again in 15 minutes.", code="rate"), 429
         user = accounts.login(body().get("email"), body().get("password"))
         sign_in(user, remember=body().get("remember", True))
@@ -170,7 +158,7 @@ def blueprint(cfg):
         if not expected or request.args.get("state") != expected or not request.args.get("code"):
             # no saved state means the cookie from /auth/google/start did not come back: usually the site was opened on a
             # different address than APP_URL (www or not, http or https), so the browser sent it to another host
-            log.warning("Google sign-in: state check failed (cookie present: %s, host: %s, APP_URL: %s)", bool(expected), request.host, app_url())
+            log.warning("Google sign-in: state check failed (cookie present: %s, site address the browser used: %s, APP_URL: %s)", bool(expected), request.headers.get("X-Forwarded-Host") or request.host, app_url())
             return redirect(app_url() + "/login?error=google")
         try:
             user, _created = accounts.google_user(google_auth.profile_for(request.args["code"]), request_country())

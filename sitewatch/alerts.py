@@ -6,7 +6,7 @@ from email.message import EmailMessage
 
 import requests
 
-from . import accounts, mailer, plans, sms
+from . import accounts, mailer, netguard, plans, sms
 
 log = logging.getLogger("sitewatch.alerts")
 
@@ -55,7 +55,10 @@ def send_webhook(url, text):
     else:                                                    # Slack and generic
         payload = {"text": text}
     try:
-        requests.post(url, json=payload, timeout=10).raise_for_status()
+        if not netguard.chat_webhook_ok(url):
+            log.error("Webhook refused: %s is not a Slack or Teams address", url[:60])
+            return False
+        netguard.post(url, json=payload, timeout=10, allow_redirects=False).raise_for_status()
         return True
     except Exception as e:
         log.error("Webhook failed: %s", e)

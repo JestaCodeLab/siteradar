@@ -36,11 +36,25 @@ def _public(url):
     try:
         for info in socket.getaddrinfo(host, None):
             ip = ipaddress.ip_address(info[4][0])
-            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            if not ip.is_global:
                 return False
     except (socket.gaierror, ValueError):
         return False
     return True
+
+
+_seen = {}
+
+
+def _only_public(route):
+    """Lets a browser request through only when its host resolves to public addresses."""
+    url = route.request.url
+    if url.startswith(("data:", "blob:", "about:")):
+        return route.continue_()
+    host = urlparse(url).hostname or ""
+    if host not in _seen:
+        _seen[host] = _public(url)
+    return route.continue_() if _seen[host] else route.abort()
 
 
 def capture(cfg, site):
@@ -57,6 +71,7 @@ def capture(cfg, site):
                     user_agent=("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
                                 if opts["mobile"] else None))
                 page = ctx.new_page()
+                page.route("**/*", _only_public)   # redirects and page resources must not lead into our network either
                 try:
                     resp = page.goto(site["url"], wait_until="domcontentloaded", timeout=45000)
                     if resp is None or resp.status >= 400:

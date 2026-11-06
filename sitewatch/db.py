@@ -208,6 +208,10 @@ UPDATE plans SET price_month_usd=64 WHERE id='scale';
 ALTER TABLE workspaces ADD COLUMN currency TEXT NOT NULL DEFAULT 'GHS';
 UPDATE workspaces SET currency='USD' WHERE country IS NOT NULL AND country <> 'Ghana';
 """),
+    (10, """
+CREATE TABLE rate_hits (id BIGSERIAL PRIMARY KEY, bucket TEXT NOT NULL, key TEXT NOT NULL, ts DOUBLE PRECISION NOT NULL);
+CREATE INDEX idx_rate_hits ON rate_hits(bucket, key, ts);
+"""),
 ]
 
 

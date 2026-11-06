@@ -10,7 +10,7 @@ import time
 
 from werkzeug.security import check_password_hash, generate_password_hash as _gen
 
-from . import db, mailer, plans, storage
+from . import db, mailer, netguard, plans, storage
 
 log = logging.getLogger("sitewatch.accounts")
 CODE_MINUTES = 15
@@ -388,7 +388,7 @@ def update_workspace(ws_id, data):
         phones = [re.sub(r"[^\d+]", "", p) for p in (data["alert_phones"] or []) if p][:5]
         sets.append("alert_phones=?"); args.append(json.dumps(phones))
     if "alert_webhooks" in data:
-        hooks = [h.strip() for h in (data["alert_webhooks"] or []) if str(h).startswith("https://")][:5]
+        hooks = [h.strip() for h in (data["alert_webhooks"] or []) if netguard.chat_webhook_ok(str(h).strip())][:5]
         sets.append("alert_webhooks=?"); args.append(json.dumps(hooks))
     if "country" in data:        # the billing currency follows the country until the workspace has paid for something
         w = workspace(ws_id)

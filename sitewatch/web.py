@@ -6,7 +6,7 @@ import os
 
 from flask import Flask, Response, jsonify, request
 
-from . import accounts, admin_api, analytics, api, auth_api, ctx, db, plans, sites
+from . import accounts, admin_api, analytics, api, auth_api, ctx, db, plans, security, sites
 
 SESSION_DAYS = 30
 
@@ -14,10 +14,13 @@ SESSION_DAYS = 30
 def create_app(cfg):
     app = Flask(__name__)
     # Signing key for login cookies: set SECRET_KEY on the server; the fallback is derived from the database URL.
-    app.secret_key = cfg.get("secret_key") or os.environ.get("SECRET_KEY") or hashlib.sha256(
+    secret = cfg.get("secret_key") or os.environ.get("SECRET_KEY")
+    if not secret and str(os.environ.get("APP_URL", cfg.get("public_url", ""))).startswith("https://"):
+        raise RuntimeError("SECRET_KEY is not set. Login cookies would be signed with a guessable key; set a long random SECRET_KEY.")
+    app.secret_key = secret or hashlib.sha256(
         ("sitewatch-session:" + (cfg.get("database_url") or os.environ.get("DATABASE_URL", "dev"))).encode()).hexdigest()
     app.config.update(SESSION_COOKIE_SAMESITE="Lax", SESSION_COOKIE_HTTPONLY=True,
-                      SESSION_COOKIE_SECURE=str(cfg.get("public_url", "")).startswith("https://"),
+                      SESSION_COOKIE_SECURE=any(str(u).startswith("https://") for u in (cfg.get("public_url", ""), os.environ.get("APP_URL", ""))),
                       PERMANENT_SESSION_LIFETIME=dt.timedelta(days=SESSION_DAYS),
                       MAX_CONTENT_LENGTH=6 * 1024 * 1024)
     app.register_blueprint(auth_api.blueprint(cfg))
@@ -26,7 +29,11 @@ def create_app(cfg):
 
     @app.before_request
     def load_context():
+        if security.cross_site_write():
+            return jsonify(error="This request came from another website, so it was refused.", code="cross_site"), 403
         ctx.load()
+
+    app.after_request(security.harden)
 
     @app.errorhandler(accounts.AuthError)
     def auth_error(e):
@@ -58,7 +65,7 @@ def create_app(cfg):
         site = sites.get_any(str(payload.get("s", "")))
         if not site or not site.get("track_analytics") or site.get("paused"):
             return Response("", 404, cors)
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+        ip = security.client_ip()
         analytics.record_hit(cfg["data_dir"], site, payload, ip, request.headers.get("User-Agent", ""))
         return Response("", 204, cors)
 

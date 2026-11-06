@@ -10,6 +10,7 @@
 """
 import argparse
 import logging
+import os
 import sys
 
 from . import accounts, alerts, auditor, db, monitor, report, sites, storage
@@ -63,7 +64,12 @@ def main(argv=None):
         try:
             from waitress import serve
             print(f"SiteRadar running on http://{args.host}:{args.port}")
-            serve(app, host=args.host, port=args.port, threads=8)
+            # Behind Railway's proxy every connection comes from the proxy, so the real address is the one the proxy wrote at the end of
+            # X-Forwarded-For. Without this, every visitor looks like one person to the rate limits and the visitor counter.
+            hops = int(os.environ.get("TRUST_PROXY_COUNT", "1" if os.environ.get("RAILWAY_ENVIRONMENT") else "0"))
+            proxy = {"trusted_proxy": "*", "trusted_proxy_count": hops,
+                     "trusted_proxy_headers": {"x-forwarded-for", "x-forwarded-proto", "x-forwarded-host"}} if hops else {}
+            serve(app, host=args.host, port=args.port, threads=8, **proxy)
         except ImportError:
             app.run(host=args.host, port=args.port, threaded=True)
     elif args.cmd == "worker":
