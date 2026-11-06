@@ -1,5 +1,6 @@
 "use client";
 
+import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -35,7 +36,7 @@ export function BillingPanel() {
   const { data, error, mutate } = useSWR<BillingData>("/api/billing", fetcher);
   const [yearly, setYearly] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const setNote = useNoteToast();
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <div className="flex flex-col gap-4"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>;
@@ -76,7 +77,6 @@ export function BillingPanel() {
     <>
       {!isOwner && <p className="rounded-xl bg-line-soft px-5 py-3 text-sm">Only the workspace owner can change the plan.</p>}
       {data.test_mode && <p className="rounded-xl bg-warn-soft px-5 py-3 text-sm text-warn">Test mode: plan changes apply without taking payment.</p>}
-      {note && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${note.ok ? "bg-ok-soft text-ok" : "bg-bad-soft text-bad"}`}>{note.text}</p>}
       {!ws.plan.clean_reports && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-soft px-5 py-4">
           <span className="max-w-[760px] text-[15px] leading-relaxed text-brand-ink"><b>Reports on the Free plan carry a light SiteRadar watermark.</b> Upgrade to a paid plan to remove it and to add more websites, team members and alert channels.</span>

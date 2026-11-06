@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { POWERED_BY } from "@/lib/brand";
 import { Logo } from "./logo";
 
 const CHECKS = {
@@ -19,7 +18,7 @@ function Panel({ variant }: { variant: AuthVariant }) {
         <g fill="none" stroke="#F97316" strokeWidth="2"><circle cx="400" cy="400" r="130" strokeOpacity="0.24" /><circle cx="400" cy="400" r="230" strokeOpacity="0.16" /><circle cx="400" cy="400" r="330" strokeOpacity="0.1" /><path d="M400 400L230 230" strokeOpacity="0.3" /></g>
         <circle cx="230" cy="230" r="8" fill="#FBA23C" fillOpacity="0.75" />
       </svg>
-      <Link href="/" aria-label="SiteRadar home" className="relative w-fit"><Logo dark height={64} /></Link>
+      <Link href="/" aria-label="SiteRadar home" className="relative w-fit"><Logo dark height={48} /></Link>
 
       <div className="relative flex max-w-[480px] flex-col gap-5">
         {variant === "login" ? (
@@ -43,7 +42,7 @@ function Panel({ variant }: { variant: AuthVariant }) {
         )}
       </div>
 
-      <p className="relative text-sm text-[#94A3B8]">© {new Date().getFullYear()} SiteRadar · Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-[#E2E8F0] hover:text-white">{POWERED_BY.name}</a></p>
+      <p className="relative text-sm text-[#94A3B8]">© {new Date().getFullYear()} SiteRadar</p>
     </aside>
   );
 }
@@ -54,7 +53,7 @@ export function AuthShell({ variant, width = 420, children }: { variant: AuthVar
     <div className="flex min-h-screen flex-wrap bg-[#FBF8F4] text-[#0F172A]">
       <Panel variant={variant} />
       <main className="flex min-w-0 flex-[1_1_480px] flex-col items-center justify-center gap-8 px-6 py-12">
-        <Link href="/" aria-label="SiteRadar home" className="w-fit lg:hidden"><Logo height={48} /></Link>
+        <Link href="/" aria-label="SiteRadar home" className="w-fit lg:hidden"><Logo height={38} /></Link>
         <div className="flex w-full flex-col gap-5" style={{ maxWidth: width }}>{children}</div>
       </main>
     </div>

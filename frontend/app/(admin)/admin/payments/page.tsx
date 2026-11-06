@@ -1,5 +1,6 @@
 "use client";
 
+import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -21,7 +22,7 @@ const tone: Record<string, Tone> = { Paid: "ok", Failed: "bad", Pending: "warn",
 export default function AdminPayments() {
   const [filter, setFilter] = useState<Filter>("all");
   const { data, error, mutate } = useSWR<Resp>(`/api/admin/payments?status=${filter}`, fetcher, { keepPreviousData: true });
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const setNote = useNoteToast();
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
   const t = data.tiles;
@@ -46,7 +47,6 @@ export default function AdminPayments() {
   return (
     <>
       <AdminHeader title="Payments" subtitle="Every charge from the payment provider." actions={<button onClick={() => downloadCsv(`/api/admin/payments.csv?status=${filter}`, "payments")} className={aBtn.secondary}>Export CSV</button>} />
-      {note && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${note.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{note.text}</p>}
 
       <section aria-label="Summary" className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
         {tiles.map((x) => (

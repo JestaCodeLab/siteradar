@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -104,19 +105,19 @@ function Report({ period }: { period: string }) {
 export default function SubscriptionReportsPage() {
   const { data, error, mutate } = useSWR<SubReportMonths>("/api/subscription-reports", fetcher);
   const [picked, setPicked] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const toast = useToast();
   const [sending, setSending] = useState(false);
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   const period = picked ?? data?.months[0]?.period;
 
   async function email() {
     if (!period) return;
-    setSending(true); setNote(null);
+    setSending(true);
     try {
       const r = await send<{ sent: boolean; to: string[] }>("POST", `/api/subscription-reports/${period}/email`);
-      setNote(`Sent to ${r.to.join(", ")}.`);
+      toast.success(`Sent to ${r.to.join(", ")}.`);
     } catch {
-      setNote("Could not send the email. Check the email settings on the server.");
+      toast.error("Could not send the email. Check the email settings on the server.");
     }
     setSending(false);
   }
@@ -133,7 +134,6 @@ export default function SubscriptionReportsPage() {
           </>
         )}
       />
-      {note && <p role="status" className="rounded-lg bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">{note}</p>}
       {data && data.months.length === 0 && <Card><Empty title="No reports yet">Add a subscription and its first report appears here.</Empty></Card>}
       {data && data.months.length > 0 && period && (
         <div className="flex flex-wrap items-start gap-6">

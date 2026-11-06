@@ -1,5 +1,7 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
+import { useNoteToast } from "@/components/toast";
 import { useState } from "react";
 import useSWR from "swr";
 import { Check } from "lucide-react";
@@ -46,7 +48,7 @@ export default function AdminPlans() {
   const { data, error, mutate } = useSWR<Resp>("/api/admin/plans", fetcher);
   const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; wmText: string; wmStrength: number; bundles: { qty: number; price: number }[] } | null>(null);
   const [typing, setTyping] = useState<Record<string, string>>({});
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const setMsg = useNoteToast();
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(false);
 
@@ -79,7 +81,6 @@ export default function AdminPlans() {
       <AdminHeader title="Plans and pricing" subtitle="Change prices, limits and features here. Changes apply to new subscriptions. Existing customers keep their price until they renew or change plan."
         actions={<div className="flex gap-2.5"><button disabled={!dirty || busy} onClick={() => { setDraft(null); setTyping({}); setMsg(null); }} className={aBtn.secondary}>Discard</button>
           <button disabled={!dirty || busy} onClick={save} className={aBtn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>} />
-      {msg && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${msg.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{msg.text}</p>}
 
       <div className="flex flex-wrap items-stretch gap-5">
         <AdminCard label="Billing rules" className="flex min-w-0 flex-[1.4_1_460px] flex-col gap-[18px]">
@@ -102,7 +103,7 @@ export default function AdminPlans() {
           <h2 className="text-lg font-semibold">Free plan report watermark</h2>
           <div className="flex flex-col gap-2"><label htmlFor="wm" className="text-sm font-medium">Watermark text</label><input id="wm" value={cur.wmText} onChange={(e) => edit({ wmText: e.target.value })} maxLength={60} className={aInput} /></div>
           <div className="flex flex-col gap-2"><label htmlFor="op" className="text-sm font-medium">Strength</label>
-            <select id="op" value={cur.wmStrength} onChange={(e) => edit({ wmStrength: Number(e.target.value) })} className={aInput}>{STRENGTH.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+            <Select id="op" value={String(cur.wmStrength)} onChange={(v) => edit({ wmStrength: Number(v) })} options={STRENGTH.map(([v, l]) => ({ value: String(v), label: l }))} /></div>
           <button onClick={() => setPreview((p) => !p)} className="flex min-h-11 w-fit items-center text-sm font-semibold text-[#4A33B0]">{preview ? "Hide the preview" : "See how it looks on a report"}</button>
         </AdminCard>
       </div>

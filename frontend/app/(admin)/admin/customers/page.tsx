@@ -1,5 +1,6 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -39,10 +40,8 @@ export default function Customers() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E5EA] px-5 py-3.5">
           <Tabs items={tabs} value={tab} onChange={(t) => { setTab(t); setPage(1); }} />
           <div className="flex flex-wrap gap-2.5">
-            <select aria-label="Plan" value={plan} onChange={(e) => { setPlan(e.target.value); setPage(1); }} className={aSelect}>
-              <option value="">All plans</option><option value="free">Free</option><option value="starter">Starter</option><option value="growth">Growth</option><option value="scale">Scale</option></select>
-            <select aria-label="Sort" value={sort} onChange={(e) => { setSort(e.target.value); setPage(1); }} className={aSelect}>
-              <option value="newest">Newest first</option><option value="revenue">Highest revenue</option><option value="sites">Most websites</option></select>
+            <Select compact ariaLabel="Plan" value={plan} onChange={(v) => { setPlan(v); setPage(1); }} className="w-40" options={[{ value: "", label: "All plans" }, { value: "free", label: "Free" }, { value: "starter", label: "Starter" }, { value: "growth", label: "Growth" }, { value: "scale", label: "Scale" }]} />
+            <Select compact ariaLabel="Sort" value={sort} onChange={(v) => { setSort(v); setPage(1); }} className="w-48" options={[{ value: "newest", label: "Newest first" }, { value: "revenue", label: "Highest revenue" }, { value: "sites", label: "Most websites" }]} />
           </div>
         </div>
         {error ? <div className="p-5"><ErrorState message={error.message} retry={() => mutate()} /></div> : !data ? <div className="p-5"><Skeleton className="h-64" /></div> : (

@@ -1,5 +1,7 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
+import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,7 +37,7 @@ export default function CustomerPage() {
   const { data, error, mutate } = useSWR<Detail>(`/api/admin/customers/${id}`, fetcher);
   const [panel, setPanel] = useState<Panel>(null);
   const [mode, setMode] = useState<"view" | "edit">("view");
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const setNote = useNoteToast();
   const [busy, setBusy] = useState(false);
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
@@ -81,14 +83,13 @@ export default function CustomerPage() {
         </div>
       </header>
 
-      {note && <p role="status" className={`rounded-xl px-5 py-3 text-sm ${note.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{note.text}</p>}
 
       {panel === "support" && (
         <form role="dialog" aria-label="Log in as owner" onSubmit={startSupport} className="flex flex-col gap-[18px] rounded-[14px] border-2 border-[#6B4FE0] bg-white p-[22px]">
           <div className="flex max-w-[720px] flex-col gap-1"><span className="text-[17px] font-semibold">Log in as {owner?.name ?? "the owner"}</span>
             <span className="text-sm leading-relaxed text-[#5B6472]">You will see exactly what {owner?.name.split(" ")[0] ?? "they"} see{owner ? "s" : ""}, with a purple banner on every page. The session ends after 30 minutes. It is written to the audit trail with your name and reason. The customer is not notified.</span></div>
           <div className="flex flex-wrap gap-[18px]">
-            <div className="flex flex-[1_1_220px] flex-col gap-2"><label htmlFor="why" className="text-sm font-medium">Reason</label><select id="why" name="reason" className={aInput}>{reasons.map((r) => <option key={r}>{r}</option>)}</select></div>
+            <div className="flex flex-[1_1_220px] flex-col gap-2"><label htmlFor="why" className="text-sm font-medium">Reason</label><Select id="why" name="reason" defaultValue={reasons[0]} options={opts(reasons)} /></div>
             <div className="flex flex-[2_1_320px] flex-col gap-2"><label htmlFor="what" className="text-sm font-medium">What are you helping with? <span className="text-[#B3261E]">Required</span></label>
               <input id="what" name="detail" required minLength={5} placeholder="For example: report shows the wrong month" className={aInput} /></div>
           </div>
@@ -104,8 +105,8 @@ export default function CustomerPage() {
       {panel === "plan" && (
         <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); patch({ plan_id: f.get("plan_id"), cycle: f.get("cycle"), extend_days: Number(f.get("days")) || undefined }, "Plan updated."); }}
           className="flex flex-wrap items-end gap-4 rounded-[14px] border-2 border-[#6B4FE0] bg-white p-[22px]">
-          <label className="flex flex-col gap-1.5 text-sm font-medium">Plan<select name="plan_id" defaultValue={c.plan_id} className={`${aInput} !w-44`}>{data.plans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-          <label className="flex flex-col gap-1.5 text-sm font-medium">Billing<select name="cycle" defaultValue={c.cycle} className={`${aInput} !w-36`}><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">Plan<Select ariaLabel="Plan" name="plan_id" defaultValue={c.plan_id} className="w-44" options={data.plans.map((p) => ({ value: p.id, label: p.name }))} /></label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium">Billing<Select ariaLabel="Billing" name="cycle" defaultValue={c.cycle} className="w-36" options={[{ value: "monthly", label: "Monthly" }, { value: "yearly", label: "Yearly" }]} /></label>
           <label className="flex flex-col gap-1.5 text-sm font-medium">Active for (days, optional)<input name="days" type="number" min={1} className={`${aInput} !w-40`} /></label>
           <button disabled={busy} className={aBtn.primary}>Apply plan</button><button type="button" onClick={() => setPanel(null)} className={aBtn.secondary}>Cancel</button>
           <p className="w-full text-[13px] text-[#5B6472]">This sets the plan without taking payment. Sites above a lower plan&apos;s limit are paused, not deleted.</p>
@@ -142,7 +143,7 @@ export default function CustomerPage() {
               <div className="flex gap-2"><button disabled={busy} className={aBtn.primary}>Save limits</button><button type="button" onClick={() => patch({ limits_override: {} }, "Custom limits removed.")} className={aBtn.secondary}>Remove custom limits</button></div></form>)}
           {panel === "refund" && (
             <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => send("POST", `/api/admin/customers/${id}/refund`, { reference: f.get("reference"), amount: Number(f.get("amount")) || undefined }), "Refund recorded."); }} className="flex flex-col gap-3 rounded-xl bg-[#F5F1FF] p-4">
-              <label className="flex flex-col gap-1.5 text-sm font-medium">Payment<select name="reference" className={aInput}>{refundable.map((p) => <option key={p.reference} value={p.reference}>{shortDate(p.paid ?? p.created)} · {p.plan_id} · {money(p.amount)}{p.refunded ? ` (${money(p.refunded)} refunded)` : ""}</option>)}</select></label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Payment<Select ariaLabel="Payment" name="reference" defaultValue={refundable[0]?.reference} options={refundable.map((p) => ({ value: p.reference, label: `${shortDate(p.paid ?? p.created)} · ${p.plan_id} · ${money(p.amount)}${p.refunded ? ` (${money(p.refunded)} refunded)` : ""}` }))} /></label>
               <label className="flex flex-col gap-1.5 text-sm font-medium">Amount in GHS (empty refunds what is left)<input name="amount" type="number" step="0.01" min={0} className={`${aInput} !w-48`} /></label>
               <div><button disabled={busy} className={aBtn.danger}>Refund through Paystack</button></div></form>)}
         </AdminCard>

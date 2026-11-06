@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "./select";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
@@ -108,9 +109,9 @@ export function TeamPanel() {
           <div className="flex flex-wrap gap-[18px]">
             <div className="flex flex-[2_1_260px] flex-col gap-2"><label htmlFor="em" className="text-sm font-medium">Email address</label><input id="em" name="email" type="email" required placeholder="colleague@company.com" className={field} /></div>
             <div className="flex flex-[1_1_180px] flex-col gap-2"><label htmlFor="role" className="text-sm font-medium">Role</label>
-              <select id="role" name="role" defaultValue="member" className={field}><option value="member">Member</option>{role === "owner" && <option value="admin">Admin</option>}<option value="viewer">Viewer (read only)</option></select></div>
+              <Select id="role" name="role" defaultValue="member" options={[{ value: "member", label: "Member" }, ...(role === "owner" ? [{ value: "admin", label: "Admin" }] : []), { value: "viewer", label: "Viewer (read only)" }]} /></div>
             <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="acc" className="text-sm font-medium">Website access</label>
-              <select id="acc" value={access} onChange={(e) => setAccess(e.target.value as "all" | "some")} className={field}><option value="all">All websites</option><option value="some">Only selected websites</option></select></div>
+              <Select id="acc" value={access} onChange={(v) => setAccess(v as "all" | "some")} options={[{ value: "all", label: "All websites" }, { value: "some", label: "Only selected websites" }]} /></div>
           </div>
           {access === "some" && <SiteChooser sites={sites} value={picked} onChange={setPicked} />}
           <div className="flex flex-wrap items-center justify-end gap-3">

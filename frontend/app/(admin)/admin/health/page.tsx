@@ -1,5 +1,7 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
+import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -24,7 +26,7 @@ const iconTone = { ok: "bg-[#E3F4EC] text-[#0B7A4B]", warn: "bg-[#FFF1D6] text-[
 const dot = { ok: "#0B7A4B", warn: "#8A5A00", bad: "#B3261E" } as const;
 export default function AdminHealth() {
   const { data, error, mutate } = useSWR<Health>("/api/admin/health", fetcher, { refreshInterval: 30000 });
-  const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
+  const setNote = useNoteToast();
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
 
@@ -77,11 +79,10 @@ export default function AdminHealth() {
         <h2 className="text-lg font-semibold">Message all customers</h2>
         <p className="text-sm text-[#5B6472]">Shows as a banner at the top of every dashboard. Use it for planned maintenance or news.</p>
         {data.announcement && <p className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#EFEAFF] px-4 py-3 text-sm text-[#4A33B0]"><span><b>Live now:</b> {data.announcement.message} <span className="opacity-70">({data.announcement.audience})</span></span><button onClick={clear} className="font-semibold underline">Remove</button></p>}
-        {note && <p role="status" className={`rounded-lg px-4 py-3 text-sm ${note.ok ? "bg-[#E3F4EC] text-[#0B7A4B]" : "bg-[#FBE7E5] text-[#B3261E]"}`}>{note.text}</p>}
         <form onSubmit={publish} className="flex flex-col gap-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex flex-[3_1_320px] flex-col gap-2"><label htmlFor="msg" className="text-sm font-medium">Message</label><input id="msg" name="message" required maxLength={300} placeholder="Planned maintenance on Saturday 14 Nov, 02:00 to 03:00" className={aInput} /></div>
-            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="aud" className="text-sm font-medium">Show to</label><select id="aud" name="audience" className={aInput}><option value="everyone">Everyone</option><option value="paying">Paying customers</option><option value="free">Free plan only</option></select></div>
+            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="aud" className="text-sm font-medium">Show to</label><Select id="aud" name="audience" defaultValue="everyone" options={[{ value: "everyone", label: "Everyone" }, { value: "paying", label: "Paying customers" }, { value: "free", label: "Free plan only" }]} /></div>
           </div>
           <div><button className={aBtn.primary}>Publish banner</button></div>
         </form>

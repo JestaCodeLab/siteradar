@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -15,7 +16,7 @@ function Form() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wait, setWait] = useState(45);
-  const [note, setNote] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -36,8 +37,8 @@ function Form() {
   }
 
   async function resend() {
-    setNote(null); setError(null);
-    try { await send("POST", "/api/auth/resend", { email }); setNote("A new code is on its way."); setWait(60); }
+    setError(null);
+    try { await send("POST", "/api/auth/resend", { email }); toast.success("A new code is on its way."); setWait(60); }
     catch (err) { setError(err instanceof Error ? err.message : "Could not send a new code."); }
   }
 
@@ -53,7 +54,6 @@ function Form() {
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000"
           className={`${input} min-h-16 text-center font-mono text-[32px] tracking-[0.5em]`} />
         <FormError message={error} />
-        {note && <p role="status" className="rounded-lg bg-ok-soft px-3.5 py-2.5 text-sm text-ok">{note}</p>}
         <button disabled={busy || code.length !== 6} className={`${btn.primary} min-h-12 text-[15px]`}>{busy ? "Verifying…" : "Verify and continue"}</button>
       </form>
       <div className="flex flex-col gap-2 text-sm text-muted">

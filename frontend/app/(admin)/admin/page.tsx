@@ -1,5 +1,6 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -37,8 +38,7 @@ export default function AdminOverview() {
     <>
       <AdminHeader title="Platform overview" subtitle="How the business is doing."
         actions={<div className="flex items-center gap-2"><label htmlFor="range" className="text-sm text-[#5B6472]">Period</label>
-          <select id="range" value={period} onChange={(e) => setPeriod(e.target.value)} className="min-h-11 rounded-lg border border-[#C9CFD8] bg-white px-3 text-sm">
-            <option value="30d">Last 30 days</option><option value="month">This month</option><option value="90d">Last 90 days</option><option value="year">This year</option></select></div>} />
+          <Select id="range" value={period} onChange={setPeriod} className="w-44" options={[{ value: "30d", label: "Last 30 days" }, { value: "month", label: "This month" }, { value: "90d", label: "Last 90 days" }, { value: "year", label: "This year" }]} /></div>} />
 
       <section aria-label="Key numbers" className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
         {kpis.map(({ label, value, note, noteTone, Icon, bg, fg }) => (

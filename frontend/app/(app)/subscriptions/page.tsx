@@ -1,5 +1,6 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
 import { CalendarClock, CalendarDays, FileWarning, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -60,10 +61,7 @@ export default function SubscriptionsPage() {
           </div>
           <div className="flex items-center gap-2">
             <label htmlFor="site" className="text-sm text-muted">Website</label>
-            <select id="site" value={site} onChange={(e) => setSite(e.target.value)} className="min-h-10 rounded-lg border border-[#c9cfd8] bg-surface px-3 text-sm">
-              <option value="">All websites</option>
-              {siteOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
-            </select>
+            <Select id="site" compact value={site} onChange={setSite} className="min-w-48" options={[{ value: "", label: "All websites" }, ...siteOptions.map(([value, label]) => ({ value, label }))]} />
           </div>
         </div>
         <div className="overflow-x-auto">

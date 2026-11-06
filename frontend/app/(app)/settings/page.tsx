@@ -1,5 +1,6 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useRef, useState } from "react";
@@ -10,9 +11,9 @@ import { ErrorState, PageHeader, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type SettingsData } from "@/lib/api";
 import { fmtSize, splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
+import { useNoteToast } from "@/components/toast";
 
 type Tab = "company" | "profile" | "team" | "billing" | "alerts";
-type Note = { ok: boolean; text: string } | null;
 const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];
 const zones = [["Africa/Accra", "Africa/Accra (GMT)"], ["Africa/Lagos", "Africa/Lagos (WAT)"], ["Africa/Nairobi", "Africa/Nairobi (EAT)"], ["Europe/London", "Europe/London"]];
 
@@ -21,9 +22,6 @@ const inputCls = "min-h-[46px] w-full rounded-lg border border-[#c9cfd8] bg-surf
 const primary = "inline-flex min-h-11 items-center justify-center rounded-lg bg-brand px-[18px] text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-60";
 const secondary = "inline-flex min-h-11 items-center justify-center rounded-lg border border-[#c9cfd8] bg-surface px-[18px] text-sm font-semibold hover:bg-soft disabled:opacity-60";
 
-function Notice({ note }: { note: Note }) {
-  return note ? <p role="status" className={`text-sm ${note.ok ? "text-ok" : "text-bad"}`}>{note.text}</p> : null;
-}
 function Lbl({ id, children, hint }: { id: string; children: React.ReactNode; hint?: React.ReactNode }) {
   return <label htmlFor={id} className="flex flex-wrap items-center gap-2 text-sm font-medium">{children}{hint}</label>;
 }
@@ -34,7 +32,7 @@ function Company() {
   const { ws, isAdmin, isOwner, me, mutate } = useMe();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [note, setNote] = useState<Note>(null);
+  const setNote = useNoteToast();
   const [busy, setBusy] = useState(false);
   const [danger, setDanger] = useState(false);
   const [confirmName, setConfirmName] = useState("");
@@ -82,11 +80,11 @@ function Company() {
               <div className="flex flex-col gap-2"><Lbl id="web">Company website</Lbl><input id="web" name="website" type="url" defaultValue={ws.website ?? ""} className={inputCls} /></div>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <div className="flex flex-col gap-2"><Lbl id="ct">Country</Lbl><select id="ct" name="country" defaultValue={ws.country ?? "Ghana"} className={inputCls}>{countries.map((c) => <option key={c}>{c}</option>)}</select></div>
-              <div className="flex flex-col gap-2"><Lbl id="tz">Time zone</Lbl><select id="tz" name="timezone" defaultValue={ws.timezone ?? "Africa/Accra"} className={inputCls}>{zones.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+              <div className="flex flex-col gap-2"><Lbl id="ct">Country</Lbl><Select id="ct" name="country" defaultValue={ws.country ?? "Ghana"} options={opts(countries)} /></div>
+              <div className="flex flex-col gap-2"><Lbl id="tz">Time zone</Lbl><Select id="tz" name="timezone" defaultValue={ws.timezone ?? "Africa/Accra"} options={zones.map(([value, label]) => ({ value, label }))} /></div>
             </div>
           </fieldset>
-          <div className="flex items-center gap-4">{isAdmin && <button disabled={busy} className={primary}>{busy ? "Saving…" : "Save changes"}</button>}<Notice note={note} /></div>
+          <div className="flex items-center gap-4">{isAdmin && <button disabled={busy} className={primary}>{busy ? "Saving…" : "Save changes"}</button>}</div>
           {!isAdmin && <p className="text-sm text-muted">Only owners and admins can change company details.</p>}
         </form>
       </section>
@@ -112,9 +110,9 @@ function Company() {
 // ---- profile and security ----------------------------------------------------------------
 function Profile() {
   const { user, mutate } = useMe();
-  const [pn, setPn] = useState<Note>(null);
-  const [pw, setPw] = useState<Note>(null);
-  const [mail, setMail] = useState<{ step: "idle" | "password" | "code"; note: Note }>({ step: "idle", note: null });
+  const setPn = useNoteToast();
+  const setPw = useNoteToast();
+  const [mail, setMail] = useState<{ step: "idle" | "password" | "code" }>({ step: "idle" });
   const [newEmail, setNewEmail] = useState("");
   if (!user) return null;
 
@@ -125,13 +123,13 @@ function Profile() {
   }
   async function askEmail(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); const f = new FormData(e.currentTarget);
-    try { await send("POST", "/api/account/email", { email: newEmail, password: f.get("password") }); setMail({ step: "code", note: { ok: true, text: `We sent a 6-digit code to ${newEmail}.` } }); await mutate(); }
-    catch (err) { setMail({ step: "password", note: { ok: false, text: err instanceof Error ? err.message : "Could not start the change." } }); }
+    try { await send("POST", "/api/account/email", { email: newEmail, password: f.get("password") }); { setMail({ step: "code" }); setPn({ ok: true, text: `We sent a 6-digit code to ${newEmail}.` }); }; await mutate(); }
+    catch (err) { { setMail({ step: "password" }); setPn({ ok: false, text: err instanceof Error ? err.message : "Could not start the change." }); }; }
   }
   async function confirmEmail(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); const f = new FormData(e.currentTarget);
-    try { await send("POST", "/api/account/email/confirm", { code: f.get("code") }); await mutate(); setMail({ step: "idle", note: { ok: true, text: "Your email address was changed." } }); setNewEmail(""); }
-    catch (err) { setMail({ step: "code", note: { ok: false, text: err instanceof Error ? err.message : "That code did not work." } }); }
+    try { await send("POST", "/api/account/email/confirm", { code: f.get("code") }); await mutate(); { setMail({ step: "idle" }); setPn({ ok: true, text: "Your email address was changed." }); }; setNewEmail(""); }
+    catch (err) { { setMail({ step: "code" }); setPn({ ok: false, text: err instanceof Error ? err.message : "That code did not work." }); }; }
   }
   async function password(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); const form = e.currentTarget; const f = Object.fromEntries(new FormData(form)); setPw(null);
@@ -152,11 +150,11 @@ function Profile() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2"><Lbl id="em" hint={user.email_verified ? <Verified /> : undefined}>Email</Lbl>
-              <input id="em" type="email" value={newEmail || user.email} onChange={(e) => { setNewEmail(e.target.value); setMail({ step: e.target.value && e.target.value !== user.email ? "password" : "idle", note: null }); }} className={inputCls} />
+              <input id="em" type="email" value={newEmail || user.email} onChange={(e) => { setNewEmail(e.target.value); setMail({ step: e.target.value && e.target.value !== user.email ? "password" : "idle" }); }} className={inputCls} />
               <span className="text-[13px] text-muted">Changing it sends a 6-digit code to the new address.</span></div>
             <div className="flex flex-col gap-2"><Lbl id="ph">Phone</Lbl><input id="ph" name="phone" type="tel" defaultValue={user.phone} className={inputCls} /><span className="text-[13px] text-muted">Used for SMS alerts.</span></div>
           </div>
-          <div className="flex items-center gap-4"><button className={primary}>Save changes</button><Notice note={pn} /></div>
+          <div className="flex items-center gap-4"><button className={primary}>Save changes</button></div>
         </form>
 
         {mail.step === "password" && newEmail && (
@@ -167,7 +165,6 @@ function Profile() {
           <form onSubmit={confirmEmail} className="flex flex-wrap items-end gap-3 rounded-xl bg-soft p-4">
             <div className="flex min-w-[220px] flex-1 flex-col gap-2"><Lbl id="mc">6-digit code sent to {user.pending_email ?? newEmail}</Lbl><input id="mc" name="code" inputMode="numeric" maxLength={6} required className={`${inputCls} font-mono tracking-widest`} /></div>
             <button className={primary}>Confirm new email</button></form>)}
-        <Notice note={mail.note} />
       </section>
 
       <section aria-label="Password" className={`${box} flex flex-col gap-5`}>
@@ -177,7 +174,7 @@ function Profile() {
             <div className="flex flex-col gap-2"><Lbl id="cp">Current password</Lbl><input id="cp" name="current" type="password" required autoComplete="current-password" className={inputCls} /></div>
             <div className="flex flex-col gap-2"><Lbl id="np">New password</Lbl><input id="np" name="password" type="password" required minLength={8} autoComplete="new-password" className={inputCls} /></div>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3"><Notice note={pw} /><button type="button" onClick={others} className={secondary}>Log out of all other devices</button><button className={primary}>Change password</button></div>
+          <div className="flex flex-wrap items-center justify-end gap-3"><button type="button" onClick={others} className={secondary}>Log out of all other devices</button><button className={primary}>Change password</button></div>
         </form>
       </section>
     </div>
@@ -190,7 +187,7 @@ interface Prefs { prefs: Record<string, { email: boolean; sms: boolean }>; event
 function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) {
   const { user, isAdmin, ws } = useMe();
   const { data: pref, mutate: refreshPrefs } = useSWR<Prefs>("/api/account/alert-prefs", fetcher);
-  const [note, setNote] = useState<Note>(null);
+  const setNote = useNoteToast();
   const [busy, setBusy] = useState(false);
   const [hooks, setHooks] = useState(false);
   const a = data.alerts, sms = a.channels.includes("sms"), chat = a.channels.includes("chat");
@@ -266,7 +263,7 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
             <div className="flex flex-col gap-2"><Lbl id="emails" hint={<span className="font-normal text-muted">(separate with commas)</span>}>Email recipients</Lbl><input id="emails" name="emails" defaultValue={a.emails.join(", ")} className={inputCls} /></div>
             {sms && <div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div>}
             {chat && (hooks || a.webhooks.length > 0) && <div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack, Teams or Discord webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div>}
-            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={primary}>Save changes</button><button type="button" onClick={test} disabled={busy} className={secondary}>Send test alert</button><Notice note={note} /></div>
+            <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={primary}>Save changes</button><button type="button" onClick={test} disabled={busy} className={secondary}>Send test alert</button></div>
           </form>
         </section>
       )}

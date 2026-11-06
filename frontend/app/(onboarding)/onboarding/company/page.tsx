@@ -1,5 +1,6 @@
 "use client";
 
+import { opts, Select } from "@/components/select";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FormError } from "@/components/auth-shell";
@@ -81,9 +82,9 @@ export default function CompanyStep() {
               <input type="radio" name="kind" checked={kind === k} onChange={() => setKind(k)} className="size-4" />{k}</label>))}</div>
         </fieldset>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Websites you will monitor" htmlFor="sites"><select id="sites" name="sites" className={input}>{siteCounts.map((c) => <option key={c}>{c}</option>)}</select></Field>
-          <Field label="People who will use SiteRadar" htmlFor="team"><select id="team" name="team" className={input}>{teamSizes.map((c) => <option key={c}>{c}</option>)}</select></Field>
-          <Field label="Country" htmlFor="country"><select id="country" name="country" defaultValue={ws?.country ?? "Ghana"} className={input}>{countries.map((c) => <option key={c}>{c}</option>)}</select></Field>
+          <Field label="Websites you will monitor" htmlFor="sites"><Select id="sites" name="sites" defaultValue={siteCounts[0]} options={opts(siteCounts)} /></Field>
+          <Field label="People who will use SiteRadar" htmlFor="team"><Select id="team" name="team" defaultValue={teamSizes[0]} options={opts(teamSizes)} /></Field>
+          <Field label="Country" htmlFor="country"><Select id="country" name="country" defaultValue={ws?.country ?? "Ghana"} options={opts(countries)} /></Field>
         </div>
         <FormError message={error} />
         <div className="flex items-center justify-between gap-4"><span className="text-sm text-muted">Step 1 of 3</span>

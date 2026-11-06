@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import useSWR, { mutate } from "swr";
 import { btn, Card, Field, Icon, input } from "./ui";
+import { DatePicker } from "./date-picker";
+import { opts, Select } from "./select";
+import { useToast } from "./toast";
 import { fetcher, send, type SitesResponse, type Subscription, type SubscriptionsResponse } from "@/lib/api";
 import { fmtDateTime, fmtSize } from "@/lib/format";
 
@@ -34,7 +37,7 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
   const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
   const [filled, setFilled] = useState<string[] | null>(null);
   const [unreadable, setUnreadable] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
 
   async function choose(chosen: File | null) {
@@ -42,8 +45,7 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
     setFilled(null);
     setUnreadable(false);
     if (!chosen) return;
-    if (chosen.size > 4 * 1024 * 1024) { setError("That PDF is larger than 4 MB."); setFile(null); return; }
-    setError(null);
+    if (chosen.size > 4 * 1024 * 1024) { toast.error("That PDF is larger than 4 MB."); setFile(null); return; }
     try {
       const body = new FormData();
       body.append("invoice", chosen);
@@ -60,14 +62,13 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
       });
       setFilled(got);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not read that PDF.");
+      toast.error(e instanceof Error ? e.message : "Could not read that PDF.");
     }
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    setError(null);
     try {
       const payload = { ...f, remind_days: Number(f.remind_days) || 0 };
       if (sub) {
@@ -85,9 +86,10 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
         await send<Subscription>("POST", "/api/subscriptions", body);
       }
       await mutate((key) => typeof key === "string" && key.startsWith("/api/subscription"), undefined, { revalidate: true });
+      toast.success(sub ? "Subscription updated." : "Subscription added.");
       router.push(f.site_id && !sub ? `/websites/${f.site_id}?tab=subscriptions` : "/subscriptions");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save the subscription.");
+      toast.error(err instanceof Error ? err.message : "Could not save the subscription.");
       setBusy(false);
     }
   }
@@ -132,7 +134,7 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
           {unreadable && <p role="status" className="rounded-[10px] bg-warn-soft px-3.5 py-3 text-sm text-warn">We couldn&apos;t read text in this PDF (it may be a scan). Enter the details by hand. The file is still saved.</p>}
           {file && (
             <Field label="This invoice covers" htmlFor="period" hint="month it was charged">
-              <input id="period" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className={`${input} sm:max-w-56`} />
+              <DatePicker id="period" mode="month" required value={period} onChange={setPeriod} className="sm:max-w-56" />
             </Field>
           )}
           {sub && sub.invoices.length > 0 && (
@@ -152,24 +154,17 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
           <Field label="Name" htmlFor="name"><input id="name" required value={f.name} onChange={(e) => set("name", e.target.value)} className={input} placeholder="example.com domain" /></Field>
           <div className="flex flex-wrap gap-5">
             <div className="min-w-[220px] flex-1"><Field label="Website" htmlFor="site">
-              <select id="site" value={f.site_id} onChange={(e) => set("site_id", e.target.value)} className={input}>
-                <option value="">Not tied to a website</option>
-                {sites?.sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
+              <Select id="site" value={f.site_id} onChange={(v) => set("site_id", v)} options={[{ value: "", label: "Not tied to a website" }, ...(sites?.sites.map((x) => ({ value: x.id, label: x.name })) ?? [])]} />
             </Field></div>
             <div className="min-w-[220px] flex-1"><Field label="Category" htmlFor="cat">
-              <select id="cat" value={f.category} onChange={(e) => set("category", e.target.value)} className={input}>
-                {(meta?.categories ?? ["Domain", "Hosting", "SSL", "SaaS", "Other"]).map((c) => <option key={c}>{c}</option>)}
-              </select>
+              <Select id="cat" value={f.category} onChange={(v) => set("category", v)} options={opts(meta?.categories ?? ["Domain", "Hosting", "SSL", "SaaS", "Other"])} />
             </Field></div>
           </div>
           <div className="flex flex-wrap gap-5">
             <div className="min-w-[220px] flex-1"><Field label="Provider" htmlFor="prov"><input id="prov" value={f.provider} onChange={(e) => set("provider", e.target.value)} className={input} placeholder="Namecheap" /></Field></div>
             <div className="min-w-[220px] flex-1"><Field label="Amount" htmlFor="amt">
               <div className="flex gap-2">
-                <select aria-label="Currency" value={f.currency} onChange={(e) => set("currency", e.target.value)} className={`${input} !w-auto`}>
-                  {["USD", "GHS", "EUR", "GBP"].map((c) => <option key={c}>{c}</option>)}
-                </select>
+                <Select ariaLabel="Currency" value={f.currency} onChange={(v) => set("currency", v)} options={opts(["USD", "GHS", "EUR", "GBP"])} className="w-28 shrink-0" />
                 <input id="amt" required inputMode="decimal" value={f.amount} onChange={(e) => set("amount", e.target.value)} className={`${input} min-w-0 font-mono`} placeholder="11.99" />
               </div>
             </Field></div>
@@ -183,12 +178,10 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-5">
-            <div className="min-w-[200px] flex-1"><Field label="Started on" htmlFor="start" hint="optional"><input id="start" type="date" value={f.started} onChange={(e) => set("started", e.target.value)} className={input} /></Field></div>
-            <div className="min-w-[200px] flex-1"><Field label="Next renewal" htmlFor="renew"><input id="renew" required type="date" value={f.next_renewal} onChange={(e) => set("next_renewal", e.target.value)} className={input} /></Field></div>
+            <div className="min-w-[200px] flex-1"><Field label="Started on" htmlFor="start" hint="optional"><DatePicker id="start" value={f.started} onChange={(v) => set("started", v)} /></Field></div>
+            <div className="min-w-[200px] flex-1"><Field label="Next renewal" htmlFor="renew"><DatePicker id="renew" required value={f.next_renewal} onChange={(v) => set("next_renewal", v)} /></Field></div>
             <div className="min-w-[200px] flex-1"><Field label="Remind us" htmlFor="remind">
-              <select id="remind" value={f.remind_days} onChange={(e) => set("remind_days", e.target.value)} className={input}>
-                <option value="30">30 days before</option><option value="14">14 days before</option><option value="7">7 days before</option><option value="0">No reminder</option>
-              </select>
+              <Select id="remind" value={f.remind_days} onChange={(v) => set("remind_days", v)} options={[{ value: "30", label: "30 days before" }, { value: "14", label: "14 days before" }, { value: "7", label: "7 days before" }, { value: "0", label: "No reminder" }]} />
             </Field></div>
           </div>
           <label className="flex min-h-11 items-start gap-3 text-[15px]">
@@ -201,7 +194,6 @@ export function SubscriptionForm({ sub }: { sub?: Subscription }) {
           )}
         </Card>
 
-        {error && <p role="alert" className="rounded-lg bg-bad-soft px-4 py-3 text-sm text-bad">{error}</p>}
         <div className="flex flex-wrap items-center justify-between gap-3">
           {sub ? <button type="button" onClick={remove} className={btn.danger}>Delete subscription</button> : <span />}
           <div className="flex gap-3">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/toast";
 import { CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -248,14 +249,13 @@ export function SiteSubscriptionsTab({ site }: { site: SiteDetail }) {
 // ---- Settings ---------------------------------------------------------------
 export function SettingsTab({ site }: { site: SiteDetail }) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
 
   async function save(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    setBusy(true); setError(null); setSaved(false);
+    setBusy(true);
     try {
       await send("PATCH", `/api/sites/${site.id}`, {
         name: f.get("name"), url: f.get("url"), keyword: f.get("keyword"),
@@ -263,9 +263,9 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
         track_analytics: f.get("track_analytics") === "on", audit: f.get("audit") === "on",
       });
       await Promise.all([mutate(`/api/sites/${site.id}`), mutate("/api/sites")]);
-      setSaved(true);
+      toast.success("Saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save.");
+      toast.error(err instanceof Error ? err.message : "Could not save.");
     } finally {
       setBusy(false);
     }
@@ -289,8 +289,6 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
           <Field label="Extra people to alert when it goes down" htmlFor="alert_to" hint="optional"><input id="alert_to" name="alert_to" defaultValue={site.alert_to.join(", ")} className={input} /></Field>
           <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="track_analytics" defaultChecked={site.track_analytics} className="size-5" />Collect visitor analytics</label>
           <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="audit" defaultChecked={site.audit_enabled} className="size-5" />Run the nightly audit</label>
-          {error && <p role="alert" className="rounded-lg bg-bad-soft px-3.5 py-2.5 text-sm text-bad">{error}</p>}
-          {saved && <p role="status" className="rounded-lg bg-ok-soft px-3.5 py-2.5 text-sm text-ok">Saved.</p>}
           <div className="flex justify-end"><button type="submit" disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>
         </form>
       </Card>

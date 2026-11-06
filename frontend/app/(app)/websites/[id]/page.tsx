@@ -1,5 +1,6 @@
 "use client";
 
+import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -23,7 +24,7 @@ function SiteView() {
   const { data: site, error, mutate } = useSWR<SiteDetail>(`/api/sites/${id}`, fetcher, {
     refreshInterval: (d) => (d?.audit_running || d?.preview.running ? 5000 : d && !d.preview.desktop ? 10000 : 60000),
   });
-  const [note, setNote] = useState<string | null>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState<"check" | "audit" | null>(null);
 
   if (error) {
@@ -38,21 +39,21 @@ function SiteView() {
   const lastPeriod = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`;
 
   async function checkNow() {
-    setBusy("check"); setNote(null);
+    setBusy("check");
     try {
       const r = await send<{ ok: boolean; response_ms: number | null; error: string | null }>("POST", `/api/sites/${id}/check`);
-      setNote(r.ok ? `Up. Responded in ${r.response_ms} ms.` : `Check failed: ${r.error}`);
+      if (r.ok) toast.success(`Up. Responded in ${r.response_ms} ms.`); else toast.error(`Check failed: ${r.error}`);
       await mutate();
-    } catch (e) { setNote(e instanceof Error ? e.message : "Check failed."); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Check failed."); }
     setBusy(null);
   }
   async function runAudit() {
-    setBusy("audit"); setNote(null);
+    setBusy("audit");
     try {
       await send("POST", `/api/sites/${id}/audit`);
-      setNote("Audit started. Results appear in about a minute.");
+      toast.info("Audit started. Results appear in about a minute.");
       await mutate();
-    } catch (e) { setNote(e instanceof Error ? e.message : "Could not start the audit."); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not start the audit."); }
     setBusy(null);
   }
 
@@ -76,7 +77,6 @@ function SiteView() {
           <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} className={btn.primary}>Latest report (PDF)</a>
         </div>
       </header>
-      {note && <p role="status" className="rounded-lg bg-brand-soft px-4 py-2.5 text-sm text-brand-ink">{note}</p>}
 
       <div role="tablist" aria-label="Website sections" className="flex flex-wrap gap-1 border-b border-[#d9dde4]">
         {TABS.map(([key, label]) => (

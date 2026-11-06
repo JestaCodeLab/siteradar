@@ -28,7 +28,7 @@ export default function Home() {
         <Rings className="-right-[260px] -top-[180px] size-[900px]" />
         <Container className="relative flex flex-wrap items-center gap-14 pb-24 pt-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-6">
-            <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-semibold text-[#FDBA74]`}>Digital Presence Intelligence</span>
+            <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-medium text-[#FDBA74]`}>Digital Presence Intelligence</span>
             <h1 className="text-[clamp(38px,5vw,62px)] font-bold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
             <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started free</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
@@ -140,8 +140,8 @@ export default function Home() {
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5">
             {[["SMS · SiteRadar · 14:02", <><b>DOWN:</b> shop.example.com has failed 2 checks in a row. We will text you when it is back.</>, "border-[#DC2626]", ""],
-              ["SMS · SiteRadar · 14:21", <><b>UP:</b> shop.example.com is back after 19 minutes.</>, "border-[#16A34A]", "md:ml-10"],
-              ["Email · 30 days before expiry", <>Your domain example.com expires on 31 Jan 2027. Renew it with your registrar before then.</>, "border-[#F97316]", ""]].map(([k, v, b, m], i) => (
+            ["SMS · SiteRadar · 14:21", <><b>UP:</b> shop.example.com is back after 19 minutes.</>, "border-[#16A34A]", "md:ml-10"],
+            ["Email · 30 days before expiry", <>Your domain example.com expires on 31 Jan 2027. Renew it with your registrar before then.</>, "border-[#F97316]", ""]].map(([k, v, b, m], i) => (
               <div key={i} className={`rounded-[14px] border-l-[5px] bg-white px-[18px] py-4 text-[#0F172A] shadow-[0_10px_30px_rgba(0,0,0,0.3)] ${b} ${m}`}><div className="text-xs text-[#475569]">{k}</div><div className="text-[15px]">{v}</div></div>))}
           </div>
         </Container>
