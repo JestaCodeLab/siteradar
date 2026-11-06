@@ -76,7 +76,9 @@ def blueprint(cfg):
     # ---- public ----------------------------------------------------------
     @bp.get("/plans")
     def public_plans():
-        return jsonify(plans.public())
+        """Prices in the signed-in workspace's currency; otherwise in cedis for Ghana (or an unknown country) and dollars elsewhere."""
+        cur = g.ws["currency"] if g.get("ws") else plans.currency_for_country(request_country())
+        return jsonify(plans.public(cur))
 
     @bp.post("/contact")
     def contact():
@@ -410,7 +412,7 @@ def blueprint(cfg):
         used = db.q1("""SELECT COALESCE(SUM(i.size),0) n FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
                         WHERE s.workspace_id=?""", (ws["id"],))["n"]
         last = db.q1("SELECT method FROM payments WHERE workspace_id=? AND status='success' AND kind IN ('subscription','renewal','retry') ORDER BY paid DESC LIMIT 1", (ws["id"],))
-        return jsonify(workspace=accounts.public_workspace(ws, g.role), catalogue=plans.public(),
+        return jsonify(workspace=accounts.public_workspace(ws, g.role), catalogue=plans.public(ws["currency"]),
                        payments=billing.history(ws["id"]), invoices=billing.invoices(ws["id"]), bundles=billing.sms_bundles(),
                        card=ws["paystack_card"], last_method=last["method"] if last else None, comped=ws["comped"],
                        storage={"used_mb": round(used / 1048576, 1), "limit_mb": plans.limits(ws)["storage_mb"]},

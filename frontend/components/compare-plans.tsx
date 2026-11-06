@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import type { PlanInfo } from "@/lib/api";
-import { ghs } from "@/lib/me";
+import { money } from "@/lib/me";
 
 const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth: "50", scale: "100" };
 const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
@@ -70,8 +70,8 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
               {plans.map((p) => (
                 <th key={p.id} scope="col" className={`px-[22px] pb-5 pt-9 text-left align-bottom ${tint(p)} ${hot(p) ? "border-t-4 border-[#F97316]" : "border-t-4 border-transparent"}`}>
                   <div className={`text-lg font-bold ${hot(p) ? "text-[#9A3412]" : ""}`}>{p.name}</div>
-                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{ghs(price(p))}</span><span className="text-[13px] font-normal text-[#475569]"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></div>
-                  {yearly && p.price_month > 0 && <div className="whitespace-nowrap text-[13px] font-normal text-[#475569]">{ghs(Math.round(p.price_year_month))} a month</div>}
+                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{money(price(p), p.currency)}</span><span className="text-[13px] font-normal text-[#475569]"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></div>
+                  {yearly && p.price_month > 0 && <div className="whitespace-nowrap text-[13px] font-normal text-[#475569]">{money(Math.round(p.price_year_month), p.currency)} a month</div>}
                 </th>
               ))}
             </tr>

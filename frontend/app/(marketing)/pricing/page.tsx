@@ -7,7 +7,7 @@ import { ComparePlans } from "@/components/compare-plans";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow } from "@/lib/mkt-styles";
 import type { PlanInfo } from "@/lib/api";
-import { ghs } from "@/lib/me";
+import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
 const TAGLINE: Record<string, string> = { free: "Try SiteRadar on one site", starter: "For a small business or freelancer", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
@@ -52,7 +52,7 @@ export default function Pricing() {
         <Container className="relative flex flex-col items-center gap-4 pb-[150px] pt-20 text-center">
           <span className={`${eyebrow} text-[#FDBA74]`}>Pricing</span>
           <h1 className="max-w-[760px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em]">Plans that grow with you.</h1>
-          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Clear monthly pricing in Ghana cedis. Choose the plan that fits the websites you look after, and move up as you grow.</p>
+          <p className="max-w-[600px] text-[19px] text-[#CBD5E1]">Clear monthly pricing in {plans[0]?.currency === "USD" ? "US dollars" : "Ghana cedis"}. Choose the plan that fits the websites you look after, and move up as you grow.</p>
           <div role="group" aria-label="Billing period" className="mt-3 inline-flex gap-1 rounded-xl border border-[#334155] bg-[#1E293B] p-1">
             <button aria-pressed={!yearly} onClick={() => setYearly(false)} className={tab(!yearly)}>Monthly</button>
             <button aria-pressed={yearly} onClick={() => setYearly(true)} className={tab(yearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${yearly ? "bg-[#0F172A]/15" : "bg-[#F97316]/20 text-[#FDBA74]"}`}>Save {disc}%</span></button>
@@ -67,8 +67,8 @@ export default function Pricing() {
             return (
               <div key={p.id} className={`flex flex-col gap-4 rounded-[20px] ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] p-[27px] shadow-[0_20px_40px_rgba(124,45,18,0.15)]" : "border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_40px_rgba(15,23,42,0.08)]"}`}>
                 <div className="flex flex-col gap-1"><span className={`text-xl font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</span><span className="text-sm text-[#475569]">{TAGLINE[p.id] ?? p.tagline}</span></div>
-                <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{free ? "GHS 0" : ghs(yearly ? p.price_year : p.price_month)}</span><span className="text-sm text-[#475569]"> / {!free && yearly ? "year" : "month"}</span>
-                  {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">{ghs(Math.round(p.price_year_month))} a month, billed yearly</div>}</div>
+                <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{free ? money(0, p.currency) : money(yearly ? p.price_year : p.price_month, p.currency)}</span><span className="text-sm text-[#475569]"> / {!free && yearly ? "year" : "month"}</span>
+                  {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">{money(Math.round(p.price_year_month), p.currency)} a month, billed yearly</div>}</div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
                 <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><Check size={18} strokeWidth={2.6} className="mt-0.5 flex-none text-[#F97316]" aria-hidden="true" />{b}</li>)}</ul>
               </div>

@@ -20,6 +20,10 @@ export function useMe() {
 
 export const ghs = (n: number) => `GHS ${n.toLocaleString("en-GH", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 })}`;
 
+/** An amount in the plan's currency: "GHS 99" for cedis, "$8" for dollars. Whole units unless there are pesewas or cents. */
+export const money = (n: number, currency = "GHS") =>
+  currency === "USD" ? `$${n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 })}` : ghs(n);
+
 
 /** Where a person belongs right after signing in. */
 export function homeFor(me: Me): string {

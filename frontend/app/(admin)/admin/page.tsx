@@ -10,7 +10,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
 
 interface Overview {
-  period: string; label: string; customers: number; new: number; paying: number; paying_pct: number; mrr: number; cancellations: number; failed: number; failed_amount: number;
+  period: string; label: string; customers: number; new: number; paying: number; paying_pct: number; mrr: number; mrr_usd?: number; cancellations: number; failed: number; failed_amount: number;
   signups: { d: string; n: number }[]; by_plan: { id: string; name: string; count: number; mrr: number; pct: number; color: string }[];
   recent: { id: number; name: string; owner: string; plan: string; created: number }[];
   attention: { tag: string; tone: Tone; title: string; sub: string; href: string }[];
@@ -27,7 +27,7 @@ export default function AdminOverview() {
   const kpis = [
     { label: "Customers", value: String(data.customers), note: `+${data.new} ${data.label}`, noteTone: "#0B7A4B", Icon: Users, bg: "#EFEAFF", fg: "#4A33B0" },
     { label: "Paying customers", value: String(data.paying), note: `${data.paying_pct}% of customers`, noteTone: "#5B6472", Icon: CreditCard, bg: "#E3F4EC", fg: "#0B7A4B" },
-    { label: "Monthly recurring revenue", value: money(Math.round(data.mrr)), note: "Yearly plans counted per month", noteTone: "#5B6472", Icon: TrendingUp, bg: "#E5ECFF", fg: "#1F4FD8" },
+    { label: "Monthly recurring revenue", value: money(Math.round(data.mrr)), note: data.mrr_usd ? `+ $${Math.round(data.mrr_usd).toLocaleString("en-US")} in USD. Yearly plans counted per month` : "Yearly plans counted per month", noteTone: "#5B6472", Icon: TrendingUp, bg: "#E5ECFF", fg: "#1F4FD8" },
     { label: "Cancellations", value: String(data.cancellations), note: { "30d": "Last 30 days", month: "This month", "90d": "Last 90 days", year: "This year" }[data.period] ?? "", noteTone: "#5B6472", Icon: X, bg: "#FFF1D6", fg: "#8A5A00" },
     { label: "Failed payments", value: String(data.failed), note: data.failed ? "Need follow-up" : "None", noteTone: data.failed ? "#B3261E" : "#5B6472", Icon: TriangleAlert, bg: "#FBE7E5", fg: "#B3261E" },
   ];

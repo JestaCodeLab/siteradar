@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { FormError } from "@/components/auth-shell";
 import { btn, Icon } from "@/components/ui";
 import { checkout } from "@/lib/paystack";
-import { ghs } from "@/lib/me";
+import { money } from "@/lib/me";
 import { planFeatures, priceLine, usePlans } from "@/lib/plans";
 
 const suggest: Record<string, string> = { "1 to 3": "starter", "4 to 15": "growth", "16 to 50": "scale", "More than 50": "scale" };
@@ -59,7 +59,7 @@ export default function PlanStep() {
             className={`relative flex flex-col gap-3 rounded-2xl bg-surface p-5 text-left ${plan === p.id ? "border-2 border-brand" : "border border-line"}`}>
             {hint === p.id && <span className="absolute -top-3 left-5 rounded-full bg-ok px-3 py-1 text-xs font-semibold text-white">Suggested for you</span>}
             <span className="text-lg font-semibold">{p.name}</span>
-            <span className="text-[28px] font-semibold leading-none">{yearly && p.price_month > 0 ? ghs(p.price_year) : priceLine(p, false)}<span className="text-sm font-normal text-muted"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></span>
+            <span className="text-[28px] font-semibold leading-none">{yearly && p.price_month > 0 ? money(p.price_year, p.currency) : priceLine(p, false)}<span className="text-sm font-normal text-muted"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></span>
             {yearly && p.price_month > 0 && <span className="-mt-2 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
             <ul className="flex flex-col gap-1.5 text-[13px] text-ink-2">{planFeatures(p).slice(0, 5).map((f) => <li key={f} className="flex gap-2"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f}</li>)}</ul>
           </button>
@@ -75,21 +75,21 @@ export default function PlanStep() {
         ) : (
           <div className="min-w-0 flex-[2_1_420px] rounded-2xl border border-line bg-surface p-6">
             <p className="mb-1 text-base font-semibold">How you pay</p>
-            <p className="text-[15px] leading-relaxed text-ink-2">A secure Paystack window opens on this page so you can pay by card or mobile money (MTN MoMo, Telecel Cash, AirtelTigo Money). Cards renew automatically. With mobile money we email you a payment link before each renewal. You can cancel any time.</p>
+            <p className="text-[15px] leading-relaxed text-ink-2">A secure Paystack window opens on this page so you can pay by card{chosen?.currency === "USD" ? "" : " or mobile money (MTN MoMo, Telecel Cash, AirtelTigo Money)"}. Cards renew automatically.{chosen?.currency === "USD" ? "" : " With mobile money we email you a payment link before each renewal."} You can cancel any time.</p>
           </div>
         )}
         <div className="min-w-0 flex-[1_1_300px] rounded-2xl border border-line bg-surface p-6">
           <p className="mb-3 text-base font-semibold">Order summary</p>
-          <div className="flex justify-between text-sm"><span>{chosen?.name ?? "—"} plan</span><span>{chosen ? ghs(due) : ""}</span></div>
+          <div className="flex justify-between text-sm"><span>{chosen?.name ?? "—"} plan</span><span>{chosen ? money(due, chosen.currency) : ""}</span></div>
           <p className="text-[13px] text-muted">{plan === "free" ? "Free for ever" : yearly ? "Billed yearly" : "Billed monthly"}</p>
-          <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold"><span>Due today</span><span>{ghs(due)}</span></div>
+          <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold"><span>Due today</span><span>{money(due, chosen?.currency)}</span></div>
         </div>
       </div>
       <FormError message={error} />
       <div className="flex flex-wrap justify-between gap-3">
         <button onClick={() => router.push("/onboarding/company")} className={btn.secondary}>Back</button>
         <button onClick={go} disabled={busy || !chosen} className={`${btn.primary} min-h-12 px-8 text-[15px]`}>
-          {busy ? "Please wait…" : plan === "free" ? "Continue with Free" : `Pay ${ghs(due)}`}</button>
+          {busy ? "Please wait…" : plan === "free" ? "Continue with Free" : `Pay ${money(due, chosen?.currency)}`}</button>
       </div>
     </div>
   );

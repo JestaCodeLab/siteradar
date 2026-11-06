@@ -363,11 +363,12 @@ def create_workspace(user, data):
     if not name:
         raise ValueError("Enter your company name.")
     now = time.time()
-    ws_id = db.run("""INSERT INTO workspaces(name, website, industry, size, country, phone, address, owner_id, alert_emails, created)
-                      VALUES (?,?,?,?,?,?,?,?,?,?)""",
+    country = data.get("country") or "Ghana"
+    ws_id = db.run("""INSERT INTO workspaces(name, website, industry, size, country, phone, address, owner_id, alert_emails, created, currency)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
                    (name[:120], (data.get("website") or "").strip()[:200], data.get("industry"), data.get("size"),
-                    data.get("country") or "Ghana", (data.get("phone") or user["phone"] or "")[:30],
-                    (data.get("address") or "")[:300], user["id"], json.dumps([user["email"]]), now))
+                    country, (data.get("phone") or user["phone"] or "")[:30],
+                    (data.get("address") or "")[:300], user["id"], json.dumps([user["email"]]), now, plans.currency_for_country(country)))
     db.exec("INSERT INTO memberships(workspace_id, user_id, role, created) VALUES (?,?,?,?)", (ws_id, user["id"], "owner", now))
     return workspace(ws_id)
 
@@ -389,6 +390,10 @@ def update_workspace(ws_id, data):
     if "alert_webhooks" in data:
         hooks = [h.strip() for h in (data["alert_webhooks"] or []) if str(h).startswith("https://")][:5]
         sets.append("alert_webhooks=?"); args.append(json.dumps(hooks))
+    if "country" in data:        # the billing currency follows the country until the workspace has paid for something
+        w = workspace(ws_id)
+        if w and not w["paystack_auth"] and not db.q1("SELECT 1 FROM payments WHERE workspace_id=? AND status='success'", (ws_id,)):
+            sets.append("currency=?"); args.append(plans.currency_for_country(str(data["country"] or "")))
     if sets:
         db.run(f"UPDATE workspaces SET {', '.join(sets)} WHERE id=?", (*args, ws_id))
     return workspace(ws_id)
@@ -406,7 +411,7 @@ def public_workspace(ws, role=None):
         "id": ws["id"], "name": ws["name"], "owner_name": _owner_name(ws), "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
         "country": ws["country"], "phone": ws["phone"], "address": ws["address"], "logo_url": ws["logo_url"],
         "timezone": ws.get("timezone") or "Africa/Accra", "logo_name": ws.get("logo_name"), "logo_size": ws.get("logo_size"),
-        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"], "alerts_prompted": bool(ws.get("alerts_prompted")), "report_day": ws.get("report_day") or 1, "report_at": ws.get("report_at") or "08:00",
+        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"], "alerts_prompted": bool(ws.get("alerts_prompted")), "currency": ws.get("currency") or "GHS", "report_day": ws.get("report_day") or 1, "report_at": ws.get("report_at") or "08:00",
         "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
                  "interval_minutes": plan["interval_minutes"], "sms": plan["sms"],
                  "history_months": plan["history_months"], "channels": plan["channels"],

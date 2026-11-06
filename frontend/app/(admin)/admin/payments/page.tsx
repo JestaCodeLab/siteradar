@@ -10,10 +10,10 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
 
 interface Resp {
-  tiles: { collected: number; successful: number; failed: number; at_risk: number; refunds: number; momo_pct: number };
+  tiles: { collected: number; successful: number; failed: number; at_risk: number; refunds: number; momo_pct: number; usd_collected?: number };
   counts: Record<string, number>;
   followup: { reference: string; workspace_id: number; workspace: string; plan: string; method: string; amount: number; created: number }[];
-  payments: { reference: string; workspace: string; workspace_id: number; plan_id: string; amount: number; method: string; label: string; created: number; paid: number | null }[];
+  payments: { reference: string; workspace: string; workspace_id: number; plan_id: string; amount: number; currency?: string; method: string; label: string; created: number; paid: number | null }[];
 }
 type Filter = "all" | "paid" | "failed" | "pending" | "refunded";
 const GRID = "130px minmax(180px,1.6fr) 110px 130px 140px 110px 140px";
@@ -34,7 +34,7 @@ export default function AdminPayments() {
   }
 
   const tiles = [
-    { label: "Collected this month", value: money(t.collected), note: `${t.successful} successful payment${t.successful === 1 ? "" : "s"}`, c: "#0B7A4B" },
+    { label: "Collected this month", value: money(t.collected), note: `${t.successful} successful payment${t.successful === 1 ? "" : "s"}${t.usd_collected ? `, plus $${Math.round(t.usd_collected).toLocaleString("en-US")} in USD` : ""}`, c: "#0B7A4B" },
     { label: "Failed payments", value: String(t.failed), note: `${money(t.at_risk)} at risk`, c: t.failed ? "#B3261E" : "#5B6472" },
     { label: "Refunds", value: money(t.refunds), note: t.refunds ? "This month" : "None this month", c: "#5B6472" },
     { label: "Paid with mobile money", value: `${t.momo_pct}%`, note: "The rest by card", c: "#5B6472" },
@@ -79,7 +79,7 @@ export default function AdminPayments() {
             <div key={r.reference} style={{ display: "grid", gridTemplateColumns: GRID }} className="min-h-12 items-center gap-4 border-b border-[#EDEFF3] px-5 py-3 text-sm">
               <span className="text-[13px] text-[#5B6472]">{shortDate(r.paid ?? r.created)}</span>
               <Link href={`/admin/customers/${r.workspace_id}`} className="truncate font-semibold text-[#4A33B0]">{r.workspace}</Link>
-              <span className="capitalize">{r.plan_id}</span><span className="font-mono text-[13px]">GHS {r.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              <span className="capitalize">{r.plan_id}</span><span className="font-mono text-[13px]">{r.currency === "USD" ? "$" : "GHS "}{r.amount.toLocaleString("en-US", { minimumFractionDigits: r.currency === "USD" ? 2 : 0 })}</span>
               <span>{r.method}</span><span><Pill tone={tone[r.label] ?? "muted"}>{r.label}</Pill></span>
               <span className="truncate font-mono text-xs text-[#5B6472]">{r.reference}</span>
             </div>))}

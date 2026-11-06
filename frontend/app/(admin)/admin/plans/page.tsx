@@ -28,7 +28,8 @@ const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (
   { key: "audit_pages", label: "Audit pages", show: (p) => String(p.audit_pages), read: num },
   { key: "storage_mb", label: "Storage", show: (p) => fmtStorage(p.storage_mb), read: parseStorage },
 ];
-const GRID = "minmax(90px,0.9fr) 96px 175px repeat(7, minmax(76px,1fr)) 56px";
+const USD_COL: (typeof COLS)[number] = { key: "price_month_usd", label: "USD / month", show: (p) => String(p.price_month_usd ?? 0), read: num };
+const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(7, minmax(76px,1fr)) 56px";
 const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: boolean) => Partial<Plan>; fixed?: boolean }[] = [
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
   { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
@@ -67,7 +68,7 @@ export default function AdminPlans() {
     try {
       await send("PUT", "/api/admin/plans", {
         settings: { yearly_discount: disc, watermark_text: cur.wmText, watermark_strength: cur.wmStrength, sms_bundles: cur.bundles },
-        plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
+        plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
           history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, channels: p.channels, clean_reports: p.clean_reports,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
       });
@@ -86,7 +87,7 @@ export default function AdminPlans() {
         <AdminCard label="Billing rules" className="flex min-w-0 flex-[1.4_1_460px] flex-col gap-[18px]">
           <h2 className="text-lg font-semibold">Billing rules</h2>
           <div className="flex flex-wrap gap-[18px]">
-            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="cur" className="text-sm font-medium">Currency</label><input id="cur" value="GHS (Ghana cedi)" disabled className={`${aInput} bg-[#F3F4F6] text-[#5B6472]`} /></div>
+            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="cur" className="text-sm font-medium">Currency</label><input id="cur" value="GHS for Ghana, USD elsewhere" disabled className={`${aInput} bg-[#F3F4F6] text-[#5B6472]`} /></div>
             <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="disc" className="text-sm font-medium">Yearly discount (%)</label>
               <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
           </div>
@@ -125,14 +126,15 @@ export default function AdminPlans() {
 
       <section aria-label="Plans" className="overflow-hidden rounded-[14px] border border-[#E2E5EA] bg-white">
         <div className="px-[22px] pb-1 pt-[22px]"><h2 className="text-lg font-semibold">Plan limits and prices</h2></div>
-        <div className="overflow-x-auto"><div className="min-w-[1120px] pb-2">
+        <div className="overflow-x-auto"><div className="min-w-[1220px] pb-2">
           <div style={{ display: "grid", gridTemplateColumns: GRID }} className="items-center gap-3 border-y border-[#E2E5EA] bg-[#F8F9FB] px-[22px] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-[#5B6472]">
-            <span>Plan</span><span>GHS / month</span><span>Yearly, per month</span>{COLS.slice(1).map((c) => <span key={c.key}>{c.label}</span>)}<span>Active</span></div>
+            <span>Plan</span><span>GHS / month</span><span>USD / month</span><span>Yearly, per month</span>{COLS.slice(1).map((c) => <span key={c.key}>{c.label}</span>)}<span>Active</span></div>
           {cur.plans.map((p) => (
             <div key={p.id} style={{ display: "grid", gridTemplateColumns: GRID }} className="items-center gap-3 border-b border-[#EDEFF3] px-[22px] py-3 last:border-0">
               <span className="text-[15px] font-semibold">{p.name}<span className="block text-xs font-normal text-[#5B6472]">{p.customers} customer{p.customers === 1 ? "" : "s"}</span></span>
               <Cell plan={p} col={COLS[0]} typing={typing} setTyping={setTyping} apply={editPlan} />
-              <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${yearlyPerMonth(p.price_month)} (GHS ${Math.round(p.price_month * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr)`}</span>
+              <Cell plan={p} col={USD_COL} typing={typing} setTyping={setTyping} apply={editPlan} />
+              <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${yearlyPerMonth(p.price_month)} (GHS ${Math.round(p.price_month * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr) · $${yearlyPerMonth(p.price_month_usd ?? 0)} ($${Math.round((p.price_month_usd ?? 0) * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr)`}</span>
               {COLS.slice(1).map((c) => <Cell key={c.key} plan={p} col={c} typing={typing} setTyping={setTyping} apply={editPlan} />)}
               <input aria-label={`${p.name} active`} type="checkbox" checked={p.active} onChange={(e) => editPlan(p.id, { active: e.target.checked })} className="size-[18px] accent-[#6B4FE0]" />
             </div>))}

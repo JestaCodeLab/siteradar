@@ -200,6 +200,14 @@ CREATE UNIQUE INDEX users_google_uq ON users(google_sub) WHERE google_sub IS NOT
 ALTER TABLE workspaces ADD COLUMN report_day INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE workspaces ADD COLUMN report_at TEXT NOT NULL DEFAULT '08:00';
 """),
+    (9, """
+ALTER TABLE plans ADD COLUMN price_month_usd DOUBLE PRECISION NOT NULL DEFAULT 0;
+UPDATE plans SET price_month_usd=8 WHERE id='starter';
+UPDATE plans SET price_month_usd=24 WHERE id='growth';
+UPDATE plans SET price_month_usd=64 WHERE id='scale';
+ALTER TABLE workspaces ADD COLUMN currency TEXT NOT NULL DEFAULT 'GHS';
+UPDATE workspaces SET currency='USD' WHERE country IS NOT NULL AND country <> 'Ghana';
+"""),
 ]
 
 

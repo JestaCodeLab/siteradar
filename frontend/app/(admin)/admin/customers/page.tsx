@@ -10,7 +10,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher } from "@/lib/api";
 
 export interface CustomerRow {
-  id: number; name: string; plan_id: string; plan_name: string; status: string; suspended: boolean; created: number; mrr: number;
+  id: number; name: string; plan_id: string; plan_name: string; status: string; suspended: boolean; created: number; mrr: number; currency?: string;
   sites: number; sites_limit: number; members: number; members_limit: number;
   owner: { name: string; email: string; phone: string; last_login: number | null } | null;
 }
@@ -57,7 +57,7 @@ export default function Customers() {
                   <span className="font-mono text-[13px]">{r.sites} of {r.sites_limit}</span>
                   <span className="font-mono text-[13px]">{r.members} of {r.members_limit}</span>
                   <span><Pill tone={statusTone(r.status)}>{r.status}</Pill></span>
-                  <span className="font-mono text-[13px]">GHS {Math.round(r.mrr).toLocaleString()}</span>
+                  <span className="font-mono text-[13px]">{r.currency === "USD" ? "$" : "GHS "}{Math.round(r.mrr).toLocaleString()}</span>
                   <span className="text-[13px] text-[#5B6472]">{shortDate(r.created)}</span>
                 </Link>
               ))}

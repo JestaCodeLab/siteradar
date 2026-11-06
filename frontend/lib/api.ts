@@ -154,6 +154,7 @@ export interface HealthResponse { domain: DomainInfo | null; dns: DnsInfo | null
 export type Role = "owner" | "admin" | "member" | "viewer";
 
 export interface PlanInfo {
+  currency: string; price_month_usd?: number;
   id: string; name: string; tagline: string; price_month: number; price_year: number; price_year_month: number;
   sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
   channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean; active: boolean;
@@ -165,7 +166,7 @@ export interface Workspace {
   phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; suspended: boolean; alerts_prompted?: boolean; report_day?: number; report_at?: string;
   plan: { id: string; name: string; sites: number; members: number; storage_mb?: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
-  plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; plan_renews: number | null;
+  plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; currency?: string; plan_renews: number | null;
   usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number }; sms_credits?: number;
 }
 

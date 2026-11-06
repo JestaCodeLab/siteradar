@@ -2,7 +2,7 @@
 
 import useSWR from "swr";
 import { fetcher, type Catalogue, type PlanInfo } from "./api";
-import { ghs } from "./me";
+import { money } from "./me";
 
 export function usePlans() {
   const { data } = useSWR<Catalogue>("/api/plans", fetcher, { revalidateOnFocus: false });
@@ -29,4 +29,4 @@ export function planFeatures(p: PlanInfo): string[] {
 }
 
 export const priceLine = (p: PlanInfo, yearly: boolean) =>
-  p.price_month === 0 ? "GHS 0" : ghs(yearly ? Math.round(p.price_year_month) : p.price_month);
+  money(p.price_month === 0 ? 0 : yearly ? Math.round(p.price_year_month) : p.price_month, p.currency);

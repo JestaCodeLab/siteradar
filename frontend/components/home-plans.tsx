@@ -1,6 +1,6 @@
 "use client";
 
-import { ghs } from "@/lib/me";
+import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
 const LINE: Record<string, (p: { sites: number; members: number; interval_minutes: number }) => string> = {
@@ -21,7 +21,7 @@ export function HomePlans({ ids, short = false }: { ids?: string[]; short?: bool
         return (
           <div key={p.id} className={`flex flex-col gap-2 rounded-2xl p-6 ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] !p-[23px]" : "border border-[#EFE4D8]"}`}>
             <span className={`text-sm font-bold ${pop ? "text-[#9A3412]" : "text-[#475569]"}`}>{p.name}</span>
-            <span className="text-[34px] font-bold tracking-[-0.03em]">{ghs(p.price_month)} <span className="text-[15px] font-normal text-[#475569]">/ month</span></span>
+            <span className="text-[34px] font-bold tracking-[-0.03em]">{money(p.price_month, p.currency)} <span className="text-[15px] font-normal text-[#475569]">/ month</span></span>
             <span className="text-sm text-[#475569]">{short && p.id === "starter" ? `${p.sites} websites · ${p.members} team members` : (LINE[p.id] ?? LINE.starter)(p)}</span>
           </div>
         );

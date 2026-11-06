@@ -58,11 +58,14 @@ def blueprint(cfg):
 
     catalogue = lambda: {p["id"]: p for p in plans.all_plans(False)}
 
-    def mrr_of(w, cat=None):
+    def mrr_of(w, cat=None, currency=None):
+        """Monthly recurring revenue of one workspace in its own currency, or 0 when `currency` asks for the other one."""
         cat = cat or catalogue()
+        if currency and (w.get("currency") or "GHS") != currency:
+            return 0.0
         if w["plan_id"] == "free" or w["comped"] or w["plan_status"] not in ("active", "past_due") or w["plan_id"] not in cat:
             return 0.0
-        return plans.price(cat[w["plan_id"]], w["cycle"]) / (12 if w["cycle"] == "yearly" else 1)
+        return plans.price(cat[w["plan_id"]], w["cycle"], w.get("currency") or "GHS") / (12 if w["cycle"] == "yearly" else 1)
 
     def owner_of(w):
         return accounts.user_by_id(w["owner_id"]) if w["owner_id"] else None
@@ -73,7 +76,7 @@ def blueprint(cfg):
         return {"id": w["id"], "name": w["name"], "plan_id": w["plan_id"], "plan_name": (plans.get(w["plan_id"]) or {}).get("name", w["plan_id"]),
                 "plan_status": w["plan_status"], "cycle": w["cycle"], "suspended": w["suspended"], "comped": w["comped"],
                 "status": _status(w), "created": w["created"], "sites": u["sites"], "sites_limit": plan["sites"],
-                "members": u["members"], "members_limit": plan["members"], "mrr": round(mrr_of(w, cat), 2), "renews": w["plan_renews"],
+                "members": u["members"], "members_limit": plan["members"], "mrr": round(mrr_of(w, cat), 2), "currency": w.get("currency") or "GHS", "renews": w["plan_renews"],
                 "owner": {"name": f"{owner['first_name']} {owner['last_name']}".strip(), "email": owner["email"], "phone": owner["phone"],
                           "last_login": owner["last_login"]} if owner else None}
 
@@ -128,10 +131,10 @@ def blueprint(cfg):
     def attention():
         now = time.time()
         items = []
-        failed = db.q("SELECT amount FROM payments WHERE status IN ('failed','abandoned') AND created>?", (now - 14 * 86400,))
+        failed = db.q("SELECT amount, currency FROM payments WHERE status IN ('failed','abandoned') AND created>?", (now - 14 * 86400,))
         if failed:
             items.append({"tag": "Payment", "tone": "bad", "title": f"{len(failed)} failed payment{'s' if len(failed) != 1 else ''}",
-                          "sub": f"GHS {sum(f['amount'] for f in failed):,.0f} at risk. Retry or email the customers.", "href": "/admin/payments"})
+                          "sub": f"GHS {sum(f['amount'] for f in failed if (f['currency'] or 'GHS') == 'GHS'):,.0f} at risk. Retry or email the customers.", "href": "/admin/payments"})
         services, bal = health_services()
         for s in services:
             if s["tone"] != "ok" and s["status"] != "Not configured":
@@ -191,19 +194,21 @@ def blueprint(cfg):
         cat = catalogue()
         ws_list = all_workspaces()
         paying = [w for w in ws_list if mrr_of(w, cat) > 0]
-        mrr = sum(mrr_of(w, cat) for w in paying)
+        mrr = sum(mrr_of(w, cat, "GHS") for w in paying)
+        mrr_usd = sum(mrr_of(w, cat, "USD") for w in paying)
         by = {}
         for w in ws_list:
-            b = by.setdefault(w["plan_id"], {"count": 0, "mrr": 0.0}); b["count"] += 1; b["mrr"] += mrr_of(w, cat)
+            b = by.setdefault(w["plan_id"], {"count": 0, "mrr": 0.0, "usd": 0.0}); b["count"] += 1
+            b["mrr"] += mrr_of(w, cat, "GHS"); b["usd"] += mrr_of(w, cat, "USD")
         total = max(1, len(ws_list))
-        by_plan = [{"id": p["id"], "name": p["name"], "count": by.get(p["id"], {}).get("count", 0), "mrr": round(by.get(p["id"], {}).get("mrr", 0), 2),
+        by_plan = [{"id": p["id"], "name": p["name"], "count": by.get(p["id"], {}).get("count", 0), "mrr": round(by.get(p["id"], {}).get("mrr", 0), 2), "mrr_usd": round(by.get(p["id"], {}).get("usd", 0), 2),
                     "pct": round(100 * by.get(p["id"], {}).get("count", 0) / total, 1), "color": PLAN_COLORS.get(p["id"], "#9DB4F5")} for p in cat.values()]
         days = max(1, int((now - start) / 86400) + 1)
         series = {r["d"]: r["n"] for r in db.q("""SELECT to_char(to_timestamp(created) AT TIME ZONE ?, 'YYYY-MM-DD') d, COUNT(*) n FROM workspaces
                                                    WHERE created>=? GROUP BY d""", (db.TZ, start))}
         days_list = [(dt.date.fromtimestamp(start) + dt.timedelta(days=i)) for i in range(days) if dt.date.fromtimestamp(start) + dt.timedelta(days=i) <= today]
         signups = [{"d": d.isoformat(), "n": series.get(d.isoformat(), 0)} for d in days_list]
-        failed = db.q("SELECT amount FROM payments WHERE status IN ('failed','abandoned') AND created>?", (start,))
+        failed = db.q("SELECT amount, currency FROM payments WHERE status IN ('failed','abandoned') AND created>?", (start,))
         cancellations = db.q1("SELECT COUNT(*) n FROM admin_audit WHERE action IN ('plan.cancel','plan.lapsed') AND ts>?", (start,))["n"]
         recent = []
         for w in ws_list[:5]:
@@ -212,7 +217,7 @@ def blueprint(cfg):
                            "owner": f"{o['first_name']} {o['last_name']}".strip() + f" · {o['email']}" if o else ""})
         new_in_period = sum(1 for w in ws_list if w["created"] >= start)
         return jsonify(period=period, label=label, customers=len(ws_list), new=new_in_period, paying=len(paying), paying_pct=round(100 * len(paying) / total),
-                       mrr=round(mrr, 2), cancellations=cancellations, failed=len(failed), failed_amount=round(sum(f["amount"] for f in failed), 2),
+                       mrr=round(mrr, 2), mrr_usd=round(mrr_usd, 2), cancellations=cancellations, failed=len(failed), failed_amount=round(sum(f["amount"] for f in failed if (f["currency"] or "GHS") == "GHS"), 2),
                        signups=signups, by_plan=by_plan, recent=recent, attention=attention(), currency="GHS", first_day=signups[0]["d"] if signups else None)
 
     # ---- customers ----------------------------------------------------------------------
@@ -299,9 +304,9 @@ def blueprint(cfg):
             customer=row, limits_override=w["limits_override"], base_limits={k: base[k] for k in plans.OVERRIDABLE} if base else {},
             owner=row["owner"], billing=[
                 {"k": "Plan", "v": f"{plan['name']}, billed {w['cycle']}"},
-                {"k": "Price", "v": "Free" if not base or base["price_month"] == 0 else f"GHS {plans.price(base, w['cycle']):,.2f} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
+                {"k": "Price", "v": "Free" if not base or base["price_month"] == 0 else f"{plans.money(plans.price(base, w['cycle'], w.get('currency') or 'GHS'), w.get('currency') or 'GHS')} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
                 {"k": "Next renewal", "v": nxt}, {"k": "Payment method", "v": w["paystack_card"] or ("Mobile money or one-off card" if w["plan_id"] != "free" else "None")},
-                {"k": "Revenue so far", "v": f"GHS {revenue:,.2f}"},
+                {"k": "Revenue so far", "v": plans.money(revenue, w.get("currency") or "GHS")},
                 {"k": "Discount or override", "v": "Complimentary" if w["comped"] else ("Custom limits" if w["limits_override"] else "None")}],
             usage=[{"label": "Websites", "text": f"{row['sites']} of {plan['sites']}", "pct": row["sites"] / max(plan["sites"], 1)},
                    {"label": "Team members", "text": f"{team['members'].__len__()} of {plan['members']}", "pct": len(team["members"]) / max(plan["members"], 1)},
@@ -408,7 +413,7 @@ def blueprint(cfg):
         counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces GROUP BY plan_id")}
         wm = plans.watermark()
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
-                "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS", "sms_bundles": billing.sms_bundles()}
+                "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES), "sms_bundles": billing.sms_bundles()}
 
     @bp.get("/plans")
     def plans_list():
@@ -427,7 +432,7 @@ def blueprint(cfg):
         for p in d.get("plans") or []:
             plans.get(p.get("id")) or abort(400, "Unknown plan")
             sets, args = [], []
-            for f in ("price_month",):
+            for f in ("price_month", "price_month_usd"):
                 if f in p:
                     v = float(p[f])
                     if v < 0: raise ValueError("Prices can't be negative.")
@@ -475,20 +480,23 @@ def blueprint(cfg):
         now = time.time()
         month = _month_start()
         allp = payment_rows()
+        ghs = lambda p: (p["currency"] or "GHS") == "GHS"        # cedi totals leave out dollar payments, which are shown on their own
         ok = [p for p in allp if p["status"] in ("success", "refunded") and (p["paid"] or p["created"]) >= month]
+        usd_collected = sum(p["amount"] - (p["refunded"] or 0) for p in ok if not ghs(p))
+        ok = [p for p in ok if ghs(p)]
         failed_all = [p for p in allp if p["status"] in ("failed", "abandoned")]
-        recent_failed = [p for p in failed_all if p["created"] > now - 14 * 86400]
+        recent_failed = [p for p in failed_all if p["created"] > now - 14 * 86400 and ghs(p)]
         momo = [p for p in ok if p["channel"] == "mobile_money"]
-        refunds = sum((p["refunded"] or 0) for p in allp if (p["refunded"] or 0) and (p["paid"] or p["created"]) >= month)
+        refunds = sum((p["refunded"] or 0) for p in allp if (p["refunded"] or 0) and (p["paid"] or p["created"]) >= month and (p["currency"] or "GHS") == "GHS")
         counts = {k: sum(1 for p in allp if p["label"].lower() == k) for k in ("paid", "failed", "pending", "refunded")}
         status = request.args.get("status", "all")
         return jsonify(
             tiles={"collected": round(sum(p["amount"] - (p["refunded"] or 0) for p in ok), 2), "successful": len(ok), "failed": len(recent_failed),
-                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2),
+                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2), "usd_collected": round(usd_collected, 2),
                    "momo_pct": round(100 * len(momo) / len(ok)) if ok else 0},
             counts=counts, followup=[{"reference": p["reference"], "workspace_id": p["workspace_id"], "workspace": p["workspace"], "plan": p["plan_id"],
                                       "method": p["method"], "amount": p["amount"], "created": p["created"], "status": p["status"]} for p in recent_failed[:10]],
-            payments=[{k: p[k] for k in ("reference", "workspace", "workspace_id", "plan_id", "cycle", "amount", "method", "label", "created", "paid")}
+            payments=[{k: p[k] for k in ("reference", "workspace", "workspace_id", "plan_id", "cycle", "amount", "currency", "method", "label", "created", "paid")}
                       for p in payment_rows(status)[:100]])
 
     @bp.get("/payments.csv")

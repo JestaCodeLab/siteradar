@@ -44,13 +44,13 @@ def app_url():
     return os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
 
 
-def quote(plan_id, cycle):
+def quote(plan_id, cycle, currency="GHS"):
     plan = plans.get(plan_id)
     if not plan or not plan["active"]:
         raise ValueError("That plan is not available.")
     if cycle not in PERIOD:
         raise ValueError("Choose monthly or yearly billing.")
-    return plan, plans.price(plan, cycle)
+    return plan, plans.price(plan, cycle, currency)
 
 
 def switch_plan(cfg, ws, plan_id, cycle="monthly", renews=None):
@@ -59,16 +59,18 @@ def switch_plan(cfg, ws, plan_id, cycle="monthly", renews=None):
     sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
 
 
-def _start(cfg, ws, user, ref, amount, metadata, channels=None):
+def _start(cfg, ws, user, ref, amount, metadata, channels=None, currency="GHS"):
     """Open a Paystack transaction (or finish at once in test mode) for a payment row that already exists."""
     if test_mode():
         confirm(cfg, ref)
         return {"done": True}
     if not configured():
         raise RuntimeError("Payments are not set up yet. Please contact support.")
-    payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": "GHS", "reference": ref,
+    payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": currency, "reference": ref,
                "callback_url": f"{app_url()}/billing/callback", "metadata": metadata}
-    if channels:
+    if currency != "GHS":
+        payload["channels"] = ["card"]          # mobile money only exists for cedi payments
+    elif channels:
         payload["channels"] = channels
     if os.environ.get("PAYSTACK_SUBACCOUNT"):          # payments settle to this subaccount
         payload["subaccount"] = os.environ["PAYSTACK_SUBACCOUNT"]
@@ -80,14 +82,15 @@ def _start(cfg, ws, user, ref, amount, metadata, channels=None):
 
 def checkout(cfg, ws, user, plan_id, cycle, channels=None):
     """Returns {url} to send the customer to, or {done: True} when no payment is needed."""
-    plan, amount = quote(plan_id, cycle)
+    cur = ws["currency"]
+    plan, amount = quote(plan_id, cycle, cur)
     if amount == 0:
         switch_plan(cfg, ws, plan_id, cycle)
         return {"done": True}
     ref = "sw_" + secrets.token_hex(10)
     db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, plan_id, cycle, amount, "GHS", "pending", "subscription", time.time()))
-    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}, channels)
+           (ws["id"], ref, plan_id, cycle, amount, cur, "pending", "subscription", time.time()))
+    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}, channels, cur)
 
 
 def confirm(cfg, reference):
@@ -141,9 +144,9 @@ def _receipt(ws, pay):
     plan = plans.get(pay["plan_id"])
     renews = time.strftime("%d %B %Y", time.localtime(ws["plan_renews"]))
     body = (f"<p>Thank you. Your <b>{html.escape(plan['name'])}</b> plan ({pay['cycle']}) is active.</p>"
-            f"<p>Amount paid: <b>GHS {pay['amount']:,.2f}</b><br>Reference: {pay['reference']}<br>Next renewal: {renews}</p>")
+            f"<p>Amount paid: <b>{plans.money(pay['amount'], pay['currency'] or 'GHS')}</b><br>Reference: {pay['reference']}<br>Next renewal: {renews}</p>")
     mailer.send(owner["email"], f"Payment received: SiteRadar {plan['name']}",
-                f"Payment of GHS {pay['amount']:,.2f} received for the {plan['name']} plan. Next renewal: {renews}.",
+                f"Payment of {plans.money(pay['amount'], pay['currency'] or 'GHS')} received for the {plan['name']} plan. Next renewal: {renews}.",
                 mailer.layout("Payment received", body, ("Open billing", app_url() + "/billing")))
 
 
@@ -206,13 +209,13 @@ def _renew(cfg, ws, now):
         return
     if left <= 0 and ws["paystack_auth"] and configured() and not db.kv_get(flag):
         db.kv_set(flag, True)
-        plan, amount = quote(ws["plan_id"], ws["cycle"])
+        plan, amount = quote(ws["plan_id"], ws["cycle"], ws["currency"])
         ref = "sw_" + secrets.token_hex(10)
         db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-               (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, "GHS", "pending", "renewal", now))
+               (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "renewal", now))
         _call("POST", "/transaction/charge_authorization", json={
             "authorization_code": ws["paystack_auth"], "email": ws["paystack_email"], "amount": int(round(amount * 100)),
-            "currency": "GHS", "reference": ref})
+            "currency": ws["currency"], "reference": ref})
         confirm(cfg, ref)
     elif left <= 0 and ws["plan_status"] == "past_due" and not db.kv_get(flag + ":due"):
         db.kv_set(flag + ":due", True)
@@ -248,14 +251,14 @@ def retry_payment(cfg, ws):
     if not (configured() and ws["paystack_auth"]):
         send_payment_link(ws)
         return "link"
-    plan, amount = quote(ws["plan_id"], ws["cycle"])
+    plan, amount = quote(ws["plan_id"], ws["cycle"], ws["currency"])
     ref = "sw_" + secrets.token_hex(10)
     db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, "GHS", "pending", "retry", time.time()))
+           (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "retry", time.time()))
     try:
         _call("POST", "/transaction/charge_authorization", json={
             "authorization_code": ws["paystack_auth"], "email": ws["paystack_email"], "amount": int(round(amount * 100)),
-            "currency": "GHS", "reference": ref})
+            "currency": ws["currency"], "reference": ref})
     except RuntimeError:
         db.exec("UPDATE payments SET status='failed' WHERE reference=?", (ref,))
         return "failed"

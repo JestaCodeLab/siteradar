@@ -9,7 +9,7 @@ import { CreditCard, Smartphone } from "lucide-react";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
 import { fmtDateTs } from "@/lib/format";
-import { ghs, useMe } from "@/lib/me";
+import { ghs, money, useMe } from "@/lib/me";
 import { checkout, payFor } from "@/lib/paystack";
 import { priceLine } from "@/lib/plans";
 
@@ -41,7 +41,7 @@ export function BillingPanel() {
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <div className="flex flex-col gap-4"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>;
-  const ws = data.workspace, cur = ws.plan_id, isYearly = yearly ?? ws.cycle === "yearly";
+  const ws = data.workspace, cur = ws.plan_id, ccy = data.catalogue.currency, isYearly = yearly ?? ws.cycle === "yearly";
   const plans = data.catalogue.plans, free = cur === "free";
   const currentPlan = plans.find((p) => p.id === cur);
   const curIdx = plans.findIndex((p) => p.id === cur);
@@ -89,11 +89,11 @@ export function BillingPanel() {
         <section aria-label="Current plan" className={`${box} flex min-w-0 flex-[1_1_420px] flex-col gap-3.5`}>
           <div className="flex items-center justify-between"><h2 className={h2}>Current plan</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip[1]}`}>{statusChip[0]}</span></div>
           <div className="flex flex-wrap items-baseline gap-2.5"><span className="text-[28px] font-semibold">{ws.plan.name}</span>
-            <span className="text-base text-muted">{free ? "GHS 0, for ever" : currentPlan ? `${ghs(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month)} / ${ws.cycle === "yearly" ? "year" : "month"}` : ""}</span></div>
+            <span className="text-base text-muted">{free ? `${money(0, ccy)}, for ever` : currentPlan ? `${money(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month, ccy)} / ${ws.cycle === "yearly" ? "year" : "month"}` : ""}</span></div>
           <p className="text-sm leading-relaxed text-muted">
             {free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark."
               : data.comped ? "Complimentary plan from SiteRadar."
-              : `Billed ${ws.cycle}. Your plan renews on ${fmtDateTs(ws.plan_renews)}.${ws.cycle === "monthly" && currentPlan ? ` Switching to yearly billing would cost ${ghs(yearlyTotal)} a year instead of ${ghs(monthlyYear)}.` : ""}`}</p>
+              : `Billed ${ws.cycle}. Your plan renews on ${fmtDateTs(ws.plan_renews)}.${ws.cycle === "monthly" && currentPlan ? ` Switching to yearly billing would cost ${money(yearlyTotal, ccy)} a year instead of ${money(monthlyYear, ccy)}.` : ""}`}</p>
           {!free && !data.comped && isOwner && (
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
               {ws.cycle === "monthly" && <button disabled={busy !== null} onClick={() => choose(cur, "yearly")} className="flex min-h-11 items-center text-sm font-semibold text-brand">Switch to yearly and save {disc}%</button>}
@@ -124,7 +124,7 @@ export function BillingPanel() {
             return (
               <div key={p.id} className={`flex flex-col gap-2.5 rounded-xl p-[18px] ${isCur ? "border-2 border-brand bg-brand-soft/40" : "border border-line bg-surface"}`}>
                 <div className="flex items-center justify-between"><span className="text-base font-semibold">{p.name}</span>{isCur && <span className="rounded-full bg-brand-soft px-2.5 py-[3px] text-xs font-semibold text-brand-ink">Current</span>}</div>
-                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly && p.price_month > 0 ? ghs(p.price_year) : priceLine(p, false)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : isYearly ? "/ year" : "/ month"}</span></div>
+                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly && p.price_month > 0 ? money(p.price_year, p.currency) : priceLine(p, false)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : isYearly ? "/ year" : "/ month"}</span></div>
                 {isYearly && p.price_month > 0 && <span className="-mt-1.5 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
                 <span className="flex-1 text-[13px] leading-snug text-muted">{planLine(p)}</span>
                 {here ? <span className="flex min-h-11 items-center justify-center text-sm font-semibold text-muted">Your plan</span>
@@ -134,7 +134,7 @@ export function BillingPanel() {
             );
           })}
         </div>
-        <span className="text-[13px] leading-relaxed text-muted">Upgrades apply straight away. Payment is handled by Paystack, by card or mobile money. Moving to Free applies straight away; websites above the Free limit are paused, not deleted.</span>
+        <span className="text-[13px] leading-relaxed text-muted">Upgrades apply straight away. Payment is handled by Paystack, by card{ccy === "GHS" ? " or mobile money" : ""}. Moving to Free applies straight away; websites above the Free limit are paused, not deleted.</span>
       </section>
 
       <div className="flex flex-wrap items-stretch gap-5">
@@ -152,9 +152,9 @@ export function BillingPanel() {
               <button disabled={busy !== null} onClick={() => payBy("card")} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
                 <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><CreditCard size={18} aria-hidden="true" /></span>
                 <span className="flex flex-col"><span className="text-sm font-semibold">Add a card</span><span className="text-[13px] text-muted">Renews automatically each period</span></span></button>
-              <button disabled={busy !== null} onClick={() => payBy("mobile_money")} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
+              {ccy === "GHS" && (<button disabled={busy !== null} onClick={() => payBy("mobile_money")} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
                 <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><Smartphone size={18} aria-hidden="true" /></span>
-                <span className="flex flex-col"><span className="text-sm font-semibold">Use another mobile money number</span><span className="text-[13px] text-muted">MTN MoMo, Telecel Cash, AirtelTigo</span></span></button>
+                <span className="flex flex-col"><span className="text-sm font-semibold">Use another mobile money number</span><span className="text-[13px] text-muted">MTN MoMo, Telecel Cash, AirtelTigo</span></span></button>)}
             </>
           )}
         </section>

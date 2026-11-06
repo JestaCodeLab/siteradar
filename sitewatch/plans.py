@@ -31,20 +31,35 @@ def yearly_discount():
     return float(v.get("yearly_discount", DEFAULT_DISCOUNT))
 
 
-def price(plan, cycle):
-    """Amount in GHS to charge for one billing period."""
-    m = plan["price_month"]
+CURRENCIES = ("GHS", "USD")
+
+
+def currency_for_country(country):
+    """Ghana pays in cedis and everywhere else in US dollars. Accepts a name ("Ghana") or a code ("GH")."""
+    return "GHS" if (country or "").strip().lower() in ("ghana", "gh", "") else "USD"
+
+
+def money(amount, currency="GHS"):
+    """Plain text amount, whole units unless there are pesewas or cents: GHS 99, USD 8."""
+    return f"{currency} {amount:,.0f}" if float(amount).is_integer() else f"{currency} {amount:,.2f}"
+
+
+def price(plan, cycle, currency="GHS"):
+    """Amount to charge for one billing period, in whole units of the currency."""
+    m = plan["price_month_usd"] if currency == "USD" else plan["price_month"]
     if cycle == "yearly":
-        return float(round(m * 12 * (1 - yearly_discount() / 100)))     # whole cedis, no pesewas
+        return float(round(m * 12 * (1 - yearly_discount() / 100)))
     return float(round(m))
 
 
-def public():
+def public(currency="GHS"):
+    """The plans with their prices in one currency, as the website shows them."""
     d = yearly_discount()
     out = []
     for p in all_plans():
-        out.append({**p, "price_year": price(p, "yearly"), "price_year_month": round(price(p, "yearly") / 12)})
-    return {"plans": out, "yearly_discount": d, "currency": "GHS"}
+        yearly = price(p, "yearly", currency)
+        out.append({**p, "currency": currency, "price_month": price(p, "monthly", currency), "price_year": yearly, "price_year_month": round(yearly / 12)})
+    return {"plans": out, "yearly_discount": d, "currency": currency}
 
 
 def usage(ws_id):

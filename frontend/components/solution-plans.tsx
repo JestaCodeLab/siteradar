@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ghs } from "@/lib/me";
+import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
 type Tile = { id: string; per: string; line: (p: { sites: number; members: number }) => string; highlight?: boolean };
@@ -35,13 +35,13 @@ export function SolutionPlans({ variant, eyebrowText, title }: { variant: "agenc
             return t.highlight ? (
               <div key={t.id} className="flex flex-col gap-2 rounded-[18px] border-2 border-[#F97316] bg-[#FFF7ED] p-6 text-[#0F172A]">
                 <span className="font-bold text-[#9A3412]">{p.name}</span>
-                <span><span className="font-mono text-[34px] font-semibold">{ghs(p.price_month)}</span><span className="text-[#475569]">{t.per}</span></span>
+                <span><span className="font-mono text-[34px] font-semibold">{money(p.price_month, p.currency)}</span><span className="text-[#475569]">{t.per}</span></span>
                 <span className="text-[#334155]">{t.line(p)}</span>
               </div>
             ) : (
               <div key={t.id} className="flex flex-col gap-2 rounded-[18px] border border-[#334155] bg-[#1E293B] p-6">
                 <span className="font-bold text-[#E2E8F0]">{p.name}</span>
-                <span><span className="font-mono text-[34px] font-semibold">{ghs(p.price_month)}</span><span className="text-[#CBD5E1]">{t.per}</span></span>
+                <span><span className="font-mono text-[34px] font-semibold">{money(p.price_month, p.currency)}</span><span className="text-[#CBD5E1]">{t.per}</span></span>
                 <span className="text-[#CBD5E1]">{t.line(p)}</span>
               </div>
             );
