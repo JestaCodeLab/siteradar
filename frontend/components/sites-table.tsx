@@ -1,5 +1,6 @@
 "use client";
 
+import { Globe } from "lucide-react";
 import Link from "next/link";
 import { StripLegend, UptimeStrip } from "@/components/charts";
 import { Card, Empty, Skeleton, StatusChip } from "@/components/ui";
@@ -33,7 +34,7 @@ export function SitesTable({ sites, loading, full = false }: { sites?: SiteCard[
               {full && <><span className={mono}>{r.audit_score ?? "—"}</span><span className={mono}>{fmtNum(r.visitors30)}</span></>}
             </Link>
           ))}
-          {sites && sites.length === 0 && <Empty title="No websites yet">Add your first website to start monitoring it.</Empty>}
+          {sites && sites.length === 0 && <Empty icon={Globe} title="No websites yet" action={<Link href="/websites/new" className="inline-flex min-h-11 items-center rounded-lg bg-brand px-5 text-sm font-semibold text-white hover:bg-brand-hover">Add website</Link>}>Add your first website to start monitoring it.</Empty>}
         </div>
       </div>
       <div className="px-5 py-3.5"><StripLegend /></div>

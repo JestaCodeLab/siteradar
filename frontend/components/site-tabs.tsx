@@ -2,7 +2,7 @@
 
 import { Locked } from "./locked";
 import { useToast } from "@/components/toast";
-import { CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
+import { FileText, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -118,7 +118,7 @@ export function AnalyticsTab({ id }: { id: string }) {
         ))}
       </div>
       {empty && (
-        <Card><Empty title="No visits recorded yet">Install the tracking snippet from the Overview tab. Visits appear within a minute.</Empty></Card>
+        <Card><Empty icon={Users} title="No visits recorded yet">Install the tracking snippet from the Overview tab. Visits appear within a minute.</Empty></Card>
       )}
       {!empty && (
         <>
@@ -165,7 +165,7 @@ export function AuditTab({ id }: { id: string }) {
   if (error) return <ErrorState message={error.message} retry={() => retry()} />;
   if (!data) return <Loading />;
   if (!data.audit) {
-    return <Card><Empty title={data.running ? "Audit is running…" : "No audit yet"}>{data.running ? "Results appear in about a minute." : "Audits run every night at 03:00. Press Run audit above to run one now."}</Empty></Card>;
+    return <Card><Empty icon={ClipboardCheck} title={data.running ? "Audit is running…" : "No audit yet"}>{data.running ? "Results appear in about a minute." : "Audits run every night at 03:00. Press Run audit above to run one now."}</Empty></Card>;
   }
   const { scores, issues } = data.audit;
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
@@ -206,7 +206,7 @@ export function ReportsTab({ id }: { id: string }) {
   const link = "inline-flex min-h-11 items-center rounded-lg border border-[#c9cfd8] px-4 text-sm font-semibold hover:bg-soft";
   return (
     <>
-    <Locked feature="clean" title="Reports without the watermark">
+    <Locked compact feature="clean" icon={FileText} title="Reports without the watermark" text="Send clients clean monthly reports with your logo and no SiteRadar watermark." chips={["Your logo", "No watermark"]}>
       <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
         <span className="flex flex-col gap-0.5"><span className="text-[15px] font-semibold">Clean, branded reports</span><span className="text-sm text-muted">Your logo and no SiteRadar watermark on every monthly report.</span></span>
         <span className="inline-flex min-h-11 items-center rounded-lg border border-[#c9cfd8] px-4 text-sm font-semibold">Included</span>
@@ -239,7 +239,7 @@ export function SiteSubscriptionsTab({ site }: { site: SiteDetail }) {
   return (
     <Card className="px-5 pb-2 pt-5">
       <CardTitle aside={<Link href={`/subscriptions/new?site=${site.id}`} className={btn.primary}>Add subscription</Link>}>Subscriptions for {site.name}</CardTitle>
-      {data.subscriptions.length === 0 && <Empty title="No subscriptions yet">Add the domain, hosting and tools this site depends on.</Empty>}
+      {data.subscriptions.length === 0 && <Empty icon={Receipt} title="No subscriptions yet" action={<Link href={`/subscriptions/new?site=${site.id}`} className={btn.primary}>Add subscription</Link>}>Add the domain, hosting and tools this site depends on.</Empty>}
       {data.subscriptions.map((s) => (
         <Link key={s.id} href={`/subscriptions/${s.id}`} className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line-soft py-4 hover:bg-soft">
           <span className="flex min-w-[240px] flex-1 flex-col gap-0.5">

@@ -12,7 +12,7 @@ import { ApiError, fetcher, send, type SettingsData } from "@/lib/api";
 import { fmtSize, splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
 import { LockBadge, Locked, useFeature } from "@/components/locked";
-import { Lock } from "lucide-react";
+import { Hash, Lock, Smartphone } from "lucide-react";
 import { useNoteToast } from "@/components/toast";
 import { ReportSchedule } from "@/components/report-schedule";
 
@@ -60,7 +60,7 @@ function Company() {
   const initials = ws.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="flex max-w-[860px] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <section aria-label="Company" className={`${box} flex flex-col gap-5`}>
         <h2 className="text-lg font-semibold">Company</h2>
         <div className="flex flex-col gap-2">
@@ -143,7 +143,7 @@ function Profile() {
   }
 
   return (
-    <div className="flex max-w-[860px] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <section aria-label="Profile" className={`${box} flex flex-col gap-5`}>
         <h2 className="text-lg font-semibold">Your details</h2>
         <form onSubmit={save} className="flex flex-col gap-5">
@@ -226,7 +226,7 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
   const on = <span className="rounded-full bg-ok-soft px-2.5 py-1 text-xs font-semibold text-ok">On</span>;
 
   return (
-    <div className="flex max-w-[860px] flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <section aria-label="Channels" className={box}>
         <h2 className="mb-2 text-lg font-semibold">Where alerts go</h2>
         <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Email</span><span className="truncate text-[13px] text-muted">{a.emails.join(", ") || user?.email} · included on every plan</span></span>{on}</div>
@@ -268,8 +268,8 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           <p className="mb-3 mt-1 text-sm text-muted">Addresses and numbers for {ws?.name}. People listed here can still turn individual alerts off above.</p>
           <form onSubmit={saveRecipients} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2"><Lbl id="emails" hint={<span className="font-normal text-muted">(separate with commas)</span>}>Email recipients</Lbl><input id="emails" name="emails" defaultValue={a.emails.join(", ")} className={inputCls} /></div>
-            {isGhana && <Locked feature="sms" title="SMS alerts"><div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div></Locked>}
-            {(!chat || hooks || a.webhooks.length > 0) && <Locked feature="chat" title="Team chat alerts"><div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack or Teams webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div></Locked>}
+            {isGhana && <Locked compact feature="sms" icon={Smartphone} title="SMS alerts"><div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div></Locked>}
+            {(!chat || hooks || a.webhooks.length > 0) && <Locked compact feature="chat" icon={Hash} title="Team chat alerts"><div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack or Teams webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div></Locked>}
             <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={primary}>Save changes</button><button type="button" onClick={test} disabled={busy} className={secondary}>Send test alert</button></div>
           </form>
         </section>
@@ -314,15 +314,15 @@ function Settings() {
   return (
     <>
       <PageHeader title="Settings" subtitle="Your company, your own account and how you are alerted." />
-      <div role="tablist" aria-label="Settings sections" className="flex flex-wrap gap-1.5 overflow-x-auto">
+      <div role="tablist" aria-label="Settings sections" className="flex flex-wrap gap-2 overflow-x-auto">
         {tabs.map(([k, label]) => <button key={k} role="tab" aria-selected={tab === k} onClick={() => router.replace(`/settings?tab=${k}`, { scroll: false })}
-          className={`min-h-11 whitespace-nowrap rounded-lg px-4 text-sm ${tab === k ? "bg-brand-soft font-semibold text-brand-ink" : "font-medium text-muted hover:bg-soft"}`}>{label}</button>)}
+          className={`min-h-11 whitespace-nowrap rounded-lg border px-5 text-sm ${tab === k ? "border-brand bg-brand-soft font-semibold text-brand-ink" : "border-[#c9cfd8] bg-surface font-medium text-ink-2 hover:bg-soft"}`}>{label}</button>)}
       </div>
       {tab === "company" && <Company />}
       {tab === "profile" && <Profile />}
       {tab === "team" && <TeamPanel />}
       {tab === "billing" && <BillingPanel />}
-      {tab === "alerts" && (error ? <ErrorState message={error.message} retry={() => mutate()} /> : !data ? <Skeleton className="h-64 max-w-[860px]" /> : <Alerts data={data} refresh={() => mutate()} />)}
+      {tab === "alerts" && (error ? <ErrorState message={error.message} retry={() => mutate()} /> : !data ? <Skeleton className="h-64" /> : <Alerts data={data} refresh={() => mutate()} />)}
     </>
   );
 }

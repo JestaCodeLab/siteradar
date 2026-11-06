@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  Activity, Bell, Check, ChevronDown, ChevronRight, Clock, CreditCard, FileText, Globe, LayoutGrid, LogOut, Menu, Plus, Receipt, Search,
+  Activity, Bell, Check, Inbox, ChevronDown, ChevronRight, Clock, CreditCard, FileText, Globe, LayoutGrid, LogOut, Menu, Plus, Receipt, Search,
   Settings, Shield, Upload, User, Users, type LucideIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -119,11 +119,14 @@ export function ErrorState({ message, retry }: { message: string; retry?: () => 
   );
 }
 
-export function Empty({ title, children }: { title: string; children?: ReactNode }) {
+/** An empty list or tab: an icon, a title, a line of explanation and, where it helps, the button that fixes it. */
+export function Empty({ title, children, icon: Glyph = Inbox, action }: { title: string; children?: ReactNode; icon?: LucideIcon; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+      <span className="mb-1 flex size-14 items-center justify-center rounded-full bg-brand-soft text-brand"><Glyph aria-hidden="true" size={26} /></span>
       <p className="text-base font-semibold">{title}</p>
-      {children && <div className="text-sm text-muted">{children}</div>}
+      {children && <div className="max-w-md text-sm leading-relaxed text-muted">{children}</div>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }

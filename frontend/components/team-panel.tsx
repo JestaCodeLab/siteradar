@@ -5,7 +5,7 @@ import { Locked, useFeature } from "./locked";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Users } from "lucide-react";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type Role, type SitesResponse, type TeamData } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
@@ -108,7 +108,7 @@ export function TeamPanel() {
       {err && <p role="alert" className="rounded-lg bg-bad-soft px-4 py-3 text-sm text-bad">{err.text} {err.limit && <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link>}</p>}
 
       {(open || teamLocked) && (
-        <Locked feature="team" title="Invite your team">
+        <Locked feature="team" icon={Users} title="Invite your team" text="Add colleagues to your workspace and choose what each of them can see and do." chips={["Roles", "Website access", "Invitations"]}>
         <form onSubmit={invite} className="flex flex-col gap-[18px] rounded-[14px] border border-line bg-surface p-[22px]">
           <h2 className="text-lg font-semibold">Invite a team member</h2>
           <div className="flex flex-wrap gap-[18px]">

@@ -96,7 +96,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <div className="h-1.5 rounded-[3px] bg-[#26324a]"><div className="h-1.5 rounded-[3px] bg-[#4fd08f]" style={{ width: `${Math.min(100, ((used as number) / Math.max(of as number, 1)) * 100)}%` }} /></div>
               </div>
             ))}
-            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-brand text-[13px] font-semibold text-white">Manage plan</Link>}
+            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#26324a] text-[13px] font-semibold text-white hover:bg-[#2f3d5a]">Manage plan</Link>}
           </div>
         )}
 

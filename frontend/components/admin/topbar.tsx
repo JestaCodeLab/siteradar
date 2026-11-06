@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Bell, BellOff, ChevronDown, LogOut, Menu, Search, Undo2 } from "lucide-react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { EmptyState, initials, tones, type Tone } from "./ui";
 import { fetcher, send, type User } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
@@ -165,7 +165,7 @@ export function AdminTopbar({ user, env, onMenu }: { user: User; env: string; on
     const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSearching(true); } };
     document.addEventListener("keydown", onKey); return () => document.removeEventListener("keydown", onKey);
   }, []);
-  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); router.replace("/login"); }
+  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate("/api/auth/me"); router.replace("/login"); }
   return (
     <>
       <header className="sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 border-b border-[#E2E5EA] bg-white px-3 py-1.5 lg:px-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import { opts, Select } from "@/components/select";
-import { CalendarClock, CalendarDays, FileWarning, Wallet } from "lucide-react";
+import { CalendarClock, CalendarDays, FileWarning, Receipt, SearchX, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
@@ -91,7 +91,8 @@ export default function SubscriptionsPage() {
               </div>
             ))}
             {data && rows.length === 0 && (
-              <Empty title={data.subscriptions.length ? "Nothing matches that filter" : "No subscriptions yet"}>
+              <Empty icon={data.subscriptions.length ? SearchX : Receipt} title={data.subscriptions.length ? "Nothing matches that filter" : "No subscriptions yet"}
+                action={data.subscriptions.length ? undefined : <Link href="/subscriptions/new" className={btn.primary}>Add subscription</Link>}>
                 {data.subscriptions.length ? "Try another filter." : "Add your domains, hosting and tools to track renewals and costs."}
               </Empty>
             )}

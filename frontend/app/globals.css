@@ -265,3 +265,7 @@ html.dark .text-\[\#B3261E\] {
     animation: none;
   }
 }
+
+/* Tailwind v4 no longer sets a pointer on clickable things */
+button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary, select, label:has(input[type="radio"]), label:has(input[type="checkbox"]), label:has(input[type="file"]), input[type="checkbox"], input[type="radio"] { cursor: pointer; }
+button:disabled, [aria-disabled="true"] { cursor: not-allowed; }

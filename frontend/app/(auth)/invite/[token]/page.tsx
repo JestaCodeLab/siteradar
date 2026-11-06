@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import { useState } from "react";
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { btn, Field, input, Skeleton } from "@/components/ui";
@@ -20,7 +20,7 @@ export default function InvitePage() {
   async function accept(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); const f = Object.fromEntries(new FormData(e.currentTarget));
     setBusy(true); setErr(null);
-    try { await send("POST", `/api/invites/${token}/accept`, f); router.replace("/overview"); }
+    try { await send("POST", `/api/invites/${token}/accept`, f); await mutate("/api/auth/me"); router.replace("/overview"); }
     catch (x) { setErr(x instanceof Error ? x.message : "Could not accept the invitation."); setBusy(false); }
   }
 

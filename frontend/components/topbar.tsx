@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Building2, CreditCard, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import useSWR from "swr";
 import { fetcher, send, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
@@ -166,7 +167,8 @@ function Profile() {
     router.replace("/login");
   }
 
-  const item = "flex min-h-11 items-center rounded-lg px-3 text-sm hover:bg-soft";
+  const item = "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm hover:bg-soft";
+  const ico = "shrink-0 text-muted";
   return (
     <div ref={ref} className="relative">
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu"
@@ -182,14 +184,14 @@ function Profile() {
             <p className="truncate text-[13px] text-muted">{user?.email}</p>
             <p className="mt-1 text-xs font-semibold text-brand-ink">{roleName}{ws ? ` · ${ws.name}` : ""}</p>
           </div>
-          <Link role="menuitem" href="/settings?tab=profile" onClick={close} className={item}>My profile and security</Link>
-          <Link role="menuitem" href="/settings?tab=company" onClick={close} className={item}>Company settings</Link>
-          {isAdmin && <Link role="menuitem" href="/settings?tab=billing" onClick={close} className={item}>Billing and plan</Link>}
+          <Link role="menuitem" href="/settings?tab=profile" onClick={close} className={item}><UserRound aria-hidden="true" size={18} className={ico} />My profile and security</Link>
+          <Link role="menuitem" href="/settings?tab=company" onClick={close} className={item}><Building2 aria-hidden="true" size={18} className={ico} />Company settings</Link>
+          {isAdmin && <Link role="menuitem" href="/settings?tab=billing" onClick={close} className={item}><CreditCard aria-hidden="true" size={18} className={ico} />Billing and plan</Link>}
           {user?.is_super && (
-            <Link role="menuitem" href="/admin" onClick={close} className="flex min-h-11 items-center justify-between rounded-lg bg-[#f5f1ff] px-3 text-sm font-semibold text-[#4a33b0]">
-              Super admin<span className="text-[11px] uppercase tracking-[0.06em]">Staff only</span></Link>
+            <Link role="menuitem" href="/admin" onClick={close} className="flex min-h-11 items-center gap-3 rounded-lg bg-[#f5f1ff] px-3 text-sm font-semibold text-[#4a33b0]">
+              <ShieldCheck aria-hidden="true" size={18} />Super admin<span className="ml-auto text-[11px] uppercase tracking-[0.06em]">Staff only</span></Link>
           )}
-          <button role="menuitem" onClick={logout} className={`${item} w-full text-left text-bad`}>Log out</button>
+          <button role="menuitem" onClick={logout} className={`${item} w-full text-left text-bad`}><LogOut aria-hidden="true" size={18} />Log out</button>
         </div>
       )}
     </div>

@@ -8,7 +8,7 @@ from collections import defaultdict
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
 from . import accounts, billing, db, google_auth, mailer, plans, storage
-from .ctx import SUPPORT_MINUTES, login_required, need, workspace_required
+from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
 LOGO_MAX = 1536 * 1024
@@ -51,6 +51,7 @@ def blueprint(cfg):
         session.permanent = bool(remember)        # not remembered: the cookie ends when the browser closes
         session["uid"] = user["id"]
         session["ver"] = user["session_ver"]
+        session["exp"] = time.time() + SESSION_SECONDS
         if ws_id:
             session["ws"] = ws_id
 
@@ -69,6 +70,7 @@ def blueprint(cfg):
             "workspaces": [{"id": w["id"], "name": w["name"], "role": w["role"], "logo_url": w["logo_url"]} for w in mine],
             "workspace": accounts.public_workspace(g.ws, g.role) if g.ws else None,
             "announcement": announcement(),
+            "session_seconds_left": max(0, int(session.get("exp", 0) - time.time())) if g.user else None,
             "support": {"until": g.impersonating["until"], "reason": g.impersonating["reason"], "mode": g.impersonating["mode"]}
             if g.impersonating else None,
         }
@@ -176,6 +178,13 @@ def blueprint(cfg):
         if mine:
             session["ws"] = mine[0]["id"]
         return redirect(app_url() + "/auth/done")
+
+    @bp.post("/auth/extend")
+    @login_required
+    def extend_session():
+        """"Stay logged in": another full session period from now."""
+        session["exp"] = time.time() + SESSION_SECONDS
+        return jsonify(session_seconds_left=SESSION_SECONDS)
 
     @bp.post("/auth/logout")
     def logout():

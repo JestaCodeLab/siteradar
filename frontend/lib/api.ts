@@ -7,7 +7,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, { credentials: "same-origin", ...init });
   if (res.status === 401 && !path.startsWith("/api/auth/")) {
-    window.location.href = "/login";
+    window.location.href = "/login?expired=1";
     throw new ApiError("Please sign in again.", 401);
   }
   if (!res.ok) {
@@ -178,6 +178,7 @@ export interface Me {
   workspace: Workspace | null;
   support: { until: number; reason: string; mode: "view" | "edit" } | null;
   announcement: string | null;
+  session_seconds_left?: number | null;
 }
 
 export interface TeamData {

@@ -21,7 +21,6 @@ export default function DashboardPage() {
     { title: "Choose a plan", sub: `${ws.plan.name} plan is active`, href: "/settings?tab=billing", done: true },
     { title: "Add your first website", sub: data.sites.length ? `${data.sites.length} website${data.sites.length === 1 ? "" : "s"} added` : "Paste its address and we start checking.", href: "/websites/new", done: data.sites.length > 0 },
     { title: "Install the tracking snippet", sub: "See visitors and real page speed.", href: data.sites[0] ? `/websites/${data.sites[0].id}` : "/websites/new", done: data.setup.snippet },
-    { title: "Invite a team member", sub: `Your plan includes ${ws.plan.members} ${ws.plan.members === 1 ? "person" : "people"}.`, href: "/settings?tab=team", done: data.setup.team },
   ] : [];
   const done = steps.filter((x) => x.done).length;
 

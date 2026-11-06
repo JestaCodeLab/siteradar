@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { THEME_SCRIPT, ThemeSync } from "@/components/theme";
+import { SessionGuard } from "@/components/session-guard";
 import { ToastProvider } from "@/components/toast";
 import { DEFAULT_DESCRIPTION, DEFAULT_OG, SITE_NAME, SITE_URL } from "@/lib/seo";
 
@@ -27,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${mono.variable} h-full antialiased`}>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
-      <body className="min-h-full"><ThemeSync /><ToastProvider>{children}</ToastProvider></body>
+      <body className="min-h-full"><ThemeSync /><ToastProvider>{children}<SessionGuard /></ToastProvider></body>
     </html>
   );
 }

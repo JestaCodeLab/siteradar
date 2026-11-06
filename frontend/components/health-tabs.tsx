@@ -39,7 +39,7 @@ export function DomainTab({ site }: { site: SiteDetail }) {
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return loading;
   const d = data.domain;
-  if (!d) return <Card><Empty title={busy ? "Checking the domain…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website.</Empty></Card>;
+  if (!d) return <Card><Empty icon={CalendarClock} title={busy ? "Checking the domain…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website.</Empty></Card>;
 
   const left = d.days_left;
   const tone = left == null ? "muted" : left < 30 ? "bad" : left <= 60 ? "warn" : "ok";
@@ -105,7 +105,7 @@ export function DnsTab({ id }: { id: string }) {
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return loading;
   const dns = data.dns;
-  if (!dns) return <Card><Empty title={busy ? "Checking DNS…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website.</Empty></Card>;
+  if (!dns) return <Card><Empty icon={ShieldCheck} title={busy ? "Checking DNS…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website.</Empty></Card>;
 
   const web = dns.checks.filter((c) => ["web", "ns", "www", "caa"].includes(c.id));
   const mail = dns.checks.filter((c) => ["mx", "spf", "dmarc", "dkim"].includes(c.id));
@@ -163,7 +163,7 @@ export function SitemapTab({ id }: { id: string }) {
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return loading;
   const s = data.sitemap;
-  if (!s) return <Card><Empty title={busy ? "Reading the sitemap…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website. Large sitemaps can take a minute.</Empty></Card>;
+  if (!s) return <Card><Empty icon={FileText} title={busy ? "Reading the sitemap…" : "Not checked yet"}>The first check runs automatically within a minute of adding a website. Large sitemaps can take a minute.</Empty></Card>;
 
   if (!s.sitemap_url) {
     return (

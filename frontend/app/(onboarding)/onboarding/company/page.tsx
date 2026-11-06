@@ -1,6 +1,7 @@
 "use client";
 
 import { opts, Select } from "@/components/select";
+import { UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { FormError } from "@/components/auth-shell";
@@ -25,6 +26,7 @@ export default function CompanyStep() {
   const [kind, setKind] = useState(kinds[1]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -64,11 +66,15 @@ export default function CompanyStep() {
 
         <div className="flex flex-col gap-2">
           <span className="text-sm font-medium">Company logo <span className="font-normal text-muted">(shown at the top of your reports)</span></span>
-          <div className="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-[#c9cfd8] p-4">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files?.[0]); }}
+            className={`flex flex-wrap items-center gap-4 rounded-xl border-2 border-dashed p-5 transition-colors ${drag ? "border-brand bg-brand-soft" : "border-[#c9cfd8] bg-soft"}`}
+          >
             {preview || ws?.logo_url ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={preview ?? ws?.logo_url ?? ""} alt="Your logo" className="size-16 rounded-lg border border-line bg-white object-contain" />
-              : <span className="flex size-16 items-center justify-center rounded-lg bg-brand-soft text-lg font-semibold text-brand">{(name || "SW").slice(0, 2).toUpperCase()}</span>}
+              : <span className="flex size-16 items-center justify-center rounded-lg bg-brand-soft text-brand"><UploadCloud aria-hidden="true" size={28} /></span>}
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="truncate text-sm font-medium">{file ? file.name : "Upload your logo"}</span>
+              <span className="truncate text-sm font-semibold">{file ? file.name : drag ? "Drop it here" : "Drag and drop your logo here, or choose a file"}</span>
               <span className="text-[13px] text-muted">PNG, JPG or WebP, up to 1.5 MB. A square or wide logo on a light background works best. You can skip this and add it later in Settings.</span>
             </div>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" aria-label="Choose logo" onChange={(e) => pick(e.target.files?.[0])} />

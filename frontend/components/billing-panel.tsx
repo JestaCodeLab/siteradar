@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
 import { CreditCard, Smartphone } from "lucide-react";
-import { ErrorState, Skeleton } from "@/components/ui";
+import { FileText, MessageSquare } from "lucide-react";
+import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
 import { fmtDateTs } from "@/lib/format";
 import { ghs, money, useMe } from "@/lib/me";
@@ -162,7 +163,7 @@ export function BillingPanel() {
         {isGhana && (
           <section aria-label="SMS alerts" className={`${box} flex min-w-0 flex-[1_1_340px] flex-col gap-3`}>
             <h2 className={h2}>SMS alerts</h2>
-            <Locked feature="sms" title="SMS alerts">
+            <Locked feature="sms" icon={MessageSquare} title="SMS alerts" text="Get a text message the moment a website goes down, and top up bundles when you need more." chips={["Instant", "Ghana numbers"]}>
               <div className="flex flex-col gap-3">
                 <p className="text-sm leading-relaxed text-muted">{ws.plan.sms > 0 ? `Your plan includes ${ws.plan.sms} SMS a month. ${ws.usage.sms} used so far.${ws.sms_credits ? ` You also have ${ws.sms_credits} bought credits.` : ""}` : "Text alerts to Ghana numbers when a site goes down."} Need more? Top up a bundle and it is added straight away.</p>
                 <div className="flex flex-wrap gap-2.5">
@@ -180,7 +181,7 @@ export function BillingPanel() {
       <section aria-label="Invoices" className="overflow-hidden rounded-[14px] border border-line bg-surface">
         <div className="px-[22px] pb-2 pt-[22px]"><h2 className={h2}>Invoices</h2></div>
         {data.invoices.length === 0 ? (
-          <div className="flex flex-col items-center gap-1 px-6 pb-9 pt-5 text-center"><span className="text-base font-semibold">No invoices yet</span><span className="text-sm text-muted">Invoices appear here as PDFs once you are on a paid plan.</span></div>
+          <Empty icon={FileText} title="No invoices yet">Invoices appear here as PDFs once you are on a paid plan.</Empty>
         ) : (
           <div className="overflow-x-auto"><div className="min-w-[640px]">
             <div className="grid grid-cols-[130px_minmax(200px,2fr)_120px_90px_70px] items-center gap-4 border-y border-line bg-soft px-[22px] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-muted"><span>Date</span><span>Description</span><span>Amount</span><span>Status</span><span /></div>

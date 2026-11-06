@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Building2, ChevronDown, Menu, Users, X } from "lucide-react";
+import { Building2, ChevronDown, LayoutGrid, LogOut, Menu, Settings, Users, X } from "lucide-react";
 import { POWERED_BY } from "@/lib/brand";
 import { Logo } from "./logo";
+import { send } from "@/lib/api";
+import { homeFor, useMe } from "@/lib/me";
 
 export { Logo } from "./logo";
 
@@ -16,7 +18,47 @@ const solutions = [
   { href: "/solutions/businesses", label: "Businesses", Icon: Building2, text: "For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence." },
 ];
 
+/** For signed-in visitors: replaces Log in and Get started with a menu back to their dashboard. */
+function MktAccount() {
+  const { me, user, mutate } = useMe();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [open]);
+  if (!user || !me) return null;
+  const name = `${user.first_name} ${user.last_name}`.trim() || "Account";
+  const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  const home = homeFor(me);
+  const row = "flex min-h-11 items-center gap-3 rounded-lg px-3 text-[15px] text-[#0F172A] hover:bg-[#FFF7ED]";
+  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate(); setOpen(false); }
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex min-h-11 items-center gap-2 rounded-xl px-1.5 hover:bg-[#FFF7ED]">
+        <span className="flex size-9 items-center justify-center rounded-full bg-[#0F172A] text-xs font-bold text-white">{initials}</span>
+        <span className="hidden max-w-32 truncate text-[15px] font-semibold lg:block">{user.first_name}</span>
+        <ChevronDown size={16} aria-hidden="true" className="text-[#475569]" />
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[260px] rounded-[14px] border border-[#EFE4D8] bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
+          <div className="border-b border-[#EFE4D8] px-3 pb-3 pt-2"><p className="truncate text-sm font-bold">{name}</p><p className="truncate text-[13px] text-[#475569]">{user.email}</p></div>
+          <div className="flex flex-col gap-0.5 pt-2">
+            <Link role="menuitem" href={home} onClick={() => setOpen(false)} className={row}><LayoutGrid size={18} aria-hidden="true" className="text-[#C2410C]" />{home === "/overview" ? "Go to dashboard" : "Continue setup"}</Link>
+            {home === "/overview" && <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className={row}><Settings size={18} aria-hidden="true" className="text-[#C2410C]" />Settings</Link>}
+            <button role="menuitem" onClick={logout} className={`${row} w-full text-left !text-[#B3261E] hover:!bg-[#FEE2E2]`}><LogOut size={18} aria-hidden="true" />Log out</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MktHeader() {
+  const { user } = useMe();
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -53,8 +95,10 @@ export function MktHeader() {
           <Link href="/contact" className={link("/contact")}>Contact</Link>
         </div>
         <div className="hidden items-center gap-2.5 md:flex">
-          <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
-          <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started</Link>
+          {user ? <MktAccount /> : <>
+            <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
+            <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started</Link>
+          </>}
         </div>
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Menu" className="flex size-11 items-center justify-center rounded-lg hover:bg-[#FFF7ED] md:hidden">{open ? <X size={22} /> : <Menu size={22} />}</button>
       </nav>
@@ -62,8 +106,12 @@ export function MktHeader() {
         <div className="flex flex-col gap-1 border-t border-[#EFE4D8] px-6 py-3 md:hidden">
           {[["/", "Home"], ["/solutions/agencies", "Solutions: Agencies"], ["/solutions/businesses", "Solutions: Businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"]].map(([h, l]) => (
             <Link key={h} href={h} onClick={() => setOpen(false)} className="flex min-h-11 items-center rounded-lg px-3 font-normal text-[#334155] hover:bg-[#FFF7ED]">{l}</Link>))}
-          <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
-          <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started</Link>
+          {user ? (
+            <Link href="/overview" onClick={() => setOpen(false)} className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Go to dashboard</Link>
+          ) : <>
+            <Link href="/login" className="flex min-h-11 items-center px-3 font-semibold">Log in</Link>
+            <Link href="/signup" className="flex min-h-12 items-center justify-center rounded-[10px] bg-[#F97316] font-bold text-white">Get started</Link>
+          </>}
         </div>
       )}
     </header>

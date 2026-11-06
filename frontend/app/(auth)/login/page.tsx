@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { mutate } from "swr";
 import { AuthShell, authButton, authInput, authLabel, FormError, GoogleButton, googleError } from "@/components/auth-shell";
 import { ApiError, send, type Me } from "@/lib/api";
 import { homeFor } from "@/lib/me";
 
 function LoginForm() {
   const router = useRouter();
-  const asked = googleError(useSearchParams().get("error"));
+  const params = useSearchParams();
+  const [expired, setExpired] = useState(false);
+  // set by the session timer just before it logs someone out; shown once
+  useEffect(() => {
+    try { if (sessionStorage.getItem("sitewatch.expired")) { sessionStorage.removeItem("sitewatch.expired"); setExpired(true); } } catch { /* ignore */ }  // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
+  const asked = expired || params.get("expired") ? "Your session ended, so we logged you out. Please log in again." : googleError(params.get("error"));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +25,8 @@ function LoginForm() {
     const f = new FormData(e.currentTarget);
     setBusy(true); setError(null);
     try {
-      const me = await send<Me>("POST", "/api/auth/login", { email: f.get("email"), password: f.get("password"), remember: f.get("remember") === "on" });
+      const me = await send<Me>("POST", "/api/auth/login", { email: f.get("email"), password: f.get("password") });
+      await mutate("/api/auth/me", me, false);
       router.replace(homeFor(me));
     } catch (err) {
       if (err instanceof ApiError && err.code === "unverified") { router.push(`/verify?email=${encodeURIComponent(String(f.get("email")))}`); return; }
@@ -40,7 +48,6 @@ function LoginForm() {
           <div className="flex items-baseline justify-between"><label htmlFor="password" className={authLabel}>Password</label><Link href="/forgot" className="text-sm font-semibold text-[#C2410C] hover:text-[#7C2D12]">Forgot password?</Link></div>
           <input id="password" name="password" type="password" autoComplete="current-password" required className={authInput} />
         </div>
-        <label className="flex cursor-pointer items-center gap-2.5 text-[15px] text-[#334155]"><input type="checkbox" name="remember" defaultChecked className="size-[18px] accent-[#F97316]" />Keep me logged in on this device</label>
         <FormError message={error ?? asked} />
         <button type="submit" disabled={busy} className={authButton}>{busy ? "Logging in…" : "Log in"}</button>
         <p className="text-center text-sm text-[#475569]">Trouble logging in? <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Contact us</Link></p>

@@ -1,9 +1,10 @@
 "use client";
 
+import { Activity } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { Card, Empty, ErrorState, PageHeader, Skeleton } from "@/components/ui";
+import { btn, Card, Empty, ErrorState, PageHeader, Skeleton } from "@/components/ui";
 import { fetcher, type ActivityEvent } from "@/lib/api";
 import { dayLabel, fmtTime } from "@/lib/format";
 
@@ -43,7 +44,7 @@ export default function ActivityPage() {
       </div>
 
       {!data && <Skeleton className="h-72" />}
-      {data && events.length === 0 && <Card><Empty title="Nothing here yet">Events appear as SiteRadar checks your websites and as you add subscriptions.</Empty></Card>}
+      {data && events.length === 0 && <Card><Empty icon={Activity} title="Nothing here yet" action={<Link href="/websites/new" className={btn.primary}>Add a website</Link>}>Events appear as SiteRadar checks your websites and as you add subscriptions.</Empty></Card>}
       {days.map(([label, items]) => (
         <Card key={label} className="px-5 pb-1 pt-4">
           <h2 className="mb-1 text-sm font-semibold text-muted">{label}</h2>

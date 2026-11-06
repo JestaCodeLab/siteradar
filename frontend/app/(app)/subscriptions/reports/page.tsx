@@ -1,5 +1,6 @@
 "use client";
 
+import { FileText } from "lucide-react";
 import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
@@ -134,7 +135,7 @@ export default function SubscriptionReportsPage() {
           </>
         )}
       />
-      {data && data.months.length === 0 && <Card><Empty title="No reports yet">Add a subscription and its first report appears here.</Empty></Card>}
+      {data && data.months.length === 0 && <Card><Empty icon={FileText} title="No reports yet" action={<Link href="/subscriptions/new" className={btn.primary}>Add subscription</Link>}>Add a subscription and its first report appears here.</Empty></Card>}
       {data && data.months.length > 0 && period && (
         <div className="flex flex-wrap items-start gap-6">
           <nav aria-label="Report months" className="flex w-full flex-col gap-0.5 rounded-xl border border-line bg-surface p-2.5 sm:w-[220px]">

@@ -12,7 +12,7 @@ const steps = [["company", "Company"], ["plan", "Plan"], ["done", "Done"]];
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
-  const { me, ws, isLoading } = useMe();
+  const { me, ws, isLoading, mutate } = useMe();
   const current = steps.findIndex(([k]) => path.endsWith(k));
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
     if (ws?.onboarded && !path.endsWith("/done")) router.replace("/overview");
   }, [me, ws, isLoading, path, router]);
 
-  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); router.replace("/login"); }
+  async function logout() { await send("POST", "/api/auth/logout").catch(() => {}); await mutate(); router.replace("/login"); }
 
   return (
     <div className="min-h-screen bg-bg">

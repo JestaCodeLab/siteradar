@@ -3,6 +3,7 @@
 Session keys: uid, ws (active workspace id), imp (super admin support session: ws, until, reason, mode).
 """
 import functools
+import os
 import time
 
 from flask import g, jsonify, session
@@ -10,6 +11,7 @@ from flask import g, jsonify, session
 from . import accounts, plans
 
 SUPPORT_MINUTES = 30
+SESSION_SECONDS = int(float(os.environ.get("SESSION_MINUTES", "60")) * 60)      # a login lasts this long unless the person chooses to stay
 
 
 def load():
@@ -17,6 +19,9 @@ def load():
     g.impersonating = None
     g.site_access = None
     uid = session.get("uid")
+    if uid and session.get("exp", time.time() + 1) < time.time():      # the hour is up
+        session.clear()
+        return
     user = accounts.user_by_id(uid) if uid else None
     if not user or user["disabled"]:
         session.clear()
@@ -25,6 +30,7 @@ def load():
         session.clear()
         return
     g.user = user
+    session.setdefault("exp", time.time() + SESSION_SECONDS)      # sessions from before this rule get a full hour
     imp = session.get("imp")
     if imp and imp["until"] > time.time() and user["is_super"]:
         g.ws = accounts.workspace(imp["ws"])

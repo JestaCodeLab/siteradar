@@ -4,6 +4,7 @@ import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { mutate } from "swr";
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { btn, input } from "@/components/ui";
 import { send, type Me } from "@/lib/api";
@@ -29,6 +30,7 @@ function Form() {
     setBusy(true); setError(null);
     try {
       const me = await send<Me>("POST", "/api/auth/verify", { email, code });
+      await mutate("/api/auth/me", me, false);
       router.replace(homeFor(me));
     } catch (err) {
       setError(err instanceof Error ? err.message : "That code did not work.");
