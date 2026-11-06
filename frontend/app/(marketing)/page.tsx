@@ -12,6 +12,7 @@ export const metadata: Metadata = pageMeta({
   absoluteTitle: "SiteRadar · Know when your websites break, expire or slow down",
   description: "Uptime, SSL, domain and DNS checks, visitor stats and monthly reports for every website you look after, with alerts by SMS, email, Slack and Teams.",
   path: "/",
+  image: "/og/og-home.png",
 });
 
 const slow = [12, 21, 28];

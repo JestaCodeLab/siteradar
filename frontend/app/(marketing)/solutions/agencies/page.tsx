@@ -12,6 +12,7 @@ export const metadata: Metadata = pageMeta({
   title: "Website monitoring for agencies",
   description: "Put every client website on the radar. Uptime and SSL alerts, monthly reports with your logo, and read-only access for clients, all from one dashboard.",
   path: "/solutions/agencies",
+  image: "/og/og-agencies.png",
 });
 
 const clients = [["Shop", "shop.example.com", "Up"], ["Jesta Digital Solutions", "jestadigitalsolutions.com", "Slow"], ["Church", "church.example.org", "Up"], ["Blog", "blog.example.com", "Up"]];

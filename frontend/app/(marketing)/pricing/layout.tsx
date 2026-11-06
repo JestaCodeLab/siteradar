@@ -5,6 +5,7 @@ export const metadata = pageMeta({
   title: "Pricing in Ghana cedis",
   description: "Clear monthly pricing in Ghana cedis. Choose the plan that fits the websites you look after, and move up as you grow.",
   path: "/pricing",
+  image: "/og/og-pricing.png",
 });
 
 interface Plan { name: string; tagline?: string; price_month: number }

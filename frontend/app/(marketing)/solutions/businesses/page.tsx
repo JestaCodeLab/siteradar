@@ -12,6 +12,7 @@ export const metadata: Metadata = pageMeta({
   title: "Website monitoring for businesses",
   description: "Know your website is up before your customers tell you it is not. Uptime, SSL and domain expiry alerts, visitor stats and a plain monthly report.",
   path: "/solutions/businesses",
+  image: "/og/og-businesses.png",
 });
 
 const who = [
