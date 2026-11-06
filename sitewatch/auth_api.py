@@ -164,7 +164,13 @@ def blueprint(cfg):
     @bp.get("/auth/google/callback")
     def google_callback():
         expected = session.pop("oauth_state", None)
+        if request.args.get("error"):
+            log.warning("Google sign-in refused by Google: %s", request.args.get("error"))
+            return redirect(app_url() + "/login?error=google")
         if not expected or request.args.get("state") != expected or not request.args.get("code"):
+            # no saved state means the cookie from /auth/google/start did not come back: usually the site was opened on a
+            # different address than APP_URL (www or not, http or https), so the browser sent it to another host
+            log.warning("Google sign-in: state check failed (cookie present: %s, host: %s, APP_URL: %s)", bool(expected), request.host, app_url())
             return redirect(app_url() + "/login?error=google")
         try:
             user, _created = accounts.google_user(google_auth.profile_for(request.args["code"]), request_country())

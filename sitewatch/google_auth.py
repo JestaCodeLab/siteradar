@@ -1,8 +1,11 @@
 """Sign in with Google (OAuth 2.0 authorization code flow). Needs GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET."""
+import logging
 import os
 from urllib.parse import urlencode
 
 import requests
+
+log = logging.getLogger("sitewatch.google")
 
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -29,6 +32,8 @@ def profile_for(code):
     t = requests.post(TOKEN_URL, data={
         "code": code, "client_id": os.environ["GOOGLE_CLIENT_ID"], "client_secret": os.environ["GOOGLE_CLIENT_SECRET"],
         "redirect_uri": redirect_uri(), "grant_type": "authorization_code"}, timeout=15)
+    if t.status_code >= 400:
+        log.warning("Google token exchange failed (%s): %s | redirect_uri sent: %s", t.status_code, t.text[:300], redirect_uri())
     t.raise_for_status()
     r = requests.get(USERINFO_URL, headers={"Authorization": "Bearer " + t.json()["access_token"]}, timeout=15)
     r.raise_for_status()
