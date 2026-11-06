@@ -18,7 +18,6 @@ const features = [
   { Icon: FileText, title: "Monthly client reports", text: "A clear PDF for every website on the 1st of the month, with a prioritised list of what to do next." },
   { Icon: Users, title: "Your whole team", text: "Invite colleagues with the right access, from full admins to read-only viewers for clients." },
 ];
-const pillars = [["01", "Monitor", "Websites, domains, certificates, DNS and email records, checked around the clock."], ["02", "Understand", "Performance, visitors and audit results in plain language, with trends over time."], ["03", "Act", "Alerts before your customers notice, and a prioritised list of what to fix next."]];
 const mono = "font-mono";
 
 export default function Home() {
@@ -59,15 +58,6 @@ export default function Home() {
             </div>
           </div>
         </Container>
-      </section>
-
-      {/* pillars */}
-      <section className="border-b border-[#EFE4D8] bg-white">
-        <Container className="grid gap-8 py-14" ><div className="grid gap-8 md:grid-cols-3">
-          {pillars.map(([n, t, d]) => (
-            <div key={n} className="flex items-start gap-4"><span className={`${mono} flex size-12 flex-none items-center justify-center rounded-full border-2 border-[#F97316] font-semibold text-[#C2410C]`}>{n}</span>
-              <div><h2 className="mb-1 text-[22px] font-bold tracking-[-0.02em]">{t}</h2><p className="text-[#475569]">{d}</p></div></div>))}
-        </div></Container>
       </section>
 
       {/* features */}
