@@ -14,6 +14,7 @@ import { useMe } from "@/lib/me";
 import { LockBadge, Locked, useFeature } from "@/components/locked";
 import { Lock } from "lucide-react";
 import { useNoteToast } from "@/components/toast";
+import { ReportSchedule } from "@/components/report-schedule";
 
 type Tab = "company" | "profile" | "team" | "billing" | "alerts";
 const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];
@@ -259,6 +260,8 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
         </div></div>
       </section>
 
+      {isAdmin && <ReportCard />}
+
       {isAdmin && (
         <section aria-label="Alert recipients" className={box}>
           <h2 className="text-lg font-semibold">Who gets the workspace alerts</h2>
@@ -272,6 +275,31 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
         </section>
       )}
     </div>
+  );
+}
+
+function ReportCard() {
+  const { ws, mutate } = useMe();
+  const setNote = useNoteToast();
+  const [edit, setEdit] = useState<{ day: string; at: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!ws) return null;
+  const cur = edit ?? { day: String(ws.report_day ?? 1), at: ws.report_at ?? "08:00" };
+  async function save(e: React.FormEvent) {
+    e.preventDefault(); setBusy(true);
+    try { await send("PATCH", "/api/settings/report", cur); await mutate(); setEdit(null); setNote({ ok: true, text: "Report date saved." }); }
+    catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not save." }); }
+    setBusy(false);
+  }
+  return (
+    <section aria-label="Monthly report" className={box}>
+      <h2 className="text-lg font-semibold">Monthly report date</h2>
+      <p className="mb-3 mt-1 text-sm text-muted">Reports cover the month before and go to the alert emails above, in your time zone.</p>
+      <form onSubmit={save} className="flex flex-col gap-4">
+        <ReportSchedule idPrefix="set" day={cur.day} at={cur.at} onChange={setEdit} />
+        <div><button disabled={busy || !edit} className={primary}>{busy ? "Saving…" : "Save date"}</button></div>
+      </form>
+    </section>
   );
 }
 

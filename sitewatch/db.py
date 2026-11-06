@@ -194,6 +194,12 @@ ALTER TABLE workspaces ADD COLUMN alerts_prompted INTEGER NOT NULL DEFAULT 0;
     (7, """
 ALTER TABLE users ADD COLUMN country TEXT;
 """),
+    (8, """
+ALTER TABLE users ADD COLUMN google_sub TEXT;
+CREATE UNIQUE INDEX users_google_uq ON users(google_sub) WHERE google_sub IS NOT NULL;
+ALTER TABLE workspaces ADD COLUMN report_day INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE workspaces ADD COLUMN report_at TEXT NOT NULL DEFAULT '08:00';
+"""),
 ]
 
 

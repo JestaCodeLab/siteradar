@@ -162,7 +162,7 @@ export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currenc
 
 export interface Workspace {
   id: number; name: string; owner_name?: string | null; website: string | null; industry: string | null; size: string | null; country: string | null;
-  phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; suspended: boolean; alerts_prompted?: boolean;
+  phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; suspended: boolean; alerts_prompted?: boolean; report_day?: number; report_at?: string;
   plan: { id: string; name: string; sites: number; members: number; storage_mb?: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
   plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; plan_renews: number | null;

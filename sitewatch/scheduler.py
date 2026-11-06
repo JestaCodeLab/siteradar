@@ -1,5 +1,6 @@
 """Background scheduler: uptime checks every N minutes, a daily audit, and the monthly report."""
 import datetime as dt
+from zoneinfo import ZoneInfo
 import json
 import logging
 import os
@@ -77,14 +78,25 @@ class Scheduler(threading.Thread):
                             self.pool.submit(self._safe, health.run_all, self.cfg, s)
 
                 today = dt.date.today()
-                rkey = f"report-{today:%Y-%m}"
-                if today.day >= int(self.cfg["report"]["day_of_month"]) and \
-                        self.due_daily("report_day", self.cfg["report"]["at"]) and not self.state.get(rkey):
-                    self.state[rkey] = True
-                    self.state["report_day"] = today.isoformat()
-                    self.save()
-                    for s in live:
-                        self.pool.submit(self._safe, report.generate, self.cfg, s, None, None, True, True)
+                # monthly reports: each workspace picks its own day and time, in its own time zone
+                for ws_id, ws in self.workspaces.items():
+                    if ws["suspended"] or (ws.get("created") or 0) > time.time() - 7 * 86400:
+                        continue      # a workspace in its first week has no full month to report on yet
+                    try:
+                        local = dt.datetime.now(ZoneInfo(ws.get("timezone") or "Africa/Accra"))
+                    except Exception:
+                        local = dt.datetime.now()
+                    rkey = f"report-{ws_id}-{local:%Y-%m}"
+                    hh, mm = map(int, (ws.get("report_at") or "08:00").split(":"))
+                    if local.day >= int(ws.get("report_day") or 1) and local.hour * 60 + local.minute >= hh * 60 + mm and not self.state.get(rkey):
+                        self.state[rkey] = True
+                        self.save()
+                        for s in live:
+                            if s.get("workspace_id") == ws_id:
+                                self.pool.submit(self._safe, report.generate, self.cfg, s, None, None, True, True)
+                        if subscriptions.available_months(ws_id):
+                            py, pm = report.previous_month(local.year, local.month)
+                            self.pool.submit(self._safe, sub_report.email, self.cfg, ws, py, pm)
 
                 if self.due_daily("renewals", "08:00"):
                     self.state["renewals"] = dt.date.today().isoformat()
@@ -94,16 +106,6 @@ class Scheduler(threading.Thread):
                     self.pool.submit(self._safe, self.purge_old_data)
                     self.pool.submit(self._safe, accounts.purge_deleted)
 
-                skey = f"subreport-{today:%Y-%m}"
-                if today.day >= int(self.cfg["report"]["day_of_month"]) and \
-                        self.due_daily("subreport_day", self.cfg["report"]["at"]) and not self.state.get(skey):
-                    self.state[skey] = True
-                    self.state["subreport_day"] = today.isoformat()
-                    self.save()
-                    py, pm = report.previous_month(today.year, today.month)
-                    for ws in self.workspaces.values():
-                        if not ws["suspended"] and subscriptions.available_months(ws["id"]):
-                            self.pool.submit(self._safe, sub_report.email, self.cfg, ws, py, pm)
             except Exception:
                 log.exception("Scheduler loop error")
             time.sleep(20)

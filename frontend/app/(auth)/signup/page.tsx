@@ -5,7 +5,7 @@ import { useVisitorCountry } from "@/lib/geo";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
+import { GoogleButton, AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
 import { send } from "@/lib/api";
 
 function Form() {
@@ -38,6 +38,7 @@ function Form() {
         <h2 className="text-[32px] font-bold tracking-[-0.03em]">Create your account</h2>
         <p className="text-[#475569]">Already have an account? <Link href="/login" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Log in</Link></p>
       </div>
+      <GoogleButton label="Sign up with Google" />
       <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
         <div className="flex flex-col gap-1.5"><label htmlFor="first_name" className={authLabel}>First name</label><input id="first_name" name="first_name" autoComplete="given-name" required className={authInput} /></div>
         <div className="flex flex-col gap-1.5"><label htmlFor="last_name" className={authLabel}>Last name</label><input id="last_name" name="last_name" autoComplete="family-name" required className={authInput} /></div>

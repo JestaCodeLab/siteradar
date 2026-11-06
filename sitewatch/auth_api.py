@@ -1,12 +1,13 @@
 """Public and account endpoints: plans, contact form, sign up, login, onboarding, team, billing."""
 import logging
 import os
+import secrets
 import time
 from collections import defaultdict
 
-from flask import Blueprint, Response, abort, g, jsonify, request, session
+from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, mailer, plans, storage
+from . import accounts, billing, db, google_auth, mailer, plans, storage
 from .ctx import SUPPORT_MINUTES, login_required, need, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
@@ -22,6 +23,10 @@ def request_country():
         if len(v) == 2 and v.isalpha() and v not in ("XX", "T1"):
             return v
     return os.environ.get("DEV_COUNTRY", "").strip().upper()[:2] or None
+
+
+def app_url():
+    return os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
 
 
 def limited(bucket, per_minutes, maximum):
@@ -138,6 +143,37 @@ def blueprint(cfg):
         if g.ws:
             session["ws"] = g.ws["id"]
         return jsonify(me_payload())
+
+    @bp.get("/auth/providers")
+    def providers():
+        return jsonify(google=google_auth.configured())
+
+    @bp.get("/auth/google/start")
+    def google_start():
+        if not google_auth.configured():
+            return redirect(app_url() + "/login?error=google")
+        state = secrets.token_urlsafe(24)
+        session.clear()
+        session["oauth_state"] = state
+        return redirect(google_auth.auth_url(state))
+
+    @bp.get("/auth/google/callback")
+    def google_callback():
+        expected = session.pop("oauth_state", None)
+        if not expected or request.args.get("state") != expected or not request.args.get("code"):
+            return redirect(app_url() + "/login?error=google")
+        try:
+            user, _created = accounts.google_user(google_auth.profile_for(request.args["code"]), request_country())
+        except accounts.AuthError as e:
+            return redirect(app_url() + "/login?error=" + e.code)
+        except Exception:
+            log.exception("Google sign-in failed")
+            return redirect(app_url() + "/login?error=google")
+        sign_in(user)
+        mine = accounts.memberships(user["id"])
+        if mine:
+            session["ws"] = mine[0]["id"]
+        return redirect(app_url() + "/auth/done")
 
     @bp.post("/auth/logout")
     def logout():

@@ -164,6 +164,30 @@ def login(email, password):
     return user
 
 
+def google_user(profile, country=None):
+    """The user for a verified Google profile: found by Google id or email, or created. Returns (user, created)."""
+    if not profile.get("email_verified"):
+        raise AuthError("Google says this email address is not verified.", "google_unverified", 403)
+    sub, email = str(profile["sub"]), norm_email(profile.get("email"))
+    user = db.q1("SELECT * FROM users WHERE google_sub=?", (sub,)) or user_by_email(email)
+    created = False
+    if not user:
+        first = (profile.get("given_name") or email.split("@")[0]).strip()[:60]
+        last = (profile.get("family_name") or "").strip()[:60]
+        uid = db.run("INSERT INTO users(email, first_name, last_name, phone, country, password_hash, email_verified, google_sub, created) VALUES (?,?,?,?,?,?,?,?,?)",
+                     (email, first, last, "", (country or "").upper()[:2] or None, generate_password_hash(secrets.token_urlsafe(32)), 1, sub, time.time()))
+        user, created = user_by_id(uid), True
+    else:
+        if user["disabled"]:
+            raise AuthError("This account has been disabled. Contact support.", "disabled", 403)
+        if not user["email_verified"]:     # Google has proven the address, so whatever password was set at sign-up is void
+            db.exec("UPDATE users SET email_verified=1, password_hash=? WHERE id=?", (generate_password_hash(secrets.token_urlsafe(32)), user["id"]))
+        if not user.get("google_sub"):
+            db.exec("UPDATE users SET google_sub=? WHERE id=?", (sub, user["id"]))
+    db.exec("UPDATE users SET last_login=? WHERE id=?", (time.time(), user["id"]))
+    return user_by_id(user["id"]), created
+
+
 def send_code_safe(user):
     try:
         send_code(user, "verify")
@@ -382,7 +406,7 @@ def public_workspace(ws, role=None):
         "id": ws["id"], "name": ws["name"], "owner_name": _owner_name(ws), "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
         "country": ws["country"], "phone": ws["phone"], "address": ws["address"], "logo_url": ws["logo_url"],
         "timezone": ws.get("timezone") or "Africa/Accra", "logo_name": ws.get("logo_name"), "logo_size": ws.get("logo_size"),
-        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"], "alerts_prompted": bool(ws.get("alerts_prompted")),
+        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"], "alerts_prompted": bool(ws.get("alerts_prompted")), "report_day": ws.get("report_day") or 1, "report_at": ws.get("report_at") or "08:00",
         "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
                  "interval_minutes": plan["interval_minutes"], "sms": plan["sms"],
                  "history_months": plan["history_months"], "channels": plan["channels"],

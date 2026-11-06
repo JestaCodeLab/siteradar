@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { AuthShell, authButton, authInput, authLabel, FormError, GoogleButton, googleError } from "@/components/auth-shell";
 import { ApiError, send, type Me } from "@/lib/api";
 import { homeFor } from "@/lib/me";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const asked = googleError(useSearchParams().get("error"));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -33,16 +34,21 @@ export default function LoginPage() {
           <h2 className="text-[32px] font-bold tracking-[-0.03em]">Log in</h2>
           <p className="text-[#475569]">New to SiteRadar? <Link href="/signup" className="font-bold text-[#C2410C] hover:text-[#7C2D12]">Create an account</Link></p>
         </div>
+        <GoogleButton />
         <div className="flex flex-col gap-1.5"><label htmlFor="email" className={authLabel}>Email</label><input id="email" name="email" type="email" autoComplete="email" required placeholder="you@company.com" className={authInput} /></div>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between"><label htmlFor="password" className={authLabel}>Password</label><Link href="/forgot" className="text-sm font-semibold text-[#C2410C] hover:text-[#7C2D12]">Forgot password?</Link></div>
           <input id="password" name="password" type="password" autoComplete="current-password" required className={authInput} />
         </div>
         <label className="flex cursor-pointer items-center gap-2.5 text-[15px] text-[#334155]"><input type="checkbox" name="remember" defaultChecked className="size-[18px] accent-[#F97316]" />Keep me logged in on this device</label>
-        <FormError message={error} />
+        <FormError message={error ?? asked} />
         <button type="submit" disabled={busy} className={authButton}>{busy ? "Logging in…" : "Log in"}</button>
         <p className="text-center text-sm text-[#475569]">Trouble logging in? <Link href="/contact" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Contact us</Link></p>
       </form>
     </AuthShell>
   );
+}
+
+export default function LoginPage() {
+  return <Suspense><LoginForm /></Suspense>;
 }

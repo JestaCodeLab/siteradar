@@ -107,8 +107,8 @@ def blueprint(cfg):
             monitoring={"check_interval_minutes": plan["interval_minutes"], "failures_before_alert": cfg["failures_before_alert"],
                         "timeout_seconds": cfg["timeout_seconds"], "slow_threshold_ms": cfg["slow_threshold_ms"],
                         "ssl_warning_days": cfg["ssl_warning_days"], "audit_daily_at": cfg["audit"]["daily_at"],
-                        "audit_max_pages": cfg["audit"]["max_pages"], "report_day_of_month": cfg["report"]["day_of_month"],
-                        "report_at": cfg["report"]["at"], "timezone": os.environ.get("TZ", "server default"),
+                        "audit_max_pages": cfg["audit"]["max_pages"], "report_day_of_month": g.ws.get("report_day") or 1,
+                        "report_at": g.ws.get("report_at") or "08:00", "timezone": os.environ.get("TZ", "server default"),
                         "history_months": plan["history_months"]},
         )
 
@@ -123,6 +123,21 @@ def blueprint(cfg):
             raise plans.LimitError("Chat alerts are part of the Starter plan and above.")
         g.ws = accounts.update_workspace(g.ws["id"], {k: data[k] for k in ("alert_emails", "alert_phones", "alert_webhooks") if k in data})
         return settings()
+
+    @bp.patch("/settings/report")
+    @need("admin")
+    def save_report_schedule():
+        """The day of the month (1 to 28) and time this workspace's monthly reports go out."""
+        data = body()
+        try:
+            day = int(data.get("day"))
+            hh, mm = str(data.get("at") or "08:00").split(":")
+            at = f"{int(hh):02d}:{int(mm):02d}"
+            assert 1 <= day <= 28 and 0 <= int(hh) < 24 and 0 <= int(mm) < 60
+        except (TypeError, ValueError, AssertionError):
+            return jsonify(error="Choose a day from 1 to 28 and a valid time."), 400
+        db.exec("UPDATE workspaces SET report_day=?, report_at=? WHERE id=?", (day, at, g.ws["id"]))
+        return jsonify(day=day, at=at)
 
     @bp.post("/settings/test-alert")
     @need("admin")

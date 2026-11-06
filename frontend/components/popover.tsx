@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } fro
 import { createPortal } from "react-dom";
 
 /**
- * A floating panel anchored under a trigger. It is rendered in the page body so cards with
+ * A floating panel anchored under a trigger. It is rendered in the page body (or in the modal dialog that holds the trigger) so cards with
  * overflow hidden cannot clip it, flips above the trigger when there is no room below, and
  * follows the trigger on scroll, and closes on Escape, on an outside click, and on resize.
  */
@@ -37,7 +37,7 @@ export function Popover({ anchor, onClose, children, minWidth, className = "", r
       const t = e.target as Node;
       if (!panel.current?.contains(t) && !anchor.current?.contains(t)) onClose();
     };
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopPropagation(); onClose(); anchor.current?.focus(); } };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onClose(); anchor.current?.focus(); } };
     document.addEventListener("mousedown", down);
     document.addEventListener("keydown", key);
     window.addEventListener("scroll", follow, true);
@@ -58,6 +58,7 @@ export function Popover({ anchor, onClose, children, minWidth, className = "", r
     >
       {children}
     </div>,
-    document.body,
+    // inside a modal dialog everything outside it is inert, so the panel has to live in the dialog too
+    anchor.current?.closest("dialog") ?? document.body,
   );
 }
