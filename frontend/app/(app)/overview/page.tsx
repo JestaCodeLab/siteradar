@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarClock, Check, Globe, ShieldCheck, Timer } from "lucide-react";
 import useSWR from "swr";
 import { SitesTable } from "@/components/sites-table";
+import { WelcomeAlerts } from "@/components/welcome-alerts";
 import { btn, Card, ErrorState, PageHeader, Skeleton, Tile } from "@/components/ui";
 import { fetcher, type SitesResponse } from "@/lib/api";
 import { fmtDay, fmtMs } from "@/lib/format";
@@ -26,6 +27,7 @@ export default function DashboardPage() {
 
   return (
     <>
+      <WelcomeAlerts />
       <PageHeader title={`Welcome, ${user?.first_name ?? ""}`.trim().replace(/,$/, "")} subtitle={ws ? `Here is how ${ws.name}'s websites are doing.` : ""}
         actions={canWrite ? <Link href="/websites/new" className={btn.primary}>Add website</Link> : (
           <div className="flex flex-col items-end gap-1"><span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center rounded-lg bg-[#c9cfd8] px-5 text-sm font-semibold text-white">Add website</span>

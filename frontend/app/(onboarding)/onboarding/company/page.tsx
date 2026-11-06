@@ -8,7 +8,7 @@ import { btn, Field, input } from "@/components/ui";
 import { send } from "@/lib/api";
 import { useMe } from "@/lib/me";
 
-const kinds = ["Web agency or freelancer", "Business or online shop", "Church, school or organisation", "Something else"];
+const kinds = ["Web agency", "Freelancer", "Business or online shop", "Church, school or organisation", "Something else"];
 const siteCounts = ["1 to 3", "4 to 15", "16 to 50", "More than 50"];
 const teamSizes = ["Just me", "2 to 5", "6 to 15", "More than 15"];
 const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];

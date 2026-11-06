@@ -79,3 +79,10 @@ export function dayLabel(ts: number) {
   if (diff === 1) return "Yesterday";
   return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
+
+/** Ghana numbers only: 024 123 4567, 24 123 4567 or +233 24 123 4567 all become +233241234567. */
+export function ghanaPhone(raw: string): string | null {
+  const d = raw.replace(/\D/g, "");
+  const local = d.startsWith("233") ? d.slice(3) : d.startsWith("0") ? d.slice(1) : d;
+  return /^\d{9}$/.test(local) ? `+233${local}` : null;
+}

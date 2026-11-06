@@ -371,7 +371,7 @@ def public_workspace(ws, role=None):
         "id": ws["id"], "name": ws["name"], "owner_name": _owner_name(ws), "website": ws["website"], "industry": ws["industry"], "size": ws["size"],
         "country": ws["country"], "phone": ws["phone"], "address": ws["address"], "logo_url": ws["logo_url"],
         "timezone": ws.get("timezone") or "Africa/Accra", "logo_name": ws.get("logo_name"), "logo_size": ws.get("logo_size"),
-        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"],
+        "role": role, "onboarded": ws["onboarded"], "suspended": ws["suspended"], "alerts_prompted": bool(ws.get("alerts_prompted")),
         "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
                  "interval_minutes": plan["interval_minutes"], "sms": plan["sms"],
                  "history_months": plan["history_months"], "channels": plan["channels"],

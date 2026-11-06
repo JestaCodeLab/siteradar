@@ -188,6 +188,9 @@ ALTER TABLE workspaces ADD COLUMN logo_name TEXT;
 ALTER TABLE workspaces ADD COLUMN logo_size INTEGER;
 ALTER TABLE workspaces ADD COLUMN deleted_at DOUBLE PRECISION;
 """),
+    (6, """
+ALTER TABLE workspaces ADD COLUMN alerts_prompted INTEGER NOT NULL DEFAULT 0;
+"""),
 ]
 
 

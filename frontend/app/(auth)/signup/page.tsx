@@ -1,17 +1,11 @@
 "use client";
 
+import { ghanaPhone } from "@/lib/format";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
 import { send } from "@/lib/api";
-
-/** Ghana numbers only: 024 123 4567, 24 123 4567 or +233 24 123 4567 all become +233241234567. */
-function ghanaPhone(raw: string): string | null {
-  const d = raw.replace(/\D/g, "");
-  const local = d.startsWith("233") ? d.slice(3) : d.startsWith("0") ? d.slice(1) : d;
-  return /^\d{9}$/.test(local) ? `+233${local}` : null;
-}
 
 function Form() {
   const router = useRouter();

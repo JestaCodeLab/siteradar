@@ -262,6 +262,13 @@ def blueprint(cfg):
         db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (g.ws["id"],))   # a paid plan switches on when payment confirms
         return jsonify(out)
 
+    @bp.post("/account/alerts-prompted")
+    @need("admin")
+    def alerts_prompted():
+        """The welcome dialog has been shown (and saved or skipped), so it does not open again."""
+        db.exec("UPDATE workspaces SET alerts_prompted=1 WHERE id=?", (g.ws["id"],))
+        return jsonify(ok=True)
+
     # ---- workspace ----------------------------------------------------------
     @bp.get("/account/workspace")
     @workspace_required
