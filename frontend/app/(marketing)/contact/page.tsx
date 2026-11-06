@@ -1,58 +1,76 @@
-"use client";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, Mail, MessageCircle, Phone } from "lucide-react";
+import { Container, CtaBand, Rings } from "@/components/mkt";
+import { eyebrow, monoLabel } from "@/lib/mkt-styles";
 
-import { useState } from "react";
-import { Mail, MapPin, Phone } from "lucide-react";
-import { Container } from "@/components/mkt";
-import { eyebrow } from "@/lib/mkt-styles";
-import { send } from "@/lib/api";
+export const metadata: Metadata = { title: "Contact", description: "Talk to a real person about your websites." };
 
-const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL, PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE, OFFICE = process.env.NEXT_PUBLIC_CONTACT_ADDRESS;
-const field = "w-full rounded-[10px] border border-[#CBD5E1] bg-white px-3.5 py-[13px] text-base text-[#0F172A] focus-visible:!outline-[#F97316]";
+/** Contact details come from the environment so they can change without touching the code. A card with no value is left out. */
+const env = process.env;
+const digits = (v?: string) => (v ?? "").replace(/\D/g, "");
+
+const cardBase = "relative flex min-w-0 flex-[1_1_300px] flex-col gap-3 rounded-2xl border bg-white p-8";
+const tile = "flex size-[52px] items-center justify-center rounded-xl";
+const link = "mt-auto inline-flex min-h-11 items-center gap-1.5 pt-3 text-[15px] font-bold text-[#C2410C] hover:text-[#7C2D12]";
 
 export default function Contact() {
-  const [state, setState] = useState<"idle" | "busy" | "sent">("idle");
-  const [error, setError] = useState<string | null>(null);
-  const details = [[Mail, "Email", EMAIL], [Phone, "Phone / WhatsApp", PHONE], [MapPin, "Office", OFFICE]] as const;
-
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = Object.fromEntries(new FormData(e.currentTarget));
-    setState("busy"); setError(null);
-    try { await send("POST", "/api/contact", { name: f.name, email: f.email, company: f.company, topic: `Websites: ${f.sites}`, message: f.message }); setState("sent"); }
-    catch (err) { setError(err instanceof Error ? err.message : "Could not send your message."); setState("idle"); }
-  }
+  const whatsapp = env.NEXT_PUBLIC_CONTACT_WHATSAPP || env.NEXT_PUBLIC_CONTACT_PHONE;
+  const phone = env.NEXT_PUBLIC_CONTACT_PHONE;
+  const email = env.NEXT_PUBLIC_CONTACT_EMAIL;
+  const hours = env.NEXT_PUBLIC_CONTACT_HOURS;
+  const emailNote = env.NEXT_PUBLIC_CONTACT_EMAIL_NOTE;
 
   return (
-    <Container className="flex flex-wrap items-stretch gap-8 pb-24 pt-20">
-      <div className="relative flex min-w-0 flex-[1_1_380px] flex-col gap-5 overflow-hidden rounded-3xl bg-[#0F172A] p-10 text-white md:px-10 md:py-12">
-        <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -bottom-[170px] -right-[170px] size-[460px]"><g fill="none" stroke="#F97316" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.22" /><circle cx="200" cy="200" r="190" strokeOpacity="0.12" /><path d="M200 200L320 80" strokeOpacity="0.4" /></g><circle cx="320" cy="80" r="9" fill="#F97316" fillOpacity="0.7" /></svg>
-        <span className={`${eyebrow} relative text-[#FDBA74]`}>Contact</span>
-        <h1 className="relative text-[clamp(34px,4vw,50px)] font-bold leading-[1.05] tracking-[-0.035em]">Let’s put your websites on the radar.</h1>
-        <p className="relative text-lg text-[#CBD5E1]">Questions about plans, a larger portfolio, or setting SiteRadar up for your clients? Send us a message and we will get back to you.</p>
-        <div className="relative mt-3 flex flex-col gap-4">
-          {details.filter(([, , v]) => v).map(([Icon, label, v]) => (
-            <div key={label} className="flex items-center gap-3.5"><span className="flex size-11 items-center justify-center rounded-xl bg-[#1E293B] text-[#FDBA74]"><Icon size={20} aria-hidden="true" /></span><div><div className="text-[13px] text-[#94A3B8]">{label}</div><div className="font-semibold">{v}</div></div></div>))}
-        </div>
-      </div>
+    <>
+      <section className="relative overflow-hidden border-b border-[#EFE4D8] bg-[#FFF7ED]">
+        <Rings className="-right-[260px] -top-[260px] size-[900px]" opacity={0.9} />
+        <Container className="relative flex flex-col gap-5 pb-[72px] pt-[88px]">
+          <span className={`${eyebrow} text-[#C2410C]`}>Contact</span>
+          <h1 className="max-w-[860px] text-[clamp(36px,4.6vw,58px)] font-bold leading-[1.05] tracking-[-0.035em] text-[#0F172A]">Talk to a real person about your websites.</h1>
+          <p className="max-w-[640px] text-[19px] leading-relaxed text-[#475569]">Questions about plans, a larger portfolio, or setting SiteRadar up for your clients? Pick whichever way suits you.</p>
+        </Container>
+      </section>
 
-      {state === "sent" ? (
-        <div role="status" className="flex min-w-0 flex-[1.3_1_460px] flex-col items-center justify-center gap-2 rounded-3xl border border-[#EFE4D8] bg-white p-10 text-center">
-          <h2 className="text-[26px] font-bold tracking-[-0.02em]">Message sent</h2><p className="text-[#475569]">Thank you. We will reply to the email address you gave.</p></div>
-      ) : (
-        <form aria-label="Contact form" onSubmit={submit} className="flex min-w-0 flex-[1.3_1_460px] flex-col gap-5 rounded-3xl border border-[#EFE4D8] bg-white p-10">
-          <h2 className="text-[26px] font-bold tracking-[-0.02em]">Send us a message</h2>
-          <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
-            <div className="flex flex-col gap-1.5"><label htmlFor="c-name" className="text-sm font-semibold">Full name</label><input id="c-name" name="name" required autoComplete="name" className={field} /></div>
-            <div className="flex flex-col gap-1.5"><label htmlFor="c-email" className="text-sm font-semibold">Work email</label><input id="c-email" name="email" type="email" required autoComplete="email" className={field} /></div>
-            <div className="flex flex-col gap-1.5"><label htmlFor="c-company" className="text-sm font-semibold">Company or agency</label><input id="c-company" name="company" autoComplete="organization" className={field} /></div>
-            <div className="flex flex-col gap-1.5"><label htmlFor="c-sites" className="text-sm font-semibold">How many websites?</label><select id="c-sites" name="sites" className={field}>{["1", "2 to 3", "4 to 15", "16 to 50", "More than 50"].map((o) => <option key={o}>{o}</option>)}</select></div>
-          </div>
-          <div className="flex flex-col gap-1.5"><label htmlFor="c-msg" className="text-sm font-semibold">Message</label><textarea id="c-msg" name="message" rows={6} required className={`${field} resize-y`} /></div>
-          {error && <p role="alert" className="rounded-lg bg-[#FEE2E2] px-3.5 py-2.5 text-sm text-[#991B1B]">{error}</p>}
-          <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-sm text-[#475569]">We only use your details to reply to you.</p>
-            <button disabled={state === "busy"} className="rounded-xl bg-[#F97316] px-7 py-[15px] font-bold text-white hover:bg-[#EA580C] disabled:opacity-60">{state === "busy" ? "Sending…" : "Send message"}</button></div>
-        </form>
-      )}
-    </Container>
+      <section className="bg-[#FBF8F4] pb-10 pt-14">
+        <Container className="flex flex-wrap gap-6">
+          {whatsapp && (
+            <article className={`${cardBase} border-[#F97316] shadow-[0_18px_40px_-18px_rgba(249,115,22,0.45)] ring-1 ring-[#F97316]`}>
+              <div className="flex items-start justify-between gap-3">
+                <span className={`${tile} bg-[#F97316] text-white`}><MessageCircle aria-hidden="true" size={24} /></span>
+                <span className="rounded-full bg-[#FFEDD5] px-3 py-1 text-xs font-bold text-[#7C2D12]">Fastest reply</span>
+              </div>
+              <p className="text-sm font-semibold text-[#475569]">Prefer WhatsApp?</p>
+              <h2 className="text-[26px] font-bold tracking-[-0.02em] text-[#0F172A]">Chat on WhatsApp</h2>
+              <p className="text-base leading-relaxed text-[#475569]">Quick questions, plan advice, or just saying hi.</p>
+              <a href={`https://wa.me/${digits(whatsapp)}`} target="_blank" rel="noopener noreferrer" className={link}>Start a chat <ArrowRight aria-hidden="true" size={16} /></a>
+            </article>
+          )}
+          {phone && (
+            <article className={`${cardBase} border-[#EFE4D8]`}>
+              <span className={`${tile} bg-[#FFEDD5] text-[#C2410C]`}><Phone aria-hidden="true" size={24} /></span>
+              <p className="text-sm font-semibold text-[#475569]">Call us directly</p>
+              <h2 className={`${monoLabel} !text-[26px] !font-bold !text-[#0F172A]`}>{phone}</h2>
+              {hours && <p className="text-base leading-relaxed text-[#475569]">{hours}</p>}
+              <a href={`tel:+${digits(phone)}`} className={link}>Call now <ArrowRight aria-hidden="true" size={16} /></a>
+            </article>
+          )}
+          {email && (
+            <article className={`${cardBase} border-[#EFE4D8]`}>
+              <span className={`${tile} bg-[#FFEDD5] text-[#C2410C]`}><Mail aria-hidden="true" size={24} /></span>
+              <p className="text-sm font-semibold text-[#475569]">Drop us a line</p>
+              <h2 className="break-words text-[26px] font-bold tracking-[-0.02em] text-[#0F172A]">{email}</h2>
+              {emailNote && <p className="text-base leading-relaxed text-[#475569]">{emailNote}</p>}
+              <a href={`mailto:${email}`} className={link}>Send an email <ArrowRight aria-hidden="true" size={16} /></a>
+            </article>
+          )}
+          {!whatsapp && !phone && !email && (
+            <p className="text-lg text-[#475569]">Contact details are coming soon. In the meantime you can <Link href="/signup" className="font-bold text-[#C2410C]">create an account</Link> and use the help in your dashboard.</p>
+          )}
+        </Container>
+      </section>
+
+      <CtaBand onPage title="Rather start on your own?" text="Create an account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started" }} />
+    </>
   );
 }
