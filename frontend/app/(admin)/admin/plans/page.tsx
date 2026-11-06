@@ -31,7 +31,7 @@ const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (
 const GRID = "minmax(90px,0.9fr) 96px 175px repeat(7, minmax(76px,1fr)) 56px";
 const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: boolean) => Partial<Plan>; fixed?: boolean }[] = [
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
-  { label: "Slack, Teams and Discord alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
+  { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
   { label: "SMS alerts", get: (p) => p.channels.includes("sms"), set: (p, v) => ({ channels: toggle(p.channels, "sms", v) }) },
   { label: "Report without watermark", get: (p) => p.clean_reports, set: (_p, v) => ({ clean_reports: v }) },
   { label: "Company logo on reports", get: () => true, set: () => ({}), fixed: true },

@@ -32,7 +32,6 @@ export default function Home() {
             <h1 className="text-[clamp(38px,5vw,62px)] font-bold leading-[1.05] tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-[19px] text-[#CBD5E1]">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</p>
             <div className="mt-1 flex flex-wrap gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
-            <p className="text-sm text-[#94A3B8]">The Free plan is free for ever. No card needed.</p>
           </div>
 
           <div role="img" aria-label="SiteRadar dashboard showing a website marked Slow, 99.98% uptime, 6.1 second response time, SSL valid for 74 days and an audit score of 81"
@@ -135,8 +134,8 @@ export default function Home() {
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-[18px]">
             <span className={`${eyebrow} text-[#FDBA74]`}>Alerts</span>
             <h2 className={h2}>Alerts that reach you where you are.</h2>
-            <p className="text-lg text-[#CBD5E1]">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack, Teams or Discord for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</p>
-            <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams", "Discord"].map((c) => <span key={c} className="rounded-full bg-[#1E293B] px-3 py-1.5 text-[13px] font-semibold text-[#E2E8F0]">{c}</span>)}</div>
+            <p className="text-lg text-[#CBD5E1]">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack or Teams for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</p>
+            <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams"].map((c) => <span key={c} className="rounded-full bg-[#1E293B] px-3 py-1.5 text-[13px] font-semibold text-[#E2E8F0]">{c}</span>)}</div>
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5">
             {[["SMS · SiteRadar · 14:02", <><b>DOWN:</b> shop.example.com has failed 2 checks in a row. We will text you when it is back.</>, "border-[#DC2626]", ""],

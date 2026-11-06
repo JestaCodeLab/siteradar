@@ -19,7 +19,7 @@ function features(p: PlanInfo): string[] {
   const out = [
     `${p.sites} website${p.sites === 1 ? "" : "s"}`, `${p.members} team member${p.members === 1 ? "" : "s"}`,
     `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}`,
-    p.channels.includes("chat") ? "Email, Slack, Teams and Discord alerts" : "Email alerts only",
+    p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only",
   ];
   if (p.sms) out.push(`${p.sms} SMS alerts a month`);
   out.push("Domain, SSL, DNS and sitemap monitoring", "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled",

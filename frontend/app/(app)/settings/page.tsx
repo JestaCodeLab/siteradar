@@ -237,11 +237,11 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">SMS alerts</span><span className="text-[13px] text-muted">Text messages to Ghana numbers.</span></span>
             <LockBadge plan={smsPlan} />{isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>))}
         {chat ? (
-          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack, Teams or Discord</span>
+          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack or Teams</span>
             <span className="text-[13px] text-muted">{a.webhooks.length ? `${a.webhooks.length} channel${a.webhooks.length === 1 ? "" : "s"} connected` : "No channel connected yet"}</span></span>
             {isAdmin && <button onClick={() => setHooks((h) => !h)} className={`${secondary} !min-h-10`}>{a.webhooks.length ? "Edit channels" : "Add a channel"}</button>}{a.webhooks.length > 0 && on}</div>
         ) : (
-          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack, Teams or Discord</span><span className="text-[13px] text-muted">Post alerts to your team chat.</span></span>
+          <div className={row}><span className="flex min-w-0 flex-1 flex-col"><span className="text-sm font-semibold">Slack or Teams</span><span className="text-[13px] text-muted">Post alerts to your team chat.</span></span>
             <LockBadge plan={chatPlan} />{isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>)}
       </section>
 
@@ -266,7 +266,7 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
           <form onSubmit={saveRecipients} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2"><Lbl id="emails" hint={<span className="font-normal text-muted">(separate with commas)</span>}>Email recipients</Lbl><input id="emails" name="emails" defaultValue={a.emails.join(", ")} className={inputCls} /></div>
             {isGhana && <Locked feature="sms" title="SMS alerts"><div className="flex flex-col gap-2"><Lbl id="phones" hint={<span className="font-normal text-muted">(texts are sent for outages and recoveries)</span>}>SMS numbers</Lbl><input id="phones" name="phones" defaultValue={a.phones.join(", ")} placeholder="0241234567" className={inputCls} /></div></Locked>}
-            {(!chat || hooks || a.webhooks.length > 0) && <Locked feature="chat" title="Team chat alerts"><div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack, Teams or Discord webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div></Locked>}
+            {(!chat || hooks || a.webhooks.length > 0) && <Locked feature="chat" title="Team chat alerts"><div className="flex flex-col gap-2"><Lbl id="hooks" hint={<span className="font-normal text-muted">(one per line)</span>}>Slack or Teams webhook addresses</Lbl><textarea id="hooks" name="hooks" rows={2} defaultValue={a.webhooks.join("\n")} placeholder="https://hooks.slack.com/services/…" className={`${inputCls} py-2.5`} /></div></Locked>}
             <div className="flex flex-wrap items-center gap-3"><button disabled={busy} className={primary}>Save changes</button><button type="button" onClick={test} disabled={busy} className={secondary}>Send test alert</button></div>
           </form>
         </section>

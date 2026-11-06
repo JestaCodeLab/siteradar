@@ -10,7 +10,7 @@ export function usePlans() {
 }
 
 export const channelLabel = (p: Pick<PlanInfo, "channels">) =>
-  p.channels.includes("chat") ? "Email, Slack, Teams and Discord alerts" : "Email alerts only";
+  p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only";
 
 /** Plain-language feature lines for a plan card. */
 export function planFeatures(p: PlanInfo): string[] {

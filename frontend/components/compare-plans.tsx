@@ -24,7 +24,7 @@ const GROUPS: Group[] = [
   ] },
   { title: "Alerts", rows: [
     { label: "Email alerts", cell: () => ({ yes: true }) },
-    { label: "Chat alerts (Slack, Teams, Discord)", cell: (p) => ({ yes: p.channels.includes("chat") }) },
+    { label: "Chat alerts (Slack, Teams)", cell: (p) => ({ yes: p.channels.includes("chat") }) },
     { label: "SMS alerts", cell: (p) => ({ yes: p.sms > 0, note: p.sms > 0 ? `${p.sms} a month` : undefined }) },
   ] },
   { title: "Reports", rows: [
