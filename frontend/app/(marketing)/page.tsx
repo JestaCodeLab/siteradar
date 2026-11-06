@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Activity, BarChart3, FileText, Mail, ListChecks, Receipt, ShieldCheck, Users } from "lucide-react";
+import { Activity, BarChart3, Clock, FileText, Mail, ListChecks, Receipt, ShieldCheck, Users } from "lucide-react";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { btnOrange, btnOutlineDark, card, eyebrow, h2, iconTile } from "@/lib/mkt-styles";
 import { HomePlans } from "@/components/home-plans";
@@ -19,7 +19,6 @@ const features = [
   { Icon: Users, title: "Your whole team", text: "Invite colleagues with the right access, from full admins to read-only viewers for clients." },
 ];
 const pillars = [["01", "Monitor", "Websites, domains, certificates, DNS and email records, checked around the clock."], ["02", "Understand", "Performance, visitors and audit results in plain language, with trends over time."], ["03", "Act", "Alerts before your customers notice, and a prioritised list of what to fix next."]];
-const steps = [["01", "Add your websites", "Paste the address of each site. SiteRadar starts checking straight away and takes a picture of the homepage."], ["02", "Install one line", "Optional: paste a tiny script on each site to see visitors and real page speed."], ["03", "Relax, we will tell you", "Get alerts when something needs attention and a report at the start of every month."]];
 const mono = "font-mono";
 
 export default function Home() {
@@ -84,13 +83,58 @@ export default function Home() {
         </div>
       </Container>
 
-      {/* steps */}
+      {/* how it works */}
       <section className="border-y border-[#EFE4D8] bg-white">
         <Container className="flex flex-col gap-10 py-24">
-          <h2 className={h2}>On your radar in about ten minutes.</h2>
-          <div className="grid gap-8 md:grid-cols-3">
-            {steps.map(([n, t, d]) => <div key={n} className="flex flex-col gap-3"><span className={`${mono} text-[44px] font-semibold leading-none text-[#F97316]`}>{n}</span><h3 className="text-xl font-bold">{t}</h3><p className="text-[#475569]">{d}</p></div>)}
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="flex max-w-[760px] flex-col gap-3">
+              <span className={`${eyebrow} text-[#C2410C]`}>How it works</span>
+              <h2 className={h2}>On your radar in about ten minutes.</h2>
+              <p className="text-lg text-[#475569]">Three steps, no installation on your server, and nothing to maintain afterwards.</p>
+            </div>
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#EFE4D8] bg-[#FFF7ED] px-5 py-3.5 text-base font-bold text-[#9A3412]"><Clock size={20} aria-hidden="true" />About 10 minutes to set up</span>
           </div>
+
+          <ol className="grid gap-6 lg:grid-cols-3">
+            {[
+              { n: "01", dark: false, title: "Add your websites", text: "Paste the address of each site. SiteRadar starts checking straight away and takes a picture of the homepage." },
+              { n: "02", dark: false, title: "Install one line", optional: true, text: "Paste a tiny cookieless script on each site to see visitors and real page speed." },
+              { n: "03", dark: true, title: "Relax, we will tell you", text: "Get alerts when something needs attention and a report at the start of every month." },
+            ].map((st) => (
+              <li key={st.n} className="relative flex flex-col gap-3 rounded-[22px] border border-[#EFE4D8] bg-[#FBF8F4] p-8">
+                <div className="mb-3 flex items-center gap-4">
+                  <span className="relative flex size-[92px] flex-none items-center justify-center -m-3.5" aria-hidden="true">
+                    <span className="absolute inset-0 rounded-full bg-[#F97316]/[0.08]" /><span className="absolute inset-2.5 rounded-full bg-[#F97316]/[0.13]" />
+                    <span className={`relative flex size-14 items-center justify-center rounded-full font-mono text-lg font-semibold ${st.dark ? "bg-[#0F172A] text-[#FDBA74]" : "bg-[#F97316] text-[#0F172A]"}`}>{st.n}</span>
+                  </span>
+                  <span className="mt-0.5 h-px flex-1 border-t border-dashed border-[#FDBA74]" aria-hidden="true" />
+                </div>
+                <h3 className="flex flex-wrap items-center gap-3 text-[26px] font-bold tracking-[-0.02em]">{st.title}{st.optional && <span className="rounded-full bg-[#E8EDF3] px-3 py-1 text-xs font-bold tracking-normal text-[#475569]">Optional</span>}</h3>
+                <p className="text-[17px] leading-relaxed text-[#475569]">{st.text}</p>
+
+                <div className="mt-auto pt-6">
+                  {st.n === "01" && (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-[#EFE4D8] bg-white p-4" role="img" aria-label="Adding a website: the address shop.example.com, then the first check shows Up">
+                      <div className="flex gap-2.5"><span className="flex min-w-0 flex-1 items-center rounded-[10px] border border-[#CBD5E1] px-3.5 py-3 font-mono text-sm text-[#0F172A]">https://shop.example.com</span><span className="flex items-center rounded-[10px] bg-[#F97316] px-5 text-sm font-bold text-white">Add</span></div>
+                      <div className="flex items-center justify-between text-sm text-[#475569]"><span>First check</span><span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-sm font-bold text-[#166534]">Up</span></div>
+                    </div>
+                  )}
+                  {st.n === "02" && (
+                    <div className="rounded-2xl bg-[#111827] p-5" role="img" aria-label="The one line of code to paste on a site">
+                      <div className="mb-4 flex gap-1.5" aria-hidden="true">{[0, 1, 2].map((i) => <span key={i} className="size-2.5 rounded-full bg-[#4B5563]" />)}</div>
+                      <code className="block break-all font-mono text-[15px] leading-relaxed"><span className="text-[#FDBA74]">&lt;script</span> <span className="text-[#E2E8F0]">defer src=</span><span className="text-[#86EFAC]">&quot;[your-snippet-url]&quot;</span><span className="text-[#FDBA74]">&gt;&lt;/script&gt;</span></code>
+                    </div>
+                  )}
+                  {st.n === "03" && (
+                    <div className="flex flex-col gap-2.5">
+                      <div className="rounded-xl border border-l-[4px] border-[#EFE4D8] border-l-[#16A34A] bg-white px-4 py-3 text-sm"><div className="text-[#475569]">SMS · SiteRadar</div><div><b>UP:</b> shop.example.com is back after 19 minutes.</div></div>
+                      <div className="rounded-xl border border-l-[4px] border-[#EFE4D8] border-l-[#F97316] bg-white px-4 py-3 text-sm"><div className="text-[#475569]">Email · 1 Nov</div><div>Your October report for shop.example.com is ready.</div></div>
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
         </Container>
       </section>
 
