@@ -30,7 +30,7 @@ export default function LoginPage() {
   return (
     <AuthShell variant="login">
       <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Log in</h2><p className="text-[15px] text-muted">Welcome back. Enter your details to open your dashboard.</p></div>
-      <form onSubmit={submit} className="flex flex-col gap-5">
+      <form onSubmit={submit} className="flex flex-col gap-3.5">
         <Field label="Email" htmlFor="email"><input id="email" name="email" type="email" autoComplete="email" required className={input} /></Field>
         <Field label="Password" htmlFor="password"><input id="password" name="password" type="password" autoComplete="current-password" required className={input} /></Field>
         <Link href="/forgot" className="w-fit text-sm font-semibold text-brand">Forgot your password?</Link>

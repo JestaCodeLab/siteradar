@@ -37,12 +37,12 @@ export default function InvitePage() {
             <p className="text-[15px] leading-snug text-ink-2">{data.inviter || "A colleague"} invited you to join <b className="block text-lg text-ink">{data.workspace}</b></p>
           </div>
           <p className="w-fit rounded-full bg-brand-soft px-3.5 py-1.5 text-sm font-semibold text-brand-ink">Your role: {roleLabel[data.role] ?? data.role}</p>
-          <form onSubmit={accept} className="flex flex-col gap-5">
+          <form onSubmit={accept} className="flex flex-col gap-3.5">
             <div className="flex flex-col gap-1.5"><h2 className="text-[24px] font-semibold">{data.has_account ? "Log in to accept" : "Set up your account"}</h2>{!data.has_account && <p className="text-sm text-muted">This only takes a minute.</p>}</div>
             <Field label="Email" htmlFor="email"><input id="email" value={data.email} readOnly className={`${input} bg-soft`} /></Field>
             {!data.has_account && (
               <>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-3.5 sm:grid-cols-2">
                   <Field label="First name" htmlFor="fn"><input id="fn" name="first_name" required className={input} /></Field>
                   <Field label="Last name" htmlFor="ln"><input id="ln" name="last_name" required className={input} /></Field>
                 </div>

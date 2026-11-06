@@ -30,7 +30,7 @@ export function AuthShell({ variant, children }: { variant: keyof typeof ASIDE; 
       </div>
       <div className="flex min-w-0 flex-[1_1_480px] flex-col px-6 py-8 sm:px-8">
         <Link href="/" aria-label="SiteRadar home" className="mb-8 w-fit lg:hidden"><Logo /></Link>
-        <div className="flex flex-1 items-center justify-center py-6"><div className="flex w-full max-w-[420px] flex-col gap-7">{children}</div></div>
+        <div className="flex flex-1 items-center justify-center py-6"><div className="flex w-full max-w-[420px] flex-col gap-5">{children}</div></div>
       </div>
     </div>
   );

@@ -47,7 +47,7 @@ function Form() {
         <h2 className="text-[28px] font-semibold">Check your email</h2>
         <p className="text-[15px] leading-relaxed text-muted">We sent a 6-digit code to <b className="text-ink">{email}</b>. Enter it below to verify your account.</p>
       </div>
-      <form onSubmit={submit} className="flex flex-col gap-5">
+      <form onSubmit={submit} className="flex flex-col gap-3.5">
         <label htmlFor="code" className="sr-only">6-digit code</label>
         <input id="code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} autoFocus
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} placeholder="000000"
