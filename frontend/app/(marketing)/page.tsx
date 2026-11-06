@@ -89,10 +89,10 @@ export default function Home() {
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="flex max-w-[760px] flex-col gap-3">
               <span className={`${eyebrow} text-[#C2410C]`}>How it works</span>
-              <h2 className={h2}>On your radar in about ten minutes.</h2>
+              <h2 className={h2}>On your radar in 5 minutes.</h2>
               <p className="text-lg text-[#475569]">Three steps, no installation on your server, and nothing to maintain afterwards.</p>
             </div>
-            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#EFE4D8] bg-[#FFF7ED] px-5 py-3.5 text-base font-bold text-[#9A3412]"><Clock size={20} aria-hidden="true" />About 10 minutes to set up</span>
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#EFE4D8] bg-[#FFF7ED] px-5 py-3.5 text-base font-bold text-[#9A3412]"><Clock size={20} aria-hidden="true" />About 5 minutes to set up</span>
           </div>
 
           <ol className="grid gap-6 lg:grid-cols-3">

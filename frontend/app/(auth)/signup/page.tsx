@@ -65,7 +65,7 @@ function Form() {
 
 export default function SignupPage() {
   return (
-    <AuthShell headline="Know when your websites break, before your customers do." bullets={["Free for one website, no card needed", "Set up in about ten minutes", "Cancel or change plan any time"]}>
+    <AuthShell headline="Know when your websites break, before your customers do." bullets={["Free for one website, no card needed", "Set up in about 5 minutes", "Cancel or change plan any time"]}>
       <Suspense><Form /></Suspense>
     </AuthShell>
   );
