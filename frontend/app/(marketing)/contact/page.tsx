@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { Container, eyebrow } from "@/components/mkt";
+import { Container } from "@/components/mkt";
+import { eyebrow } from "@/lib/mkt-styles";
 import { send } from "@/lib/api";
 
 const EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL, PHONE = process.env.NEXT_PUBLIC_CONTACT_PHONE, OFFICE = process.env.NEXT_PUBLIC_CONTACT_ADDRESS;

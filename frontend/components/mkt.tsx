@@ -8,13 +8,7 @@ import { Logo } from "./logo";
 
 export { Logo } from "./logo";
 
-/* Marketing palette (the brand kit). The site is always light. */
-export const C = { ink: "#0F172A", slate: "#475569", body: "#334155", orange: "#F97316", burnt: "#C2410C", deep: "#9A3412", soft: "#FFEDD5", cream: "#FFF7ED", page: "#FBF8F4", line: "#EFE4D8" };
 
-export const btnOrange = "inline-flex items-center justify-center rounded-xl bg-[#F97316] px-6 py-[15px] text-base font-bold text-white hover:bg-[#EA580C]";
-export const btnOutlineDark = "inline-flex items-center justify-center rounded-xl border border-[#475569] px-6 py-[15px] text-base font-semibold text-white hover:bg-white/10";
-export const btnOutline = "inline-flex items-center justify-center rounded-xl border-[1.5px] border-[#0F172A] px-6 py-3.5 text-base font-bold text-[#0F172A] hover:bg-[#0F172A] hover:text-white";
-export const eyebrow = "text-[13px] font-bold uppercase tracking-[0.08em]";
 
 const solutions = [
   { href: "/solutions/agencies", label: "Agencies", Icon: Users, text: "For digital marketing agencies, web development agencies and consultants managing multiple clients." },
@@ -111,9 +105,9 @@ export function Rings({ className = "", color = "#F97316", opacity = 1 }: { clas
   );
 }
 
-export function CtaBand({ title, text, primary, secondary }: { title: string; text: string; primary: { href: string; label: string }; secondary?: { href: string; label: string } }) {
+export function CtaBand({ title, text, primary, secondary, onPage = false }: { title: string; text: string; primary: { href: string; label: string }; secondary?: { href: string; label: string }; onPage?: boolean }) {
   return (
-    <section className="bg-white px-6 pb-24">
+    <section className={`px-6 ${onPage ? "bg-[#FBF8F4] py-24" : "bg-white pb-24"}`}>
       <div className="relative mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-6 overflow-hidden rounded-3xl bg-[#F97316] px-8 py-14 md:px-12">
         <svg viewBox="0 0 400 400" aria-hidden="true" className="pointer-events-none absolute -right-[120px] -top-[110px] size-[420px]"><g fill="none" stroke="#FFFFFF" strokeWidth="3"><circle cx="200" cy="200" r="70" strokeOpacity="0.35" /><circle cx="200" cy="200" r="130" strokeOpacity="0.25" /><circle cx="200" cy="200" r="190" strokeOpacity="0.15" /></g></svg>
         <div className="relative flex max-w-[640px] flex-col gap-2">
@@ -122,7 +116,7 @@ export function CtaBand({ title, text, primary, secondary }: { title: string; te
         </div>
         <div className="relative flex flex-wrap gap-3">
           <Link href={primary.href} className="rounded-xl bg-[#0F172A] px-6 py-4 text-base font-bold text-white hover:bg-[#1E293B]">{primary.label}</Link>
-          {secondary && <Link href={secondary.href} className="rounded-xl border-[1.5px] border-white px-6 py-4 text-base font-bold text-white hover:bg-white hover:text-[#C2410C]">{secondary.label}</Link>}
+          {secondary && <Link href={secondary.href} className="rounded-xl bg-[#FFF7ED] px-6 py-4 text-base font-bold text-[#0F172A] hover:bg-white">{secondary.label}</Link>}
         </div>
       </div>
     </section>
@@ -133,6 +127,3 @@ export function Container({ children, className = "" }: { children: React.ReactN
   return <div className={`mx-auto max-w-[1200px] px-6 ${className}`}>{children}</div>;
 }
 
-export const h2 = "text-[clamp(30px,3.6vw,44px)] font-bold leading-[1.1] tracking-[-0.03em]";
-export const card = "flex flex-col gap-2.5 rounded-2xl border border-[#EFE4D8] bg-white p-6";
-export const iconTile = "flex size-11 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#C2410C]";

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { Container, CtaBand, eyebrow, Rings } from "@/components/mkt";
+import { Container, CtaBand, Rings } from "@/components/mkt";
+import { eyebrow } from "@/lib/mkt-styles";
 import type { PlanInfo } from "@/lib/api";
 import { ghs } from "@/lib/me";
 import { usePlans } from "@/lib/plans";

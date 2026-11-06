@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Activity, BarChart3, FileText, Mail, ListChecks, Receipt, ShieldCheck, Users } from "lucide-react";
-import { btnOrange, btnOutlineDark, Container, CtaBand, eyebrow, h2, iconTile, card, Rings } from "@/components/mkt";
+import { Container, CtaBand, Rings } from "@/components/mkt";
+import { btnOrange, btnOutlineDark, card, eyebrow, h2, iconTile } from "@/lib/mkt-styles";
 import { HomePlans } from "@/components/home-plans";
 
 export const metadata: Metadata = { title: "Know when your websites break, expire or slow down" };
