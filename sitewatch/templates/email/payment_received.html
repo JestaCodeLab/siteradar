@@ -4,7 +4,7 @@
 {% set title %}Thank you, your {{ plan }} plan is active{% endset %}
 {% block intro %}{% call p.para() %}Hi {{ first_name or "there" }}, we received your payment. Here is your receipt for {{ workspace }}.{% endcall %}{% endblock %}
 {% block body %}
-{{ p.facts([("Plan", plan ~ " (" ~ cycle ~ ")"), ("Amount paid", amount), ("Paid with", method), ("Reference", reference, True), ("Date", paid_on), ("Next renewal", renews)]) }}
+{{ p.facts(rows) }}
 {{ p.button(billing_url, "View billing and invoices") }}
 <tr><td class="px" style="padding:8px 40px 0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:22px;color:#64748B">Keep this email as your receipt.{% if support_email %} Anything not right? Write to <a href="mailto:{{ support_email }}" style="color:#C2410C;font-weight:600">{{ support_email }}</a>.{% endif %}</td></tr>
 {% endblock %}

@@ -88,6 +88,13 @@ export interface AuditResponse {
   running: boolean; categories: string[];
 }
 
+export interface DiscountCode {
+  id: number; code: string; description: string; kind: "percent" | "fixed"; percent: number; amount_ghs: number; amount_usd: number;
+  plan_ids: string[] | null; cycles: "both" | "monthly" | "yearly"; periods: number; max_uses: number | null; starts: number | null; expires: number | null;
+  active: boolean; uses: number; state: "active" | "disabled" | "scheduled" | "expired" | "used up"; created: number; label: string; duration: string;
+}
+export interface DiscountsResponse { codes: DiscountCode[]; plans: { id: string; name: string }[]; summary: { active: number; uses: number } }
+export interface DiscountCheck { ok: boolean; code: string; discount: number; total: number; currency: string; label: string; duration: string }
 export interface ReportHistoryMonth {
   period: string; label: string; range: string; in_progress: boolean; uptime: number | null; avg_ms: number | null; incidents: number;
   audit: number | null; visitors: number | null; generated: number | null; auto: boolean;
@@ -170,7 +177,7 @@ export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currenc
 
 export interface Workspace {
   id: number; name: string; owner_name?: string | null; website: string | null; industry: string | null; size: string | null; country: string | null;
-  phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; suspended: boolean; alerts_prompted?: boolean; report_day?: number; report_at?: string;
+  phone: string | null; address: string | null; logo_url: string | null; logo_name?: string | null; logo_size?: number | null; timezone?: string; role: Role | null; onboarded: boolean; coupon?: { code: string; left: number | null } | null; suspended: boolean; alerts_prompted?: boolean; report_day?: number; report_at?: string;
   plan: { id: string; name: string; sites: number; members: number; storage_mb?: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; clean_reports: boolean; client_access: boolean };
   plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed"; currency?: string; plan_renews: number | null;

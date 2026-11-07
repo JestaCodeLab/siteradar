@@ -11,6 +11,7 @@ import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
 import { fmtDateTs } from "@/lib/format";
 import { ghs, money, useMe } from "@/lib/me";
+import { DiscountBox } from "./discount-field";
 import { checkout, payFor } from "@/lib/paystack";
 import { priceLine } from "@/lib/plans";
 
@@ -38,6 +39,7 @@ export function BillingPanel() {
   const { data, error, mutate } = useSWR<BillingData>("/api/billing", fetcher);
   const [yearly, setYearly] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [code, setCode] = useState("");
   const setNote = useNoteToast();
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
@@ -60,7 +62,7 @@ export function BillingPanel() {
     } catch (e) { setNote({ ok: false, text: e instanceof Error ? e.message : "Something went wrong." }); }
     setBusy(null);
   }
-  const choose = (plan: string, cycle = isYearly ? "yearly" : "monthly") => run(plan + cycle, () => checkout("/api/billing/checkout", { plan, cycle }));
+  const choose = (plan: string, cycle = isYearly ? "yearly" : "monthly") => run(plan + cycle, () => checkout("/api/billing/checkout", { plan, cycle, ...(code.trim() ? { code: code.trim() } : {}) }));
   const payBy = (channel: "card" | "mobile_money") => {
     if (free) { document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" }); return; }
     if (!confirm("This pays for your next period now and keeps the method for automatic renewals. Continue?")) return;
@@ -95,6 +97,7 @@ export function BillingPanel() {
             {free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark."
               : data.comped ? "Complimentary plan from SiteRadar."
               : `Billed ${ws.cycle}. Your plan renews on ${fmtDateTs(ws.plan_renews)}.${ws.cycle === "monthly" && currentPlan ? ` Switching to yearly billing would cost ${money(yearlyTotal, ccy)} a year instead of ${money(monthlyYear, ccy)}.` : ""}`}</p>
+          {ws.coupon && <p className="rounded-lg bg-ok-soft px-3.5 py-2 text-[13px] text-ok">Discount code <b className="font-mono">{ws.coupon.code}</b> is on your plan{ws.coupon.left == null ? " for every payment." : ` for ${ws.coupon.left} more ${ws.coupon.left === 1 ? "payment" : "payments"}.`}</p>}
           {!free && !data.comped && isOwner && (
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
               {ws.cycle === "monthly" && <button disabled={busy !== null} onClick={() => choose(cur, "yearly")} className="flex min-h-11 items-center text-sm font-semibold text-brand">Switch to yearly and save {disc}%</button>}
@@ -118,6 +121,7 @@ export function BillingPanel() {
           <div role="group" aria-label="Billing period" className="inline-flex gap-1 rounded-xl border border-line bg-surface p-1">
             <button aria-pressed={!isYearly} onClick={() => setYearly(false)} className={tab(!isYearly)}>Monthly</button>
             <button aria-pressed={isYearly} onClick={() => setYearly(true)} className={tab(isYearly)}>Yearly <span className={`rounded-full px-2 py-0.5 text-xs ${isYearly ? "bg-white/20" : "bg-ok-soft text-ok"}`}>Save {disc}%</span></button></div></div>
+        {isOwner && <DiscountBox value={code} onChange={setCode} />}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((p, idx) => {
             const here = p.id === cur && (p.price_month === 0 || ws.cycle === (isYearly ? "yearly" : "monthly"));

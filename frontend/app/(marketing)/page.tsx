@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Activity, BarChart3, Clock, FileText, Mail, ListChecks, Receipt, ShieldCheck, Users } from "lucide-react";
 import { Container, CtaBand, Rings } from "@/components/mkt";
-import { btnOrange, btnOutlineDark, card, eyebrow, h2, iconTile } from "@/lib/mkt-styles";
+import { btnOrange, btnOutlineDark, eyebrow, h2 } from "@/lib/mkt-styles";
+import { HeroPreview } from "@/components/hero-preview";
 import { HomePlans } from "@/components/home-plans";
 import { JsonLd } from "@/components/json-ld";
 import { SITE_URL, organization, pageMeta } from "@/lib/seo";
@@ -17,7 +18,6 @@ export const metadata: Metadata = pageMeta({
   image: "/og/og-home.png",
 });
 
-const slow = [12, 21, 28];
 const features = [
   { Icon: Activity, title: "Uptime and speed", text: "Every site is checked every few minutes for availability and response time, with a text or email only when it really matters." },
   { Icon: ShieldCheck, title: "SSL and domain expiry", text: "See the exact expiry date of every certificate and domain, and get warned weeks ahead instead of the day it lapses." },
@@ -56,28 +56,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div role="img" aria-label="SiteRadar dashboard showing a website marked Slow, 99.98% uptime, 6.1 second response time, SSL valid for 74 days and an audit score of 81"
-            className="hidden min-w-0 flex-[1_1_520px] flex-col gap-4 rounded-[20px] bg-white p-6 text-[#0F172A] md:flex shadow-[0_30px_80px_rgba(0,0,0,0.35)]">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2.5"><span className="text-xl font-bold tracking-[-0.02em]">Jesta Digital Solutions</span><span className="rounded-full bg-[#FEF3C7] px-2.5 py-[3px] text-xs font-bold text-[#92400E]">● Slow</span></div>
-                <span className={`${mono} text-[13px] text-[#C2410C]`}>jestadigitalsolutions.com</span>
-              </div>
-              <span className="text-xs text-[#475569]">Last check 2 minutes ago</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-              {[["Uptime, 30 days", "99.98%", ""], ["Response", "6.1 s", "text-[#B45309]"], ["SSL expires", "74 d", ""], ["Audit score", "81", ""]].map(([k, v, c]) => (
-                <div key={k} className="rounded-xl border border-[#EFE4D8] p-3"><div className="text-xs text-[#475569]">{k}</div><div className={`${mono} text-[22px] font-semibold ${c}`}>{v}</div></div>))}
-            </div>
-            <div className="flex flex-col gap-2"><div className="flex justify-between text-[13px]"><span className="font-semibold">Uptime, last 30 days</span><span className="text-[#475569]">1 incident · 7 min downtime</span></div>
-              <div className="flex h-7 gap-[3px]">{Array.from({ length: 30 }, (_, i) => <div key={i} className={`flex-1 rounded-[3px] ${slow.includes(i) ? "bg-[#F59E0B]" : "bg-[#16A34A]"}`} />)}</div></div>
-            <div className="flex flex-col gap-1.5"><div className="flex justify-between text-[13px]"><span className="font-semibold">Response time</span><span className="text-[#92400E]">Above the 3 s threshold</span></div>
-              <svg viewBox="0 0 300 100" width="100%" height="110" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="62.5" x2="300" y2="62.5" stroke="#94A3B8" strokeWidth="1.2" strokeDasharray="5 4" /><polyline fill="none" stroke="#F97316" strokeWidth="2.4" strokeLinejoin="round" points="0,43.75 10.3,42.5 20.7,46.25 31,37.5 41.4,40 51.7,27.5 62.1,32.5 72.4,37.5 82.8,36.25 93.1,22.5 103.4,17.5 113.8,26.25 124.1,37.5 134.5,33.75 144.8,26.25 155.2,30 165.5,40 175.9,37.5 186.2,33.75 196.6,23.75 206.9,15 217.2,27.5 227.6,32.5 237.9,36.25 248.3,38.75 258.6,32.5 269,21.25 279.3,25 289.7,30 300,23.75" /></svg></div>
-            <div className="flex flex-col border-t border-[#EFE4D8]">
-              {["Security headers missing (CSP, X-Frame-Options)", "9 images are larger than 500 KB"].map((t, i) => (
-                <div key={t} className={`flex items-center gap-2.5 py-2.5 ${i === 0 ? "border-b border-[#EFE4D8]" : ""}`}><span className="rounded-full bg-[#FEE2E2] px-2.5 py-[3px] text-[11px] font-bold text-[#991B1B]">High</span><span className="text-sm">{t}</span></div>))}
-            </div>
-          </div>
+          <HeroPreview />
         </Container>
       </section>
 

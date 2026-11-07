@@ -9,6 +9,11 @@ import { useLogoutConfirm } from "@/components/confirm-logout";
 
 const steps = [["company", "Company"], ["plan", "Plan"], ["done", "Done"]];
 
+/** True for two minutes after the plan step was completed, while the saved state catches up. */
+function finishingNow() {
+  try { return Date.now() - Number(sessionStorage.getItem("sitewatch.finishing") || 0) < 120000; } catch { return false; }
+}
+
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
@@ -18,8 +23,11 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
   useEffect(() => {
     if (isLoading) return;
     if (!me?.authenticated) { router.replace("/login"); return; }
-    if (ws?.onboarded && !path.endsWith("/done")) router.replace("/overview");
-    else if (!ws?.onboarded && path.endsWith("/done")) router.replace(ws ? "/onboarding/plan" : "/onboarding/company");   // no plan yet: no finish page
+    if (ws?.onboarded && !path.endsWith("/done")) {
+      // just finished the plan step: the finish page is next, not the dashboard
+      router.replace(finishingNow() ? "/onboarding/done" : "/overview");
+    }
+    else if (!ws?.onboarded && path.endsWith("/done") && !finishingNow()) router.replace(ws ? "/onboarding/plan" : "/onboarding/company");   // no plan yet: no finish page
     else if (!ws && path.endsWith("/plan")) router.replace("/onboarding/company");                                        // no company yet: no plan step
   }, [me, ws, isLoading, path, router]);
 

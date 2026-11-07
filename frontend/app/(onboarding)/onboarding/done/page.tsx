@@ -13,7 +13,7 @@ const tasks = [
 
 export default function DoneStep() {
   const { user, ws, mutate } = useMe();
-  useEffect(() => { try { sessionStorage.removeItem("sitewatch.onboarding"); } catch { /* optional */ } mutate(); }, [mutate]);
+  useEffect(() => { try { sessionStorage.removeItem("sitewatch.onboarding"); sessionStorage.removeItem("sitewatch.finishing"); } catch { /* optional */ } mutate(); }, [mutate]);
   const paid = ws && ws.plan_id !== "free";
   return (
     <div className="mx-auto flex max-w-[720px] flex-col items-center gap-8 text-center">

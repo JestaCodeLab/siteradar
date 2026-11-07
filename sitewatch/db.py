@@ -222,6 +222,23 @@ CREATE TABLE login_tickets (
     ip_family INTEGER NOT NULL DEFAULT 0, used INTEGER NOT NULL DEFAULT 0
 );
 """),
+    (12, """
+CREATE TABLE discount_codes (
+    id BIGSERIAL PRIMARY KEY, code TEXT NOT NULL UNIQUE, description TEXT, kind TEXT NOT NULL DEFAULT 'percent',
+    percent DOUBLE PRECISION NOT NULL DEFAULT 0, amount_ghs DOUBLE PRECISION NOT NULL DEFAULT 0, amount_usd DOUBLE PRECISION NOT NULL DEFAULT 0,
+    plan_ids TEXT, cycles TEXT NOT NULL DEFAULT 'both', periods INTEGER NOT NULL DEFAULT 1, max_uses INTEGER,
+    starts DOUBLE PRECISION, expires DOUBLE PRECISION, active INTEGER NOT NULL DEFAULT 1, created DOUBLE PRECISION NOT NULL, created_by BIGINT
+);
+CREATE TABLE discount_redemptions (
+    id BIGSERIAL PRIMARY KEY, code_id BIGINT NOT NULL, workspace_id BIGINT NOT NULL, payment_id BIGINT NOT NULL UNIQUE,
+    amount_off DOUBLE PRECISION NOT NULL, currency TEXT, renewal INTEGER NOT NULL DEFAULT 0, created DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX idx_redemptions_code ON discount_redemptions(code_id);
+ALTER TABLE payments ADD COLUMN discount_code TEXT;
+ALTER TABLE payments ADD COLUMN discount_amount DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE workspaces ADD COLUMN coupon_code TEXT;
+ALTER TABLE workspaces ADD COLUMN coupon_left INTEGER;
+"""),
 ]
 
 

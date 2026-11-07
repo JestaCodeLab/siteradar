@@ -28,7 +28,7 @@ export default function DashboardPage() {
   return (
     <>
       <WelcomeAlerts />
-      <PageHeader title={`Welcome, ${user?.first_name ?? ""}`.trim().replace(/,$/, "")} subtitle={ws ? `Here is how ${ws.name}'s websites are doing.` : ""}
+      <PageHeader title={`Welcome, ${user?.first_name ?? ""}`.trim().replace(/,$/, "")} subtitle={ws ? `Here is how your websites at ${ws.name} are doing.` : ""}
         actions={canWrite ? <AddWebsiteButton className={btn.primary} /> : (
           <div className="flex flex-col items-end gap-1">{me?.support
               ? <span aria-disabled="true" className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-[10px] border border-dashed border-[#A5B4FC] bg-[#EEF2FF] px-[18px] text-sm font-bold text-[#4338CA]"><Lock aria-hidden="true" size={16} />Add website</span>

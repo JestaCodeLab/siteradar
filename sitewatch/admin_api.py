@@ -8,7 +8,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, session
 
-from . import accounts, billing, db, mailer, plans, sites, sms, storage
+from . import accounts, billing, db, discounts, mailer, plans, sites, sms, storage
 from .ctx import SUPPORT_MINUTES, super_required
 
 PLAN_COLORS = {"free": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
@@ -493,6 +493,111 @@ def blueprint(cfg):
                 continue
             out.append({**p, "label": label, "method": p["method"] or (p["channel"] or "").replace("_", " ").title() or "—"})
         return out
+
+    # ---- discount codes ------------------------------------------------------------------------
+    def code_out(r):
+        return {"id": r["id"], "code": r["code"], "description": r["description"] or "", "kind": r["kind"], "percent": r["percent"],
+                "amount_ghs": r["amount_ghs"], "amount_usd": r["amount_usd"], "plan_ids": discounts.plan_list(r), "cycles": r["cycles"],
+                "periods": r["periods"], "max_uses": r["max_uses"], "starts": r["starts"], "expires": r["expires"], "active": bool(r["active"]),
+                "uses": discounts.uses(r["id"]), "state": discounts.state(r), "created": r["created"],
+                "label": discounts.describe(r), "duration": discounts.duration_text(r)}
+
+    def day_ts(v, end=False):
+        """'2026-12-31' as a timestamp: the start of that day, or its last second."""
+        if not v:
+            return None
+        try:
+            d = dt.date.fromisoformat(str(v)[:10])
+        except ValueError:
+            raise ValueError("Use a date like 2026-12-31.")
+        return dt.datetime.combine(d, dt.time(23, 59, 59) if end else dt.time(0, 0)).timestamp()
+
+    @bp.get("/discounts")
+    def discounts_list():
+        rows = db.q("SELECT * FROM discount_codes ORDER BY created DESC")
+        out = [code_out(r) for r in rows]
+        return jsonify(codes=out, plans=[{"id": p["id"], "name": p["name"]} for p in plans.all_plans() if p["price_month"] > 0],
+                       summary={"active": sum(1 for c in out if c["state"] == "active"), "uses": sum(c["uses"] for c in out)})
+
+    @bp.post("/discounts")
+    def discounts_create():
+        d = body()
+        code = discounts.normalize(d.get("code"))
+        if not 3 <= len(code) <= 32:
+            raise ValueError("A code needs 3 to 32 letters, numbers, dashes or underscores.")
+        if db.q1("SELECT 1 FROM discount_codes WHERE code=?", (code,)):
+            raise ValueError("That code already exists.")
+        kind = "fixed" if d.get("kind") == "fixed" else "percent"
+        percent = ghs = usd = 0.0
+        if kind == "percent":
+            percent = float(d.get("percent") or 0)
+            if not 0 < percent <= 100:
+                raise ValueError("A percentage must be between 1 and 100.")
+        else:
+            ghs, usd = float(d.get("amount_ghs") or 0), float(d.get("amount_usd") or 0)
+            if ghs < 0 or usd < 0 or (ghs == 0 and usd == 0):
+                raise ValueError("Enter an amount in cedis, dollars or both.")
+        paid = {p["id"] for p in plans.all_plans() if p["price_month"] > 0}
+        chosen = [p for p in (d.get("plan_ids") or []) if p in paid]
+        cycles = d.get("cycles") if d.get("cycles") in ("monthly", "yearly") else "both"
+        periods = max(0, int(d.get("periods") if d.get("periods") not in (None, "") else 1))
+        max_uses = int(d["max_uses"]) if d.get("max_uses") not in (None, "") else None
+        if max_uses is not None and max_uses < 1:
+            raise ValueError("Maximum uses must be at least 1, or left empty for no limit.")
+        starts, expires = day_ts(d.get("starts")), day_ts(d.get("expires"), end=True)
+        if starts and expires and expires <= starts:
+            raise ValueError("The end date must be after the start date.")
+        cid = db.run("""INSERT INTO discount_codes(code, description, kind, percent, amount_ghs, amount_usd, plan_ids, cycles, periods, max_uses, starts, expires, active, created, created_by)
+                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     (code, (d.get("description") or "").strip()[:200], kind, percent, ghs, usd, json.dumps(chosen) if chosen else None, cycles, periods,
+                      max_uses, starts, expires, 1, time.time(), g.user["id"]))
+        row = db.q1("SELECT * FROM discount_codes WHERE id=?", (cid,))
+        audit("discount.create", None, f"Created {code}: {discounts.describe(row)} for {discounts.duration_text(row)}")
+        return jsonify(code_out(row)), 201
+
+    @bp.patch("/discounts/<int:cid>")
+    def discounts_update(cid):
+        row = db.q1("SELECT * FROM discount_codes WHERE id=?", (cid,)) or abort(404, "Unknown code")
+        d, sets, args, notes = body(), [], [], []
+        if "active" in d:
+            sets.append("active=?"); args.append(int(bool(d["active"]))); notes.append("enabled" if d["active"] else "disabled")
+        if "description" in d:
+            sets.append("description=?"); args.append((d["description"] or "").strip()[:200])
+        if "max_uses" in d:
+            mu = int(d["max_uses"]) if d["max_uses"] not in (None, "") else None
+            if mu is not None and mu < max(1, discounts.uses(cid)):
+                raise ValueError("The limit cannot be lower than the number of times it has been used.")
+            sets.append("max_uses=?"); args.append(mu); notes.append(f"limit {mu if mu is not None else 'none'}")
+        starts = day_ts(d["starts"]) if "starts" in d else row["starts"]
+        expires = day_ts(d["expires"], end=True) if "expires" in d else row["expires"]
+        if starts and expires and expires <= starts:
+            raise ValueError("The end date must be after the start date.")
+        if "starts" in d:
+            sets.append("starts=?"); args.append(starts)
+        if "expires" in d:
+            sets.append("expires=?"); args.append(expires); notes.append("end date changed")
+        if sets:
+            db.run(f"UPDATE discount_codes SET {', '.join(sets)} WHERE id=?", (*args, cid))
+            audit("discount.update", None, f"{row['code']}: {', '.join(notes) or 'edited'}")
+        return jsonify(code_out(db.q1("SELECT * FROM discount_codes WHERE id=?", (cid,))))
+
+    @bp.delete("/discounts/<int:cid>")
+    def discounts_delete(cid):
+        row = db.q1("SELECT * FROM discount_codes WHERE id=?", (cid,)) or abort(404, "Unknown code")
+        if db.q1("SELECT 1 FROM discount_redemptions WHERE code_id=?", (cid,)) or db.q1("SELECT 1 FROM workspaces WHERE coupon_code=?", (row["code"],)):
+            raise ValueError("This code has been used, so it cannot be deleted. Disable it instead.")
+        db.exec("DELETE FROM discount_codes WHERE id=?", (cid,))
+        audit("discount.delete", None, f"Deleted {row['code']}")
+        return jsonify(ok=True)
+
+    @bp.get("/discounts/<int:cid>/redemptions")
+    def discounts_redemptions(cid):
+        db.q1("SELECT id FROM discount_codes WHERE id=?", (cid,)) or abort(404, "Unknown code")
+        rows = db.q("""SELECT r.created, r.amount_off, r.currency, r.renewal, w.id ws_id, w.name ws_name, p.plan_id, p.cycle
+                       FROM discount_redemptions r LEFT JOIN workspaces w ON w.id=r.workspace_id LEFT JOIN payments p ON p.id=r.payment_id
+                       WHERE r.code_id=? ORDER BY r.created DESC LIMIT 200""", (cid,))
+        return jsonify(redemptions=[{"ts": r["created"], "workspace_id": r["ws_id"], "workspace": r["ws_name"], "plan_id": r["plan_id"], "cycle": r["cycle"],
+                                     "amount_off": r["amount_off"], "currency": r["currency"], "renewal": bool(r["renewal"])} for r in rows])
 
     @bp.get("/payments")
     def payments():

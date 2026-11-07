@@ -3,21 +3,25 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FormError } from "@/components/auth-shell";
+import { DiscountField, discountLine } from "@/components/discount-field";
 import { btn, Icon } from "@/components/ui";
+import type { DiscountCheck } from "@/lib/api";
 import { checkout } from "@/lib/paystack";
-import { money } from "@/lib/me";
+import { money, useMe } from "@/lib/me";
 import { planFeatures, priceLine, usePlans } from "@/lib/plans";
 
 const suggest: Record<string, string> = { "1 to 3": "starter", "4 to 15": "growth", "16 to 50": "scale", "More than 50": "scale" };
 
 export default function PlanStep() {
   const router = useRouter();
+  const { mutate: refreshMe } = useMe();
   const cat = usePlans();
   const [plan, setPlan] = useState("free");
   const [yearly, setYearly] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [applied, setApplied] = useState<DiscountCheck | null>(null);
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- reading what the signup page saved in this browser, after mount */
@@ -32,17 +36,21 @@ export default function PlanStep() {
 
   const plans = cat?.plans ?? [];
   const chosen = plans.find((p) => p.id === plan);
-  const due = !chosen ? 0 : yearly ? chosen.price_year : chosen.price_month;
+  const base = !chosen ? 0 : yearly ? chosen.price_year : chosen.price_month;
+  const due = applied && plan !== "free" ? applied.total : base;
   const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold ${on ? "bg-brand text-white" : "text-ink-2 hover:bg-soft"}`;
 
   async function go() {
     setBusy(true); setError(null);
+    // Choosing the plan flips the workspace to "onboarded" a moment before we reach the finish page. Say so, so the layout lets us arrive.
+    try { sessionStorage.setItem("sitewatch.finishing", String(Date.now())); } catch { /* optional */ }
     try {
-      const r = await checkout("/api/onboarding/plan", { plan, cycle: yearly ? "yearly" : "monthly" });
-      if (r === "cancelled") { setError("The payment was cancelled. Nothing was charged. You can try again or continue with Free."); setBusy(false); return; }
+      const r = await checkout("/api/onboarding/plan", { plan, cycle: yearly ? "yearly" : "monthly", ...(applied && plan !== "free" ? { code: applied.code } : {}) });
+      if (r === "cancelled") { try { sessionStorage.removeItem("sitewatch.finishing"); } catch { /* optional */ } setError("The payment was cancelled. Nothing was charged. You can try again or continue with Free."); setBusy(false); return; }
       try { sessionStorage.removeItem("sitewatch.plan"); } catch { /* optional */ }
+      await refreshMe();          // so the layout already knows the workspace is onboarded when the finish page opens
       router.push("/onboarding/done");
-    } catch (err) { setError(err instanceof Error ? err.message : "Could not continue."); setBusy(false); }
+    } catch (err) { try { sessionStorage.removeItem("sitewatch.finishing"); } catch { /* optional */ } setError(err instanceof Error ? err.message : "Could not continue."); setBusy(false); }
   }
 
   return (
@@ -78,10 +86,12 @@ export default function PlanStep() {
             <p className="text-[15px] leading-relaxed text-ink-2">A secure Paystack window opens on this page so you can pay by card{chosen?.currency === "USD" ? "" : " or mobile money (MTN MoMo, Telecel Cash, AirtelTigo Money)"}. Cards renew automatically.{chosen?.currency === "USD" ? "" : " With mobile money we email you a payment link before each renewal."} You can cancel any time.</p>
           </div>
         )}
-        <div className="min-w-0 flex-[1_1_300px] rounded-2xl border border-line bg-surface p-6">
-          <p className="mb-3 text-base font-semibold">Order summary</p>
-          <div className="flex justify-between text-sm"><span>{chosen?.name ?? "—"} plan</span><span>{chosen ? money(due, chosen.currency) : ""}</span></div>
+        <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-3 rounded-2xl border border-line bg-surface p-6">
+          <p className="text-base font-semibold">Order summary</p>
+          <div className="flex justify-between text-sm"><span>{chosen?.name ?? "—"} plan</span><span>{chosen ? money(base, chosen.currency) : ""}</span></div>
+          {applied && plan !== "free" && <div className="flex justify-between text-sm text-ok"><span>Discount ({applied.code})</span><span>{discountLine(applied)}</span></div>}
           <p className="text-[13px] text-muted">{plan === "free" ? "Free for ever" : yearly ? "Billed yearly" : "Billed monthly"}</p>
+          {plan !== "free" && <DiscountField plan={plan} cycle={yearly ? "yearly" : "monthly"} applied={applied} onApplied={setApplied} />}
           <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold"><span>Due today</span><span>{money(due, chosen?.currency)}</span></div>
         </div>
       </div>
@@ -89,7 +99,7 @@ export default function PlanStep() {
       <div className="flex flex-wrap justify-between gap-3">
         <button onClick={() => router.push("/onboarding/company")} className={btn.secondary}>Back</button>
         <button onClick={go} disabled={busy || !chosen} className={`${btn.primary} min-h-12 px-8 text-[15px]`}>
-          {busy ? "Please wait…" : plan === "free" ? "Continue with Free" : `Pay ${money(due, chosen?.currency)}`}</button>
+          {busy ? "Please wait…" : plan === "free" ? "Continue with Free" : due === 0 ? "Activate plan" : `Pay ${money(due, chosen?.currency)}`}</button>
       </div>
     </div>
   );

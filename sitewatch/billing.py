@@ -15,7 +15,7 @@ import time
 
 import requests
 
-from . import accounts, db, emails, mailer, plans, sites
+from . import accounts, db, discounts, emails, mailer, plans, sites
 
 log = logging.getLogger("sitewatch.billing")
 API = "https://api.paystack.co"
@@ -79,17 +79,41 @@ def _start(cfg, ws, user, ref, amount, metadata, channels=None, currency="GHS"):
     return {"access_code": data["access_code"], "url": data["authorization_url"], "reference": ref}
 
 
-def checkout(cfg, ws, user, plan_id, cycle, channels=None):
-    """Returns {url} to send the customer to, or {done: True} when no payment is needed."""
+def checkout(cfg, ws, user, plan_id, cycle, channels=None, code=None):
+    """Returns {url} to send the customer to, or {done: True} when no payment is needed. `code` is a discount code the customer typed."""
     cur = ws["currency"]
     plan, amount = quote(plan_id, cycle, cur)
-    if amount == 0:
+    row, off = None, 0.0
+    if code:
+        row, off = discounts.check(code, ws, plan_id, cycle, amount, cur)       # raises ValueError with a plain reason when it does not apply
+        amount = round(amount - off, 2)
+    if amount == 0 and not row:
         switch_plan(cfg, ws, plan_id, cycle)
         return {"done": True}
     ref = "sw_" + secrets.token_hex(10)
-    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, plan_id, cycle, amount, cur, "pending", "subscription", time.time()))
-    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle}, channels, cur)
+    pid = db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created, discount_code, discount_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                 (ws["id"], ref, plan_id, cycle, amount, cur, "pending", "subscription", time.time(), row["code"] if row else None, off))
+    if amount == 0:                       # a code that takes the whole price off: nothing to charge
+        return _activate_free(cfg, ws, pid, plan_id, cycle)
+    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle, **({"discount": row["code"]} if row else {})}, channels, cur)
+
+
+def _activate_free(cfg, ws, pay_id, plan_id, cycle):
+    """Put a plan in place for a period that costs nothing (a 100% discount), keeping a payment record with the code on it."""
+    now = time.time()
+    db.exec("UPDATE payments SET status='success', paid=?, channel='discount', method='Discount code' WHERE id=?", (now, pay_id))
+    pay = db.q1("SELECT * FROM payments WHERE id=?", (pay_id,))
+    switch_plan(cfg, ws, plan_id, cycle, now + PERIOD[cycle])
+    db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (ws["id"],))
+    discounts.on_paid(pay)
+    return {"done": True}
+
+
+def renewal_quote(ws):
+    """(plan, amount to charge, amount off, code) for the workspace's next renewal, with any discount it earned earlier."""
+    plan, price = quote(ws["plan_id"], ws["cycle"], ws["currency"])
+    off, code = discounts.renewal_discount(ws, price)
+    return plan, round(price - off, 2), off, code
 
 
 def confirm(cfg, reference):
@@ -126,6 +150,7 @@ def confirm(cfg, reference):
         return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
     switch_plan(cfg, ws, pay["plan_id"], pay["cycle"], base + PERIOD[pay["cycle"]])
     db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (ws["id"],))      # paying for a plan also completes onboarding
+    discounts.on_paid(db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],)))
     _receipt(accounts.workspace(ws["id"]), pay)
     return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
 
@@ -145,8 +170,10 @@ def _receipt(ws, pay):
     plan = plans.get(pay["plan_id"])
     renews = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(ws["plan_renews"])))
     paid_on = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(pay.get("paid") or time.time())))
-    mail = emails.payment_received(owner["first_name"], ws["name"], plan["name"], pay["cycle"], plans.money(pay["amount"], pay["currency"] or "GHS"),
-                                   pay.get("method") or method_label(pay.get("channel"), None), pay["reference"], paid_on, renews)
+    cur = pay["currency"] or "GHS"
+    mail = emails.payment_received(owner["first_name"], ws["name"], plan["name"], pay["cycle"], plans.money(pay["amount"], cur),
+                                   pay.get("method") or method_label(pay.get("channel"), None), pay["reference"], paid_on, renews,
+                                   discount=f"-{plans.money(pay['discount_amount'], cur)} ({pay['discount_code']})" if pay.get("discount_amount") else None)
     mailer.send(owner["email"], mail.subject, mail.text, mail.html)
 
 
@@ -208,10 +235,16 @@ def _renew(cfg, ws, now):
         return
     if left <= 0 and ws["paystack_auth"] and configured() and not db.kv_get(flag):
         db.kv_set(flag, True)
-        plan, amount = quote(ws["plan_id"], ws["cycle"], ws["currency"])
+        plan, amount, off, code = renewal_quote(ws)
         ref = "sw_" + secrets.token_hex(10)
-        db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-               (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "renewal", now))
+        pid = db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created, discount_code, discount_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                     (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "renewal", now, code, off))
+        if amount <= 0:                   # the discount covers the whole renewal: extend the plan without charging the card
+            base = ws["plan_renews"] if ws["plan_renews"] and ws["plan_renews"] > now else now
+            db.exec("UPDATE payments SET status='success', paid=?, channel='discount', method='Discount code' WHERE id=?", (now, pid))
+            switch_plan(cfg, ws, ws["plan_id"], ws["cycle"], base + PERIOD[ws["cycle"]])
+            discounts.on_paid(db.q1("SELECT * FROM payments WHERE id=?", (pid,)))
+            return
         _call("POST", "/transaction/charge_authorization", json={
             "authorization_code": ws["paystack_auth"], "email": ws["paystack_email"], "amount": int(round(amount * 100)),
             "currency": ws["currency"], "reference": ref})
@@ -231,7 +264,7 @@ def _notify_owner(ws, tone):
     amount = None
     if tone != "ended":
         try:
-            amount = plans.money(quote(ws["plan_id"], ws["cycle"], ws["currency"])[1], ws["currency"] or "GHS")
+            amount = plans.money(renewal_quote(ws)[1], ws["currency"] or "GHS")
         except Exception:
             pass
     mail = emails.billing_notice(tone, owner["first_name"], ws["name"], plan["name"], renews, amount, GRACE_DAYS)
@@ -254,10 +287,10 @@ def retry_payment(cfg, ws):
     if not (configured() and ws["paystack_auth"]):
         send_payment_link(ws)
         return "link"
-    plan, amount = quote(ws["plan_id"], ws["cycle"], ws["currency"])
+    plan, amount, off, code = renewal_quote(ws)
     ref = "sw_" + secrets.token_hex(10)
-    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "retry", time.time()))
+    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created, discount_code, discount_amount) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+           (ws["id"], ref, ws["plan_id"], ws["cycle"], amount, ws["currency"], "pending", "retry", time.time(), code, off))
     try:
         _call("POST", "/transaction/charge_authorization", json={
             "authorization_code": ws["paystack_auth"], "email": ws["paystack_email"], "amount": int(round(amount * 100)),

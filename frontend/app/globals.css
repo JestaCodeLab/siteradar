@@ -286,3 +286,32 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .sr-ping { transform-origin: 50px 50px; transform-box: view-box; animation: sr-ping 1.6s ease-out infinite; }
 .sr-inner { animation: sr-pulse 1.6s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sr-needle { animation-duration: 4s; } .sr-ping, .sr-inner { animation: none; } }
+
+/* ---- home page preview card: live bars, the response line drawing itself, blinking live dot (from the design) ---- */
+@keyframes sr-bar19{0%,8%{background-color:#E2E8F0}9.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(19){animation:sr-bar19 5s linear infinite}
+@keyframes sr-bar20{0%,14%{background-color:#E2E8F0}15.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(20){animation:sr-bar20 5s linear infinite}
+@keyframes sr-bar21{0%,20%{background-color:#E2E8F0}21.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(21){animation:sr-bar21 5s linear infinite}
+@keyframes sr-bar22{0%,26%{background-color:#E2E8F0}27.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(22){animation:sr-bar22 5s linear infinite}
+@keyframes sr-bar23{0%,32%{background-color:#E2E8F0}33.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(23){animation:sr-bar23 5s linear infinite}
+@keyframes sr-bar24{0%,38%{background-color:#E2E8F0}39.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(24){animation:sr-bar24 5s linear infinite}
+@keyframes sr-bar25{0%,44%{background-color:#E2E8F0}45.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(25){animation:sr-bar25 5s linear infinite}
+@keyframes sr-bar26{0%,50%{background-color:#E2E8F0}51.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(26){animation:sr-bar26 5s linear infinite}
+@keyframes sr-bar27{0%,56%{background-color:#E2E8F0}57.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(27){animation:sr-bar27 5s linear infinite}
+@keyframes sr-bar28{0%,62%{background-color:#E2E8F0}63.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(28){animation:sr-bar28 5s linear infinite}
+@keyframes sr-bar29{0%,68%{background-color:#E2E8F0}69.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(29){animation:sr-bar29 5s linear infinite}
+@keyframes sr-bar30{0%,74%{background-color:#E2E8F0}75.6%,90%{background-color:currentColor}93%,100%{background-color:#E2E8F0}}
+.sr-bars>:nth-child(30){animation:sr-bar30 5s linear infinite}
+@keyframes sr-blink{0%,100%{opacity:1}50%{opacity:.35}}
+.sr-live{animation:sr-blink 1.8s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.sr-bars>*,.sr-live{animation:none!important}}

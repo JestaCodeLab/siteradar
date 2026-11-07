@@ -90,7 +90,7 @@ export default function ReportsPage() {
         <>
           {!sites.data && <Skeleton className="h-28" />}
           {sites.data && list.length === 0 && (
-            <Empty icon={FileText} title="No websites yet" action={<Link href="/websites" className={btn.primary}>Go to websites</Link>}>Add a website and its monthly reports will appear here.</Empty>
+            <Card><Empty icon={FileText} title="No websites yet" action={<Link href="/websites" className={btn.primary}>Go to websites</Link>}>Add a website and its monthly reports will appear here.</Empty></Card>
           )}
 
           {list.length > 0 && (

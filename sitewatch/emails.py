@@ -91,14 +91,16 @@ def invite(workspace, who, role, url, days, email):
 
 # ---- billing --------------------------------------------------------------------------------
 
-def payment_received(first_name, workspace, plan, cycle, amount, method, reference, paid_on, renews):
+def payment_received(first_name, workspace, plan, cycle, amount, method, reference, paid_on, renews, discount=None):
     subject = f"Payment received: SiteRadar {plan}"
     billing = app_url() + "/billing"
+    rows = [("Plan", f"{plan} ({cycle})")] + ([("Discount", discount)] if discount else []) + [
+        ("Amount paid", amount), ("Paid with", method), ("Reference", reference, True), ("Date", paid_on), ("Next renewal", renews)]
     text = _text(f"Hi {first_name or 'there'}, we received your payment for {workspace}.",
-                 f"Plan: {plan} ({cycle})\nAmount paid: {amount}\nPaid with: {method}\nReference: {reference}\nDate: {paid_on}\nNext renewal: {renews}",
+                 "\n".join(f"{r[0]}: {r[1]}" for r in rows),
                  f"Billing and invoices: {billing}")
     return Mail(subject, text, _render("payment_received", subject, first_name=first_name, workspace=workspace, plan=plan, cycle=cycle,
-                                       amount=amount, method=method, reference=reference, paid_on=paid_on, renews=renews, billing_url=billing))
+                                       amount=amount, method=method, reference=reference, paid_on=paid_on, renews=renews, rows=rows, billing_url=billing))
 
 
 def billing_notice(tone, first_name, workspace, plan, renews=None, amount=None, grace_days=7):

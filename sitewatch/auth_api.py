@@ -7,7 +7,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, google_auth, mailer, plans, storage
+from . import accounts, billing, db, discounts, google_auth, mailer, plans, storage
 from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
@@ -319,7 +319,7 @@ def blueprint(cfg):
         mime = next((m for sig, m in LOGO_TYPES.items() if data.startswith(sig)), None)
         if not mime:
             raise ValueError("Use a PNG, JPG or WebP image.")
-        storage.put(f"logo/{ws_id}", data, mime, workspace_id=ws_id)
+        storage.put(f"logo/{ws_id}", data, mime, public=True, workspace_id=ws_id)       # a logo is a public picture: reports and emails show it
         url = f"{cfg['public_url'].rstrip('/')}/api/logos/{ws_id}?v={int(time.time())}"
         db.exec("UPDATE workspaces SET logo_url=?, logo_name=?, logo_size=? WHERE id=?", (url, (f.filename or "logo")[:80], len(data), ws_id))
         return url
@@ -344,7 +344,7 @@ def blueprint(cfg):
     def onboarding_plan():
         d = body()
         try:
-            out = billing.checkout(cfg, g.ws, g.user, d.get("plan") or "free", d.get("cycle") or "monthly")
+            out = billing.checkout(cfg, g.ws, g.user, d.get("plan") or "free", d.get("cycle") or "monthly", code=d.get("code"))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
         # Onboarding ends when a plan is really in place: the Free plan (or a test-mode payment) at once, a paid plan only once the
@@ -463,9 +463,23 @@ def blueprint(cfg):
         d = body()
         channels = {"card": ["card"], "mobile_money": ["mobile_money"]}.get(d.get("channel"))
         try:
-            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", channels))
+            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", channels, code=d.get("code")))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
+
+    @bp.post("/billing/discount")
+    @workspace_required
+    @need("owner")
+    def billing_discount():
+        """Check a discount code for a plan before paying: what it takes off and what is left to pay."""
+        if limited("discount", 10, 20) or limited("discount-ws", 10, 20, key=str(g.ws["id"])):
+            return jsonify(error="Too many tries. Wait a few minutes and try again."), 429
+        d = body()
+        cycle = d.get("cycle") or "monthly"
+        plan, price = billing.quote(d.get("plan"), cycle, g.ws["currency"])
+        row, off = discounts.check(d.get("code"), g.ws, plan["id"], cycle, price, g.ws["currency"])
+        return jsonify(ok=True, code=row["code"], discount=off, total=round(price - off, 2), currency=g.ws["currency"],
+                       label=discounts.describe(row), duration=discounts.duration_text(row))
 
     @bp.post("/billing/sms-topup")
     @workspace_required

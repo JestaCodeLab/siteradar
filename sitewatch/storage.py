@@ -4,6 +4,7 @@ Private files (invoices, screenshots) use Cloudinary's `authenticated` delivery,
 through this server after the caller's workspace has been checked. Logos are public images.
 Every stored file gets a row in `assets` so the web service and the worker (separate disks) see the same files.
 """
+import base64
 import hashlib
 import logging
 import os
@@ -95,16 +96,38 @@ def info(key):
     return db.q1("SELECT * FROM assets WHERE key=?", (key,))
 
 
+def _fetch(row, key):
+    """Read a file back from Cloudinary. Public files come from their plain delivery address. Private ones are asked for with the signed
+    download call first and, if that is refused, through a signed delivery address. Whatever Cloudinary says is logged, so a failure is never silent."""
+    kind, typ, pid = _parts(row, key)
+    cloud, api_key, secret = _creds()
+    try:
+        if typ == "upload":
+            r = requests.get(f"https://res.cloudinary.com/{cloud}/{kind}/upload/{pid}", timeout=60)
+            if r.status_code != 200:
+                log.warning("Cloudinary file %s could not be read (%s)", pid, r.status_code)
+            return r.content if r.status_code == 200 else None
+        params = {"public_id": pid, "type": typ, "mode": "download", "timestamp": int(time.time())}
+        r = requests.get(f"https://api.cloudinary.com/v1_1/{cloud}/{kind}/download",
+                         params={**params, "api_key": api_key, "signature": _sign(params, secret)}, timeout=60)
+        if r.status_code == 200:
+            return r.content
+        log.warning("Cloudinary private download of %s failed (%s): %s", pid, r.status_code, r.text[:200])
+        sig = base64.urlsafe_b64encode(hashlib.sha1((pid + secret).encode()).digest())[:8].decode()
+        r = requests.get(f"https://res.cloudinary.com/{cloud}/{kind}/{typ}/s--{sig}--/{pid}", timeout=60)
+        if r.status_code != 200:
+            log.warning("Cloudinary signed delivery of %s failed (%s)", pid, r.status_code)
+        return r.content if r.status_code == 200 else None
+    except requests.RequestException as e:
+        log.warning("Cloudinary request for %s failed: %s", pid, e)
+        return None
+
+
 def get(key, legacy_path=None):
     """The file's bytes, or None. `legacy_path` is where files saved before this module existed live."""
     row = info(key)
     if row and row["ref"].startswith("cloudinary:"):
-        kind, typ, pid = _parts(row, key)
-        cloud, api_key, secret = _creds()
-        params = {"public_id": pid, "type": typ, "mode": "download", "timestamp": int(time.time())}
-        r = requests.get(f"https://api.cloudinary.com/v1_1/{cloud}/{kind}/download",
-                         params={**params, "api_key": api_key, "signature": _sign(params, secret)}, timeout=60)
-        return r.content if r.status_code == 200 else None
+        return _fetch(row, key)
     for p in (_local_path(key) if row else None, legacy_path):
         if p and os.path.exists(p):
             with open(p, "rb") as f:
