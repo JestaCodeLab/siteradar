@@ -5,19 +5,13 @@ import { Locked, useFeature } from "./locked";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { MoreHorizontal, Users } from "lucide-react";
+import { Check, Crown, Eye, Minus, MoreHorizontal, Pencil, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { ApiError, fetcher, send, type Role, type SitesResponse, type TeamData } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
 const roleName: Record<Role, string> = { owner: "Owner", admin: "Admin", member: "Member", viewer: "Viewer" };
-const roles: [string, string][] = [
-  ["Owner", "Everything, including billing, the plan and deleting the workspace. One per workspace."],
-  ["Admin", "Manage websites, subscriptions, alerts and team members. Cannot change billing."],
-  ["Member", "Add and edit websites and subscriptions, run audits and download reports."],
-  ["Viewer", "Read-only access to dashboards and reports. A good fit for clients. Growth and Scale plans."],
-];
 const NEXT: Record<string, string> = { free: "Starter", starter: "Growth", growth: "Scale" };
 const AVATARS = ["#1f4fd8", "#0b7a4b", "#8a5a00", "#5b6472", "#4a33b0", "#b3261e", "#0f1420"];
 const color = (s: string) => AVATARS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATARS.length];
@@ -54,6 +48,14 @@ function RowMenu({ children }: { children: (close: () => void) => React.ReactNod
   );
 }
 const mi = "flex min-h-11 w-full items-center rounded-lg px-3 text-left text-sm hover:bg-soft";
+
+const CAPABILITIES = ["See dashboards and reports", "Add and edit websites and subscriptions", "Manage alerts and team members", "Change billing and the plan", "Delete the workspace"];
+const ROLE_CARDS: { id: Role; name: string; summary: string; Icon: LucideIcon; tile: string; can: boolean[]; note?: string }[] = [
+  { id: "owner", name: "Owner", summary: "Full control. One per workspace.", Icon: Crown, tile: "bg-brand-soft text-brand", can: [true, true, true, true, true] },
+  { id: "admin", name: "Admin", summary: "Runs the workspace day to day.", Icon: ShieldCheck, tile: "bg-[#EFEAFF] text-[#4A33B0]", can: [true, true, true, false, false] },
+  { id: "member", name: "Member", summary: "Does the work: websites, audits and reports.", Icon: Pencil, tile: "bg-ok-soft text-ok", can: [true, true, false, false, false] },
+  { id: "viewer", name: "Viewer", summary: "Read-only. A good fit for clients.", Icon: Eye, tile: "bg-line-soft text-ink-2", can: [true, false, false, false, false], note: "Growth and Scale" },
+];
 
 export function TeamPanel() {
   const { user, isAdmin, role } = useMe();
@@ -177,9 +179,34 @@ export function TeamPanel() {
         </div></div>
       </section>
 
-      <section aria-label="Roles" className="rounded-[14px] border border-line bg-surface p-[22px]">
-        <h2 className="mb-3.5 text-lg font-semibold">What each role can do</h2>
-        <div className="grid gap-x-8 gap-y-3.5 sm:grid-cols-2">{roles.map(([k, v]) => <div key={k} className="flex flex-col gap-0.5"><span className="text-sm font-semibold">{k}</span><span className="text-sm leading-snug text-muted">{v}</span></div>)}</div>
+      <section aria-label="Roles" className="flex flex-col gap-4 rounded-[14px] border border-line bg-surface p-[22px]">
+        <div className="flex flex-col gap-1"><h2 className="text-lg font-semibold">What each role can do</h2><p className="text-sm text-muted">Choose the lowest role that lets someone do their job. You can change a role at any time.</p></div>
+        <div className="grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+          {ROLE_CARDS.map((r) => {
+            const mine = role === r.id;
+            return (
+              <article key={r.id} className={`flex flex-col gap-3 rounded-xl border p-4 ${mine ? "border-2 border-brand bg-brand-soft/40 !p-[15px]" : "border-line"}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <span className={`flex size-10 items-center justify-center rounded-xl ${r.tile}`}><r.Icon aria-hidden="true" size={20} /></span>
+                  {mine && <span className="rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold text-white">Your role</span>}
+                  {!mine && r.note && <span className="rounded-full bg-line-soft px-2.5 py-0.5 text-xs font-semibold text-ink-2">{r.note}</span>}
+                </div>
+                <div className="flex flex-col gap-0.5"><h3 className="text-base font-bold">{r.name}</h3><p className="min-h-[34px] text-[13px] leading-snug text-muted">{r.summary}</p></div>
+                <ul className="flex flex-col gap-2 border-t border-line-soft pt-3 text-[13px]">
+                  {CAPABILITIES.map((c, n) => {
+                    const yes = r.can[n];
+                    return (
+                      <li key={c} className={`flex items-start gap-2 ${yes ? "text-ink" : "text-muted"}`}>
+                        <span className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full ${yes ? "bg-ok-soft text-ok" : "bg-line-soft text-muted"}`}>{yes ? <Check aria-hidden="true" size={11} strokeWidth={3} /> : <Minus aria-hidden="true" size={11} strokeWidth={3} />}</span>
+                        <span><span className="sr-only">{yes ? "Can: " : "Cannot: "}</span>{c}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
       </section>
     </>
   );

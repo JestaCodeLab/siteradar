@@ -5,7 +5,7 @@ import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { CreditCard, Smartphone } from "lucide-react";
+import { CalendarCheck, CreditCard, Smartphone, Sparkles, Tag, XCircle } from "lucide-react";
 import { FileText, MessageSquare } from "lucide-react";
 import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
@@ -17,6 +17,7 @@ import { priceLine } from "@/lib/plans";
 
 const box = "rounded-[14px] border border-line bg-surface p-[22px]";
 const h2 = "text-lg font-semibold";
+const actBtn = "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold disabled:opacity-60";
 
 function Bar({ label, value, pct, warn }: { label: string; value: string; pct: number; warn?: boolean }) {
   return (
@@ -89,20 +90,43 @@ export function BillingPanel() {
       )}
 
       <div className="flex flex-wrap items-stretch gap-5">
-        <section aria-label="Current plan" className={`${box} flex min-w-0 flex-[1_1_420px] flex-col gap-3.5`}>
-          <div className="flex items-center justify-between"><h2 className={h2}>Current plan</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip[1]}`}>{statusChip[0]}</span></div>
-          <div className="flex flex-wrap items-baseline gap-2.5"><span className="text-[28px] font-semibold">{ws.plan.name}</span>
-            <span className="text-base text-muted">{free ? `${money(0, ccy)}, for ever` : currentPlan ? `${money(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month, ccy)} / ${ws.cycle === "yearly" ? "year" : "month"}` : ""}</span></div>
-          <p className="text-sm leading-relaxed text-muted">
-            {free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark."
-              : data.comped ? "Complimentary plan from SiteRadar."
-              : `Billed ${ws.cycle}. Your plan renews on ${fmtDateTs(ws.plan_renews)}.${ws.cycle === "monthly" && currentPlan ? ` Switching to yearly billing would cost ${money(yearlyTotal, ccy)} a year instead of ${money(monthlyYear, ccy)}.` : ""}`}</p>
-          {ws.coupon && <p className="rounded-lg bg-ok-soft px-3.5 py-2 text-[13px] text-ok">Discount code <b className="font-mono">{ws.coupon.code}</b> is on your plan{ws.coupon.left == null ? " for every payment." : ` for ${ws.coupon.left} more ${ws.coupon.left === 1 ? "payment" : "payments"}.`}</p>}
-          {!free && !data.comped && isOwner && (
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-              {ws.cycle === "monthly" && <button disabled={busy !== null} onClick={() => choose(cur, "yearly")} className="flex min-h-11 items-center text-sm font-semibold text-brand">Switch to yearly and save {disc}%</button>}
-              <button disabled={busy !== null} onClick={() => payBy("card")} className="flex min-h-11 items-center text-sm font-semibold text-brand">Update payment method</button>
-              <button onClick={cancel} className="flex min-h-11 items-center text-sm font-semibold text-bad">Cancel and move to Free</button>
+        <section aria-label="Current plan" className={`${box} flex min-w-0 flex-[1_1_420px] flex-col gap-5`}>
+          <div className="flex items-center justify-between gap-3"><h2 className={h2}>Current plan</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip[1]}`}>{statusChip[0]}</span></div>
+
+          <div className="flex flex-col gap-1">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="text-[32px] font-bold leading-tight tracking-[-0.02em]">{ws.plan.name}</span>
+              <span className="text-base text-muted">{free ? `${money(0, ccy)}, for ever` : currentPlan ? <><b className="font-semibold text-ink">{money(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month, ccy)}</b> / {ws.cycle === "yearly" ? "year" : "month"}</> : ""}</span></div>
+            {(free || data.comped) && <p className="text-sm leading-relaxed text-muted">{free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark." : "Complimentary plan from SiteRadar."}</p>}
+          </div>
+
+          {!free && !data.comped && (
+            <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
+              {[["Billing", ws.cycle === "yearly" ? "Yearly" : "Monthly"], ["Next renewal", fmtDateTs(ws.plan_renews)], ["Payment", data.card ?? data.last_method ?? "Not set"]].map(([k, v]) => (
+                <div key={k} className="flex flex-col gap-0.5 bg-surface px-4 py-3"><dt className="text-xs text-muted">{k}</dt><dd className="truncate text-[15px] font-semibold">{v}</dd></div>))}
+            </dl>
+          )}
+
+          {ws.coupon && (
+            <div className="flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-soft p-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-ok text-white"><Tag aria-hidden="true" size={17} /></span>
+              <span className="flex min-w-0 flex-col"><span className="font-mono text-[15px] font-bold tracking-wide">{ws.coupon.code}</span>
+                <span className="text-[13px] text-ok">Discount on {ws.coupon.left == null ? "every payment" : `${ws.coupon.left} more ${ws.coupon.left === 1 ? "payment" : "payments"}`}</span></span>
+            </div>
+          )}
+
+          {!free && !data.comped && ws.cycle === "monthly" && currentPlan && monthlyYear > yearlyTotal && (
+            <p className="rounded-xl bg-brand-soft px-4 py-3 text-sm leading-relaxed text-brand-ink">Pay yearly and <b>save {money(monthlyYear - yearlyTotal, ccy)} a year</b>: {money(yearlyTotal, ccy)} instead of {money(monthlyYear, ccy)}.</p>
+          )}
+
+          {isOwner && (free || !data.comped) && (
+            <div className="mt-auto flex flex-wrap gap-2.5 border-t border-line-soft pt-4">
+              {free ? (
+                <a href="#plans" className={`${actBtn} bg-brand !text-white hover:bg-brand-hover`}><Sparkles aria-hidden="true" size={16} />Choose a paid plan</a>
+              ) : <>
+                {ws.cycle === "monthly" && <button disabled={busy !== null} onClick={() => choose(cur, "yearly")} className={`${actBtn} bg-brand !text-white hover:bg-brand-hover`}><CalendarCheck aria-hidden="true" size={16} />Switch to yearly and save {disc}%</button>}
+                <button disabled={busy !== null} onClick={() => payBy("card")} className={`${actBtn} border border-[#c9cfd8] bg-surface text-ink hover:bg-soft`}><CreditCard aria-hidden="true" size={16} />Update payment method</button>
+                <button disabled={busy !== null} onClick={cancel} className={`${actBtn} border border-bad/40 bg-surface text-bad hover:bg-bad-soft`}><XCircle aria-hidden="true" size={16} />Cancel and move to Free</button>
+              </>}
             </div>
           )}
         </section>

@@ -12,17 +12,20 @@ import useSWR from "swr";
 const shell = "m-auto w-[min(560px,calc(100vw-32px))] rounded-2xl border border-[#E2E5EA] bg-white p-0 text-[#16122B] shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop:bg-[#0F172A]/60";
 const label = "text-sm font-medium";
 
-function useDialog(onClose: () => void) {
+/** `locked` is for forms: Esc and a click on the dimmed background do nothing, so a half-filled form is never lost by accident. Only Cancel and the X close it. */
+function useDialog(onClose: () => void, locked = false) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
-  return { ref, props: { ref, onClose, onClick: (e: React.MouseEvent) => { if (e.target === ref.current) ref.current?.close(); } } };
+  const lockedProps = { onCancel: (e: React.SyntheticEvent) => e.preventDefault() };
+  const looseProps = { onClick: (e: React.MouseEvent) => { if (e.target === ref.current) ref.current?.close(); } };
+  return { ref, props: { ref, onClose, ...(locked ? lockedProps : looseProps) } };
 }
 
 /** A random, readable code such as K7M2QX9D (no 0/O or 1/I to mix up). */
 const randomCode = () => Array.from({ length: 8 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
 
 export function NewDiscountDialog({ plans, onClose, onDone }: { plans: { id: string; name: string }[]; onClose: () => void; onDone: () => void }) {
-  const d = useDialog(onClose);
+  const d = useDialog(onClose, true);
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
   const [kind, setKind] = useState<"percent" | "fixed">("percent");
