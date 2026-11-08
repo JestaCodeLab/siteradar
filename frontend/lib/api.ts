@@ -68,7 +68,7 @@ export interface SiteDetail extends SiteCard {
   uptime_stats: { uptime: number | null; avg_ms: number | null; p95_ms: number | null; downtime_minutes: number; incident_count: number };
   response_series: { day: string; ms: number }[];
   incidents: { started: number; ended: number | null; cause: string | null }[];
-  top_issues: Issue[]; tracking_live: boolean; pageviews30: number; snippet: string; audit_running: boolean;
+  top_issues: Issue[]; tracking_live: boolean; tracking: { verified_at: number | null; checked_at: number | null; last_hit: number | null }; pageviews30: number; snippet: string; audit_running: boolean;
 }
 
 export type Counted = [string, number, number];

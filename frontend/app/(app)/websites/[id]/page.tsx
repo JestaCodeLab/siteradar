@@ -4,7 +4,8 @@ import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import useSWR from "swr";
+import { RefreshCw } from "lucide-react";
+import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, Skeleton, StatusChip } from "@/components/ui";
@@ -26,6 +27,8 @@ function SiteView() {
   });
   const toast = useToast();
   const [busy, setBusy] = useState<"check" | "audit" | null>(null);
+  const { mutate: refreshAll } = useSWRConfig();
+  const [refreshing, setRefreshing] = useState(false);
 
   if (error) {
     return error instanceof ApiError && error.status === 404
@@ -38,6 +41,12 @@ function SiteView() {
   const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const lastPeriod = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}`;
 
+  /** Re-reads everything on this page (the details and whichever tab is open) without running a new check. */
+  async function refresh() {
+    setRefreshing(true);
+    await refreshAll((key) => typeof key === "string" && key.startsWith(`/api/sites/${id}`));
+    setTimeout(() => setRefreshing(false), 400);
+  }
   async function checkNow() {
     setBusy("check");
     try {
@@ -72,6 +81,7 @@ function SiteView() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2.5">
+          <button onClick={refresh} disabled={refreshing} aria-label="Refresh this page" title="Refresh" className={`${btn.secondary} !px-3.5`}><RefreshCw size={18} className={refreshing ? "animate-spin" : ""} aria-hidden="true" /></button>
           <button onClick={checkNow} disabled={busy !== null} className={btn.secondary}>{busy === "check" ? "Checking…" : "Check now"}</button>
           <button onClick={runAudit} disabled={busy !== null || site.audit_running} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}</button>
           <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} className={btn.primary}>Latest report (PDF)</a>

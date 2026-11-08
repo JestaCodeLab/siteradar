@@ -14,7 +14,7 @@ import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Sk
 import {
   fetcher, send, type AnalyticsResponse, type AuditResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
-import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
+import { daysUntil, fmtAgo, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
 
 const delta = (now: number | null | undefined, before: number | null | undefined) =>
   now == null || !before ? null : Math.round((100 * (now - before)) / before);
@@ -46,13 +46,18 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
   const [copied, setCopied] = useState(false);
   const [check, setCheck] = useState<TrackingCheck | null>(null);
   const [checking, setChecking] = useState(false);
+  const toast = useToast();
+  const verified = site.tracking_live || !!site.tracking?.verified_at;
   async function verify() {
     setChecking(true);
-    try { setCheck(await send<TrackingCheck>("POST", `/api/sites/${site.id}/verify-tracking`)); onChange(); }
-    catch { setCheck({ installed: false, found: null, receiving: false, last_hit: null, error: "Something went wrong.", url: site.url }); }
+    try {
+      const r = await send<TrackingCheck>("POST", `/api/sites/${site.id}/verify-tracking`);
+      setCheck(r); await onChange();
+      if (r.installed || r.receiving) toast.success("Tracking snippet verified.");
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not check the snippet. Please try again."); }
     setChecking(false);
   }
-  const verdict = check ? trackingVerdict(check, site.host, site.id) : null;
+  const verdict = check && !verified ? trackingVerdict(check, site.host, site.id) : null;
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
   const waitChecks = !!site.first_run?.checks;
@@ -114,18 +119,29 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
       </div>
 
       <Card className="flex flex-col gap-3 p-5">
-        <CardTitle aside={site.tracking_live ? <span className="font-medium text-ok">Receiving data</span> : "No visits recorded in the last 24 hours"}>Tracking snippet</CardTitle>
+        <CardTitle aside={site.tracking_live ? <span className="font-medium text-ok">Receiving data</span> : verified ? <span className="font-medium text-ok">Snippet verified</span> : "Not verified yet"}>Tracking snippet</CardTitle>
         <p className="text-sm text-muted">Paste this just before <code className="font-mono">&lt;/head&gt;</code> on every page of {site.host} to see visitors, sources and page-load times.</p>
         <pre className="overflow-x-auto rounded-lg bg-soft p-3.5 font-mono text-[13px]">{site.snippet}</pre>
-        <div>
+        <div className="flex flex-wrap gap-2.5">
           <button className={btn.secondary} onClick={async () => { await navigator.clipboard.writeText(site.snippet); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
             {copied ? "Copied" : "Copy snippet"}
           </button>
-          <button className={`${btn.primary} ml-2.5`} disabled={checking} onClick={verify}>{checking ? "Checking…" : "Verify installation"}</button>
+          {!verified && <button className={btn.primary} disabled={checking} onClick={verify}>{checking ? "Checking…" : "Verify installation"}</button>}
         </div>
-        {verdict && (
-          <div role="status" className={`flex items-start gap-3 rounded-lg border p-3.5 ${verdict[0] ? "border-ok/40 bg-ok-soft" : "border-warn/40 bg-warn-soft"}`}>
-            {verdict[0] ? <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" /> : <AlertTriangle size={20} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />}
+        {verified ? (
+          <div role="status" className="flex items-start gap-3 rounded-lg border border-ok/40 bg-ok-soft p-3.5">
+            <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="text-sm font-semibold">{site.tracking_live ? "Installed and receiving data" : "Snippet verified"}</span>
+              <span className="text-[13px] leading-relaxed text-muted">{site.tracking_live
+                ? `Last visit ${fmtAgo(site.tracking.last_hit)}.`
+                : `Verified ${site.tracking.verified_at ? fmtDateTime(site.tracking.verified_at) : "just now"}. Open your website once and the first visit shows up here within a minute.`}</span>
+            </div>
+            <button onClick={verify} disabled={checking} className="min-h-11 shrink-0 px-1 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">{checking ? "Checking…" : "Check again"}</button>
+          </div>
+        ) : verdict && (
+          <div role="status" className="flex items-start gap-3 rounded-lg border border-warn/40 bg-warn-soft p-3.5">
+            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />
             <div className="flex flex-col gap-0.5"><span className="text-sm font-semibold">{verdict[1]}</span><span className="text-[13px] leading-relaxed text-muted">{verdict[2]}</span></div>
           </div>
         )}
