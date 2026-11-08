@@ -3,12 +3,13 @@ import datetime as dt
 import json
 import logging
 import os
+import re
 import threading
 import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, plans, report, screenshot, sites, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, sites, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -346,6 +347,35 @@ def blueprint(cfg):
                     running_health.discard(site_id)
             threading.Thread(target=job, daemon=True).start()
         return jsonify(started=True), 202
+
+    @bp.post("/sites/<site_id>/verify-tracking")
+    def verify_tracking(site_id):
+        """Is the tracking snippet installed? Looks for it on the site's home page, and for visits received in the last day.
+
+        `found` is the snippet's website id as written on the page ("" when the page has no SiteRadar snippet, None when the page could not be read).
+        A site that adds the snippet with a tag manager, or only on inner pages, can show no snippet here and still be receiving data.
+        """
+        s = site_or_404(site_id)
+        last = db.q1("SELECT MAX(ts) t FROM hits WHERE site_id=?", (site_id,))
+        last_hit = last["t"] if last else None
+        receiving = bool(last_hit and last_hit > time.time() - 86400)
+        found, error = "", None
+        try:
+            r = netguard.get(s["url"], timeout=12, stream=True, headers={"User-Agent": "SiteRadar-Verify/1.0"})
+            html = r.raw.read(1_500_000, decode_content=True).decode("utf-8", "replace")
+            r.close()
+            for tag in re.findall(r"<script\b[^>]*>", html, re.I):
+                src = re.search(r"""\bsrc\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
+                if src and re.search(r"/t\.js(\?|$)", src.group(1)):
+                    ds = re.search(r"""\bdata-site\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
+                    found = ds.group(1) if ds else "?"
+                    if found == site_id:
+                        break
+        except Exception as e:
+            log.info("Tracking check of %s failed: %s", s["url"], e)
+            found, error = None, "We could not open your website to look for the snippet."
+        installed = found == site_id
+        return jsonify(installed=installed, found=found, receiving=receiving, last_hit=last_hit, error=error, url=s["url"])
 
     @bp.post("/sites/<site_id>/check")
     def check_now(site_id):
