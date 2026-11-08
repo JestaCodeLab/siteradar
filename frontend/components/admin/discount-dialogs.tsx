@@ -4,7 +4,7 @@ import { Tag, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DatePicker } from "../date-picker";
 import { Select } from "../select";
-import { aBtn, aInput, shortDate } from "./ui";
+import { aBtn, aInput, Checkbox, shortDate } from "./ui";
 import { fetcher, send, type DiscountCode } from "@/lib/api";
 import { money } from "@/lib/me";
 import useSWR from "swr";
@@ -85,7 +85,7 @@ export function NewDiscountDialog({ plans, onClose, onDone }: { plans: { id: str
         <fieldset className="flex flex-col gap-2"><legend className={`${label} mb-1`}>Applies to <span className="font-normal text-[#5B6472]">(none ticked means every paid plan)</span></legend>
           <div className="flex flex-wrap gap-2">{plans.map((p) => (
             <label key={p.id} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3.5 text-sm ${chosen.includes(p.id) ? "border-2 border-[#6B4FE0] bg-[#F5F1FF] font-semibold" : "border-[#C9CFD8]"}`}>
-              <input type="checkbox" className="size-4" checked={chosen.includes(p.id)} onChange={(e) => setChosen(e.target.checked ? [...chosen, p.id] : chosen.filter((x) => x !== p.id))} />{p.name}</label>))}</div>
+              <Checkbox label={`${p.name} plan`} checked={chosen.includes(p.id)} onChange={(on) => setChosen(on ? [...chosen, p.id] : chosen.filter((x) => x !== p.id))} />{p.name}</label>))}</div>
         </fieldset>
 
         <div className="grid gap-4 sm:grid-cols-2">

@@ -20,7 +20,7 @@ export const metadata: Metadata = pageMeta({
 
 const who = [
   ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and a Free plan to start with.", "Peace of mind without an IT team."],
-  ["E-commerce brands", "#FBA23C", "When the shop is down, sales stop. Uptime and speed checks, SMS alerts, and checks every minute on Scale.", "When the shop is down, sales stop."],
+  ["E-commerce brands", "#FBA23C", "When the shop is down, sales stop. Uptime and speed checks, SMS alerts in Ghana, and checks every minute on Scale.", "When the shop is down, sales stop."],
   ["Enterprises", "#7C2D12", "Many sites and domains in one view, alerts in Slack or Teams, and team roles for every department.", "Many sites and domains in one view."],
   ["Organisations", "#0F172A", "NGOs, churches and schools: keep certificates, domains and email trusted, with no specialist needed.", "Keep certificates, domains and email trusted."],
 ];

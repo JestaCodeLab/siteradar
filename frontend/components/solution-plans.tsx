@@ -4,11 +4,11 @@ import Link from "next/link";
 import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
-type Tile = { id: string; per: string; line: (p: { sites: number; members: number }) => string; highlight?: boolean };
+type Tile = { id: string; per: string; line: (p: { sites: number; members: number; sms: number }) => string; highlight?: boolean };
 
 const SETS: Record<"agencies" | "businesses", { tiles: Tile[]; min: number; flex: string }> = {
   agencies: { min: 240, flex: "1.4 1 520px", tiles: [
-    { id: "growth", per: " / month", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members · SMS alerts` },
+    { id: "growth", per: " / month", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members${p.sms ? " · SMS alerts" : ""}` },
     { id: "scale", per: " / month", line: (p) => `${p.sites} websites · ${p.members} team members · checks every minute` } ] },
   businesses: { min: 200, flex: "1.6 1 560px", tiles: [
     { id: "free", per: " / mo", line: (p) => `${p.sites} website · email alerts` },

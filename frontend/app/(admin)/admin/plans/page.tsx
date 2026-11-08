@@ -5,7 +5,7 @@ import { useNoteToast } from "@/components/toast";
 import { useState } from "react";
 import useSWR from "swr";
 import { Check } from "lucide-react";
-import { AdminCard, AdminHeader, aBtn, aInput } from "@/components/admin/ui";
+import { AdminCard, AdminHeader, Checkbox, aBtn, aInput } from "@/components/admin/ui";
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type PlanInfo } from "@/lib/api";
 
@@ -84,19 +84,29 @@ export default function AdminPlans() {
           <button disabled={!dirty || busy} onClick={save} className={aBtn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>} />
 
       <div className="flex flex-wrap items-stretch gap-5">
-        <AdminCard label="Billing rules" className="flex min-w-0 flex-[1.4_1_460px] flex-col gap-[18px]">
+        <AdminCard label="Billing rules" className="flex min-w-0 flex-[1.4_1_460px] flex-col gap-6">
           <h2 className="text-lg font-semibold">Billing rules</h2>
-          <div className="flex flex-wrap gap-[18px]">
-            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="cur" className="text-sm font-medium">Currency</label><input id="cur" value="GHS for Ghana, USD elsewhere" disabled className={`${aInput} bg-[#F3F4F6] text-[#5B6472]`} /></div>
-            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="disc" className="text-sm font-medium">Yearly discount (%)</label>
-              <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
+
+          <div className="flex flex-col gap-2.5">
+            <span className="text-sm font-medium">Currency <span className="font-normal text-[#5B6472]">chosen from the customer country. Prices for both are set in the table below.</span></span>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {[["Ghana", "Ghana cedis", "GHS"], ["Everywhere else", "US dollars", "USD"]].map(([where, name, code]) => (
+                <div key={code} className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E5EA] px-4 py-3">
+                  <span className="flex flex-col"><span className="text-sm font-semibold">{where}</span><span className="text-[13px] text-[#5B6472]">{name}</span></span>
+                  <span className="rounded-md bg-[#EFEAFF] px-2.5 py-1 font-mono text-[13px] font-semibold text-[#4A33B0]">{code}</span>
+                </div>))}
+            </div>
           </div>
-          <label className="flex items-start gap-3 text-sm"><input type="checkbox" disabled className="mt-1 size-4" /><span className="flex flex-col"><span className="font-medium">Free trials</span><span className="text-[13px] text-[#5B6472]">Off. Customers pay when they choose a paid plan, and can always stay on the Free plan.</span></span></label>
-          <div className="flex flex-col gap-2"><span className="text-sm font-medium">SMS bundle prices (GHS) <span className="font-normal text-[#5B6472]">shown on the customer Billing page</span></span>
-            <div className="flex flex-wrap gap-3">{cur.bundles.map((b, i) => (
-              <label key={b.qty} className="flex items-center gap-2 text-sm"><span className="w-20">{b.qty.toLocaleString()} SMS</span>
-                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={`${aInput} !w-28`} /></label>))}</div></div>
-          <div className="flex flex-col gap-2"><span className="text-sm font-medium">Payment methods offered</span>
+
+          <div className="flex flex-col gap-2 sm:max-w-[240px]"><label htmlFor="disc" className="text-sm font-medium">Yearly discount (%) <span className="block font-normal text-[#5B6472]">off the price of 12 months</span></label>
+            <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
+
+          <div className="flex flex-col gap-2.5"><span className="text-sm font-medium">SMS bundle prices (GHS) <span className="font-normal text-[#5B6472]">Ghana customers only, shown on their Billing page</span></span>
+            <div className="grid gap-3 sm:grid-cols-3">{cur.bundles.map((b, i) => (
+              <label key={b.qty} className="flex flex-col gap-1.5 text-[13px] text-[#5B6472]"><span>{b.qty.toLocaleString()} SMS</span>
+                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={aInput} /></label>))}</div></div>
+
+          <div className="flex flex-col gap-2.5"><span className="text-sm font-medium">Payment methods offered <span className="font-normal text-[#5B6472]">cedis customers can use all of these; dollar customers pay by card</span></span>
             <div className="flex flex-wrap gap-2">{data.methods.map((m) => <span key={m} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#E3F4EC] px-3 text-[13px] font-semibold text-[#0B7A4B]"><Check size={14} strokeWidth={3} aria-hidden="true" />{m}</span>)}</div></div>
         </AdminCard>
 
@@ -136,7 +146,7 @@ export default function AdminPlans() {
               <Cell plan={p} col={USD_COL} typing={typing} setTyping={setTyping} apply={editPlan} />
               <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${yearlyPerMonth(p.price_month)} (GHS ${Math.round(p.price_month * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr) · $${yearlyPerMonth(p.price_month_usd ?? 0)} ($${Math.round((p.price_month_usd ?? 0) * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr)`}</span>
               {COLS.slice(1).map((c) => <Cell key={c.key} plan={p} col={c} typing={typing} setTyping={setTyping} apply={editPlan} />)}
-              <input aria-label={`${p.name} active`} type="checkbox" checked={p.active} onChange={(e) => editPlan(p.id, { active: e.target.checked })} className="size-[18px] accent-[#6B4FE0]" />
+              <Checkbox label={`${p.name} active`} checked={p.active} onChange={(v) => editPlan(p.id, { active: v })} />
             </div>))}
         </div></div>
       </section>
@@ -149,7 +159,7 @@ export default function AdminPlans() {
           {FEATURES.map((f) => (
             <div key={f.label} style={{ display: "grid", gridTemplateColumns: `minmax(220px,2fr) repeat(${cur.plans.length}, 1fr)` }} className="items-center gap-3 border-b border-[#EDEFF3] px-[22px] py-3 text-sm last:border-0">
               <span>{f.label}</span>
-              {cur.plans.map((p) => <input key={p.id} type="checkbox" aria-label={`${f.label} on ${p.name}`} checked={f.get(p)} disabled={f.fixed} onChange={(e) => editPlan(p.id, f.set(p, e.target.checked))} className="size-[18px] accent-[#6B4FE0]" />)}
+              {cur.plans.map((p) => <Checkbox key={p.id} label={`${f.label} on ${p.name}`} checked={f.get(p)} disabled={f.fixed} onChange={(v) => editPlan(p.id, f.set(p, v))} />)}
             </div>))}
         </div></div>
       </section>

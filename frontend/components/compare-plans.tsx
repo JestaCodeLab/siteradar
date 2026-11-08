@@ -79,7 +79,7 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
           {GROUPS.map((g) => (
             <tbody key={g.title} className="border-t-2 border-[#EFE4D8]">
               <tr><th colSpan={plans.length + 1} scope="colgroup" className="px-7 pb-3 pt-6 text-left text-xs font-bold uppercase tracking-[0.1em] text-[#C2410C]">{g.title}</th></tr>
-              {g.rows.map((r) => (
+              {g.rows.filter((r) => r.label !== "SMS alerts" || plans.some((p) => p.sms > 0)).map((r) => (
                 <tr key={r.label} className="border-t border-[#EFE4D8]">
                   <th scope="row" className="px-7 py-[18px] text-left font-medium">{r.label}</th>
                   {plans.map((p) => <td key={p.id} className={`px-[22px] py-[18px] ${tint(p)}`}><Value c={r.cell(p)} /></td>)}

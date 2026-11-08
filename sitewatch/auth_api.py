@@ -69,7 +69,10 @@ def blueprint(cfg):
     def public_plans():
         """Prices in the signed-in workspace's currency; otherwise in cedis for Ghana (or an unknown country) and dollars elsewhere."""
         cur = g.ws["currency"] if g.get("ws") else plans.currency_for_country(request_country())
-        return jsonify(plans.public(cur))
+        resp = jsonify(plans.public(cur))
+        resp.headers["Cache-Control"] = "private, no-store"      # the answer depends on who is asking, so no shared cache may reuse it
+        resp.headers["Vary"] = "Cookie, X-Vercel-IP-Country, CF-IPCountry, X-Country-Code"
+        return resp
 
     @bp.post("/contact")
     def contact():
@@ -106,7 +109,10 @@ def blueprint(cfg):
     @bp.get("/geo")
     def geo():
         """Which country the visitor is in, from the headers our host or CDN adds. Null when unknown."""
-        return jsonify(country=request_country())
+        resp = jsonify(country=request_country())
+        resp.headers["Cache-Control"] = "private, no-store"
+        resp.headers["Vary"] = "X-Vercel-IP-Country, CF-IPCountry, X-Country-Code"
+        return resp
 
     @bp.post("/auth/verify")
     def verify():
