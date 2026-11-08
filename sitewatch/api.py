@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, sites, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -262,6 +262,8 @@ def blueprint(cfg):
             "audit_ts": au["ts"] if au else None,
             "pagespeed": au["pagespeed"] if au else None,
             "tracking_live": bool(db.q1("SELECT 1 FROM hits WHERE site_id=? AND ts>? LIMIT 1", (site_id, now - 86400))),
+            "tracking": {**{"verified_at": None, "checked_at": None}, **{k: v for k, v in (db.kv_get(f"tracking:{site_id}") or {}).items() if k in ("verified_at", "checked_at")},
+                         "last_hit": (db.q1("SELECT MAX(ts) t FROM hits WHERE site_id=?", (site_id,)) or {}).get("t")},
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',
             "audit_running": site_id in running_audits,
@@ -356,6 +358,8 @@ def blueprint(cfg):
         A site that adds the snippet with a tag manager, or only on inner pages, can show no snippet here and still be receiving data.
         """
         s = site_or_404(site_id)
+        if security.limited("verify-tracking", 10, 5, key=site_id):
+            return jsonify(error="You have checked a few times already. Wait a few minutes and try again.", code="rate"), 429
         last = db.q1("SELECT MAX(ts) t FROM hits WHERE site_id=?", (site_id,))
         last_hit = last["t"] if last else None
         receiving = bool(last_hit and last_hit > time.time() - 86400)
@@ -375,6 +379,9 @@ def blueprint(cfg):
             log.info("Tracking check of %s failed: %s", s["url"], e)
             found, error = None, "We could not open your website to look for the snippet."
         installed = found == site_id
+        # Remembered, so the page keeps saying "verified" after a reload instead of offering the check again.
+        now = time.time()
+        db.kv_set(f"tracking:{site_id}", {"verified_at": (now if installed or receiving else None), "checked_at": now, "found": found})
         return jsonify(installed=installed, found=found, receiving=receiving, last_hit=last_hit, error=error, url=s["url"])
 
     @bp.post("/sites/<site_id>/check")
