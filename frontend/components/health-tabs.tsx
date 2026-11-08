@@ -4,7 +4,7 @@ import { CalendarClock, FileText, Link2, Mail, RefreshCw, ShieldCheck, TriangleA
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { LineChart } from "./charts";
+import { ResponseChart } from "./response-chart";
 import { btn, Card, CardTitle, Empty, ErrorState, Skeleton, Tile } from "./ui";
 import {
   fetcher, send, type DnsCheck, type HealthResponse, type SiteDetail, type SubscriptionsResponse,
@@ -199,7 +199,7 @@ export function SitemapTab({ id }: { id: string }) {
       {s.trend.length > 1 && (
         <Card className="p-5">
           <CardTitle>Pages in the sitemap over time</CardTitle>
-          <LineChart unit="count" label="Number of pages in the sitemap over time" points={s.trend.map((t) => ({ x: new Date(t.ts * 1000).toISOString().slice(0, 10), y: t.total }))} />
+          <ResponseChart kind="count" label="Number of pages in the sitemap over time" points={Object.values(Object.fromEntries(s.trend.map((t) => { const day = new Date(t.ts * 1000).toISOString().slice(0, 10); return [day, { x: day, y: t.total }]; })))} />
         </Card>
       )}
 

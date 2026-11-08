@@ -7,8 +7,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
-import { HBar, LineChart, StripLegend, UptimeStrip } from "./charts";
+import { HBar, StripLegend, UptimeStrip } from "./charts";
 import { PageSpeedCard } from "./vitals";
+import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
@@ -91,8 +92,8 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
       </Card>
 
       <Card className="p-5">
-        <CardTitle aside={`Slow threshold ${threshold / 1000} s (dashed line)`}>Response time</CardTitle>
-        {waitChecks ? <Skeleton className="h-48" /> : <LineChart label="Daily average response time for the last 30 days" points={site.response_series.map((r) => ({ x: r.day, y: r.ms }))} threshold={threshold} />}
+        <CardTitle aside="Last 30 days">Response time</CardTitle>
+        {waitChecks ? <Skeleton className="h-64" /> : <ResponseChart label="Daily average response time for the last 30 days" points={site.response_series.map((r) => ({ x: r.day, y: r.ms }))} threshold={threshold} />}
       </Card>
 
       <div className="flex flex-wrap gap-5">
