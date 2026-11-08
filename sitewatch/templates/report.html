@@ -1,184 +1,309 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site.name }} – Website report {{ period }}</title>
-{% include "_style.html" %}
-</head><body>{% if brand.watermark %}<div aria-hidden="true" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0;overflow:hidden"><span style="font-size:84px;font-weight:700;white-space:nowrap;transform:rotate(-28deg);color:#1F4FD8;opacity:{{ brand.wm.strength / 100 }}">{{ brand.wm.text }}</span></div>{% endif %}<div class="wrap" style="position:relative;z-index:1">
-{% if nav %}<div class="noprint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:18px">
-  <a href="/" class="small" style="margin-right:auto">← All sites</a>
+<style>
+:root{--ink:#0F172A;--slate:#475569;--slate2:#334155;--line:#EFE4D8;--cream:#FFF7ED;--accent:#C2410C;--orange:#F97316;
+  --ok:#2f8f5b;--warn:#c98a12;--bad:#c4402f;--nodata:#dddbd3;--muted:#475569}
+*{box-sizing:border-box}
+body{margin:0;background:#F1F5F9;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+h1,h2,p{margin:0}
+.mono{font-family:"Geist Mono",ui-monospace,Menlo,monospace}
+.sheet{width:794px;max-width:100%;min-height:1123px;margin:18px auto;background:#fff;padding:40px 52px 36px;display:flex;flex-direction:column;gap:18px;position:relative;z-index:1;box-shadow:0 1px 3px rgba(15,23,42,.08)}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.rb{display:flex;align-items:center;gap:10px}
+.rb img{height:34px;max-width:140px;object-fit:contain;display:block}
+.badge{width:34px;height:34px;border-radius:8px;background:var(--ink);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}
+.s12{font-size:12px;color:var(--slate)}
+.b14{font-size:14px;font-weight:700}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:30px;line-height:1.1;letter-spacing:-.03em}
+.lead{font-size:14px;color:var(--slate2)}
+.col{display:flex;flex-direction:column}
+.stack6{display:flex;flex-direction:column;gap:6px}
+.spacer{flex:1}
+.pillc{background:var(--cream);color:#9A3412;font-weight:600;padding:2px 10px;border-radius:999px;font-size:13px}
+.verdict{background:var(--ink);color:#fff;border-radius:18px;padding:24px 26px;display:flex;gap:24px;align-items:center}
+.ring{position:relative;flex:none;width:116px;height:116px}
+.ring .n{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .n b{font-family:"Geist Mono",ui-monospace,monospace;font-size:34px;font-weight:600;line-height:1}
+.ring .n span{font-size:12px;color:#FDBA74;font-weight:700}
+.verdict .eb{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#FDBA74}
+.verdict p{font-size:19px;line-height:1.4;font-weight:600}
+h2{font-size:18px}
+.row{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border:1px solid var(--line);border-left-width:5px;border-radius:12px}
+.row .t{font-weight:700;font-size:15px}.row .d{font-size:13.5px;color:var(--slate2)}
+.tag{flex:none;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;margin-top:2px;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.tile{background:var(--cream);border-radius:12px;padding:14px}
+.tile .l{font-size:12px;color:var(--slate)}.tile .v{font-family:"Geist Mono",ui-monospace,monospace;font-size:24px;font-weight:600}.tile .s{font-size:12px;color:var(--slate)}
+.toc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 24px;font-size:13px;padding-top:14px;border-top:1px solid var(--line)}
+.toc .h{font-weight:700;grid-column:span 2;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--slate)}
+.toc b{float:right}
+.foot{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--slate);padding-top:10px;border-top:1px solid var(--line)}
+.action{border:1px solid var(--line);border-radius:14px;overflow:hidden;break-inside:avoid}
+.action .hd{display:flex;align-items:center;gap:12px;padding:9px 16px}
+.action .no{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.action .ti{flex:1;font-size:16px;font-weight:700}
+.action .bd{padding:9px 16px;display:flex;flex-direction:column;gap:6px;font-size:13.5px;color:var(--slate2)}
+.action .bd b{color:var(--ink)}
+.action .mt{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:12.5px}
+.good{background:#F0FDF4;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;break-inside:avoid}
+.good h2{font-size:16px;color:#166534}
+.good .g{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 20px;font-size:13px;color:#14532D}
+.good .g span{display:flex;gap:8px}
+.good svg{flex:none;margin-top:2px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.box{border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;break-inside:avoid}
+.box h2{font-size:15px}
+.bar{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.bar .t{display:flex;justify-content:space-between;gap:10px}
+.bar .tr{height:8px;border-radius:4px;background:#F1F5F9}
+.bar .tr i{display:block;height:8px;border-radius:4px;background:var(--orange)}
+.pg{display:grid;grid-template-columns:1fr auto;gap:5px 16px;font-size:13px}
+.pg .pp{color:#64748B;font-family:"Geist Mono",ui-monospace,monospace;font-size:11.5px;word-break:break-all}
+.sc{display:grid;grid-template-columns:64px 1fr auto;gap:8px 14px;align-items:center;font-size:13px}
+.sc .n{font-family:"Geist Mono",ui-monospace,monospace;font-size:20px;font-weight:600}
+.leg{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12px;color:var(--slate);padding-top:8px;border-top:1px dashed var(--line)}
+.note{font-size:12.5px;color:var(--slate)}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t td{padding:5px 8px;border-bottom:1px solid #F1EAE1;vertical-align:top}
+table.t th{padding:6px 8px;text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);border-bottom:1px solid var(--line)}
+table.f td{padding:4px 8px}
+table.t code{font-family:"Geist Mono",ui-monospace,monospace;font-size:10.5px;color:#7C2D12;word-break:break-all}
+table.t tr{break-inside:avoid}
+.urls{font-family:"Geist Mono",ui-monospace,monospace;font-size:10px;color:#64748B;word-break:break-all;margin-top:2px}
+.p{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.ph{color:#991B1B;background:#FEE2E2}.pm{color:#92400E;background:#FEF3C7}.pl{color:#334155;background:#F1F5F9}.ok{color:#166534;background:#DCFCE7}
+.st{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+.banner{background:#FBF1DC;border:1px solid #efd9a6;color:#7a560c;padding:10px 14px;border-radius:10px;font-size:14px}
+.btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:8px 14px;border-radius:9px;font-size:14px;font-weight:600;border:0;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+form{margin:0}
+.nav{max-width:794px;margin:14px auto 0;padding:0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+svg.chart{width:100%;height:auto;display:block}
+svg.strip{width:100%;height:30px;display:block}
+.rc svg.chart{max-height:100px}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .ylab{font-size:10px;fill:var(--muted);text-anchor:end}
+.chart .xlab{font-size:10px;fill:var(--muted);text-anchor:middle}
+.chart .bar{fill:var(--accent)}
+.chart .line{fill:none;stroke:var(--accent);stroke-width:2}
+.chart .area{fill:var(--accent);opacity:.08}
+.chart .dot{fill:var(--accent)}
+.u-up{fill:var(--ok)}.u-warn{fill:var(--warn)}.u-down{fill:var(--bad)}.u-nodata{fill:var(--nodata)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+@media (max-width:640px){.sheet{padding:24px 18px}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.g2,.good .g,.toc{grid-template-columns:1fr}.toc .h{grid-column:auto}.verdict{flex-direction:column;align-items:flex-start}.sc{grid-template-columns:48px 1fr auto}.action .hd{flex-wrap:wrap}}
+@page{size:A4;margin:0}
+@media print{body{background:#fff}.sheet{width:210mm;min-height:297mm;margin:0;box-shadow:none;break-after:page;page-break-after:always}.sheet:last-of-type{break-after:auto;page-break-after:auto}.nav{display:none}}
+</style>
+</head><body>{% if brand.watermark %}<div aria-hidden="true" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:5;overflow:hidden"><span style="font-size:84px;font-weight:700;white-space:nowrap;transform:rotate(-28deg);color:#1F4FD8;opacity:{{ brand.wm.strength / 100 }}">{{ brand.wm.text }}</span></div>{% endif %}
+{% if nav %}<div class="nav">
+  <a href="/" class="s12" style="margin-right:auto">← All sites</a>
   <form method="post" action="/api/check/{{ site.id }}"><button class="btn ghost">Check now</button></form>
   <form method="post" action="/api/audit/{{ site.id }}"><button class="btn ghost">Run audit</button></form>
   <a class="btn ghost" href="/reports/{{ site.id }}">Monthly reports</a>
-</div>{% if flash %}<div class="banner" style="margin:0 0 16px">{{ flash }}</div>{% endif %}{% endif %}
+</div>{% if flash %}<div class="nav"><div class="banner" style="width:100%">{{ flash }}</div></div>{% endif %}{% endif %}
 
-{% macro delta(v, invert=False) -%}
-  {%- if v is none -%}<span class="flat">no previous data</span>
-  {%- else -%}{% set good = (v < 0) if invert else (v > 0) %}
-  <span class="{{ 'flat' if v == 0 else ('up' if good else 'down') }}">{{ '▲' if v > 0 else ('▼' if v < 0 else '•') }} {{ v|abs }}% vs last month</span>
-  {%- endif -%}
+{% macro head(prepared=False) -%}
+<div class="rh">
+  <div class="rb">{% if brand.logo %}<img src="{{ brand.logo }}" alt="{{ brand.name }}">{% else %}<span class="badge">{{ initials }}</span>{% endif %}
+    <div class="col">{% if prepared and brand.name %}<span class="s12">Prepared by</span>{% endif %}<span class="b14">{{ brand.name if (prepared and brand.name) else site.name }}</span></div></div>
+  <span class="s12">Monthly website report · {{ period }}</span>
+</div>
 {%- endmacro %}
-{% macro sclass(s) %}{{ 's-good' if s >= 85 else ('s-mid' if s >= 60 else 's-bad') }}{% endmacro %}
-{% macro bclass(s) %}{{ 'bg-good' if s >= 85 else ('bg-mid' if s >= 60 else 'bg-bad') }}{% endmacro %}
+{% macro foot(n) -%}
+<div class="foot"><span>{% if brand.watermark %}{{ brand.wm.text }}. Upgrade to remove this line.{% elif brand.name %}Prepared by {{ brand.name }}{% else %}Prepared with SiteRadar{% endif %}</span><span>Page {{ n }} of 5</span></div>
+{%- endmacro %}
+{% set STATUS = {'good': ('Good', '#16A34A', '#166534', '#DCFCE7'), 'ok': ('Improve', '#F59E0B', '#92400E', '#FEF3C7'), 'bad': ('Fix soon', '#DC2626', '#991B1B', '#FEE2E2'), 'none': ('Pending', '#CBD5E1', '#475569', '#F1F5F9')} %}
+{% set CHECK %}<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#15803D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>{% endset %}
 
-<header style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap">
-  <div>
-    {% if brand.logo %}<img src="{{ brand.logo }}" alt="{{ brand.name }}" style="max-height:44px;max-width:180px;margin-bottom:14px;display:block">{% elif brand.name %}<div style="font-weight:700;margin-bottom:10px">{{ brand.name }}</div>{% endif %}
-    <div class="muted small" style="text-transform:uppercase;letter-spacing:.08em;font-weight:600">Monthly website report · {{ period }}</div>
-    <h1>{{ site.name }}</h1>
-    <div class="muted"><a href="{{ site.url }}">{{ site.url }}</a>{% if site.owner %} · {{ site.owner }}{% endif %}</div>
-    <div class="muted small">Generated {{ generated }}</div>
+<!-- ============ PAGE 1: SUMMARY ============ -->
+<section class="sheet" style="gap:14px">
+  {{ head(true) }}
+  <div class="stack6">
+    <span class="eyebrow">Your website this month</span>
+    <h1 style="font-size:38px;line-height:1.05">{{ site.name }}</h1>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:13px;color:var(--slate)"><a class="mono" href="{{ site.url }}" style="color:var(--slate);text-decoration:none">{{ host }}</a>{% if partial %}<span>·</span><span class="pillc">Month in progress: covers {{ covers }}</span>{% endif %}</div>
   </div>
-  {% if audit %}<div style="text-align:center">
-    <div class="score {{ sclass(audit.scores.Overall) }}">{{ audit.scores.Overall }}</div>
-    <div class="muted small" style="margin-top:4px">Site health score</div>
-  </div>{% endif %}
-</header>
-{% if partial %}<div class="banner">This month is still in progress — figures cover the period up to today and are compared with the same days of last month.</div>{% endif %}
 
-<h2><span class="n">01</span>At a glance</h2>
-<div class="kpis">
-  <div class="kpi"><div class="l">Uptime</div>
-    <div class="v {{ 'up' if (up.uptime or 0) >= 99.9 else 'down' }}">{{ '%.2f'|format(up.uptime) ~ '%' if up.uptime is not none else '—' }}</div>
-    <div class="d muted">{{ up.incidents|length }} incident{{ '' if up.incidents|length == 1 else 's' }} · {{ '%.0f'|format(up.downtime_minutes) }} min down</div></div>
-  <div class="kpi"><div class="l">Avg response</div>
-    <div class="v">{{ up.avg_ms ~ ' ms' if up.avg_ms else '—' }}</div>
-    <div class="d">{{ delta(deltas.avg_ms, invert=True) }}</div></div>
-  <div class="kpi"><div class="l">Visitors</div>
-    <div class="v">{{ '{:,}'.format(a.visitors) }}</div><div class="d">{{ delta(deltas.visitors) }}</div></div>
-  <div class="kpi"><div class="l">Page views</div>
-    <div class="v">{{ '{:,}'.format(a.pageviews) }}</div><div class="d">{{ delta(deltas.pageviews) }}</div></div>
-  {% if a.pageviews %}<div class="kpi"><div class="l">Bounce rate</div>
-    <div class="v">{{ a.bounce_rate }}%</div><div class="d muted">{{ a.pages_per_visit }} pages / visit</div></div>{% endif %}
-  <div class="kpi"><div class="l">SSL certificate</div>
-    <div class="v {{ 'down' if ssl_days is not none and ssl_days < 21 else '' }}">{{ ssl_days ~ ' d' if ssl_days is not none else 'n/a' }}</div>
-    <div class="d muted">until expiry</div></div>
-</div>
-
-<h2><span class="n">02</span>What to do next</h2>
-<div class="card">
-  {% for r in recs[:10] %}
-  <div class="rec">
-    <div class="num p-{{ r.priority }}">{{ loop.index }}</div>
-    <div>
-      <div><span class="t">{{ r.title }}</span><span class="meta">{{ r.area }} · {{ ['','High','Medium','Low'][r.priority] }} priority</span></div>
-      {% if r.why %}<div class="why">{{ r.why }}</div>{% endif %}
-      <div class="act"><b>Action:</b> {{ r.action }}</div>
-    </div>
+  <div class="verdict">
+    {% if client.overall is not none %}<div class="ring">
+      <svg viewBox="0 0 120 120" width="116" height="116" aria-hidden="true"><circle cx="60" cy="60" r="50" fill="none" stroke="#1E293B" stroke-width="12"></circle><circle cx="60" cy="60" r="50" fill="none" stroke="#F97316" stroke-width="12" stroke-linecap="round" stroke-dasharray="{{ '%.1f'|format(314.2 * client.overall / 100) }} 314.2" transform="rotate(-90 60 60)"></circle></svg>
+      <div class="n"><b>{{ client.overall }}</b><span>{{ client.overall_word }}</span></div></div>{% endif %}
+    <div class="col" style="gap:8px"><span class="eb">The short version</span><p>{{ client.short }}</p></div>
   </div>
-  {% else %}<p>Nothing urgent — the site is in good shape this month. 🎉</p>{% endfor %}
-</div>
 
-<h2><span class="n">03</span>Availability &amp; speed</h2>
-<div class="card">
-  <h3>Daily uptime</h3>
-  {{ charts.uptime }}
-  <div class="legend"><span style="--c:var(--ok)">100%</span><span style="--c:var(--warn)">Degraded</span><span style="--c:var(--bad)">Outage</span><span style="--c:var(--nodata)">No data</span></div>
-  <h3 style="margin-top:22px">Average response time per day</h3>
-  {{ charts.response }}
-  <p class="muted small">95% of checks completed within {{ up.p95_ms or '—' }} ms. {{ up.checks }} checks were run this month.</p>
-</div>
-{% if up.incidents %}
-<div class="card" style="margin-top:14px">
-  <h3>Incidents</h3>
-  <table><tr><th>Started</th><th>Resolved</th><th class="num">Duration</th><th>Cause</th></tr>
-  {% for i in up.incidents %}
-    <tr><td>{{ fmt_ts(i.started) }}</td><td>{{ fmt_ts(i.ended) }}</td>
-    <td class="num">{% if not i.ended %}ongoing{% elif i.ended - i.started < 60 %}&lt;1 min{% else %}{{ '%.0f'|format((i.ended - i.started) / 60) }} min{% endif %}</td><td>{{ i.cause }}</td></tr>
-  {% endfor %}</table>
-</div>
-{% endif %}
-
-<h2><span class="n">04</span>Visitors</h2>
-{% if a.pageviews %}
-<div class="card"><h3>Visitors per day</h3>{{ charts.visitors }}</div>
-<div class="grid g2" style="margin-top:14px">
-  <div class="card"><h3>Most viewed pages</h3><table>
-    {% for p, n in a.top_pages %}<tr><td class="trunc">{{ p }}</td><td class="num">{{ '{:,}'.format(n) }}</td></tr>{% endfor %}</table></div>
-  <div class="card"><h3>Where visitors come from</h3>
-    {% for r, n, pct in a.referrers %}<div class="bar-row"><span class="trunc">{{ r }}</span><span class="track"><i class="bg-good" style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}</div>
-  <div class="card"><h3>Devices</h3>
-    {% for r, n, pct in a.devices %}<div class="bar-row"><span>{{ r }}</span><span class="track"><i style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}
-    <h3 style="margin-top:16px">Browsers</h3>
-    {% for r, n, pct in a.browsers[:5] %}<div class="bar-row"><span>{{ r }}</span><span class="track"><i style="width:{{ pct }}%;background:var(--accent)"></i></span><span class="num small">{{ pct }}%</span></div>{% endfor %}</div>
-  <div class="card"><h3>Engagement</h3><table>
-    <tr><td>Visits</td><td class="num">{{ '{:,}'.format(a.visits) }}</td></tr>
-    <tr><td>Pages per visit</td><td class="num">{{ a.pages_per_visit }}</td></tr>
-    <tr><td>Bounce rate</td><td class="num">{{ a.bounce_rate }}%</td></tr>
-    <tr><td>Avg. visit length (multi-page)</td><td class="num">{{ (a.avg_visit_seconds // 60) }}m {{ a.avg_visit_seconds % 60 }}s</td></tr>
-    <tr><td>Median page load (real visitors)</td><td class="num">{{ ('%.1f'|format(a.median_load_ms / 1000)) ~ ' s' if a.median_load_ms else '—' }}</td></tr>
-    </table>
-    <h3 style="margin-top:16px">Top landing pages</h3><table>
-    {% for p, n in a.entry_pages %}<tr><td class="trunc">{{ p }}</td><td class="num">{{ n }}</td></tr>{% endfor %}</table>
-    {% if a.campaigns %}<h3 style="margin-top:16px">Campaigns (UTM)</h3><table>
-    {% for c, n in a.campaigns %}<tr><td class="trunc">{{ c }}</td><td class="num">{{ n }}</td></tr>{% endfor %}</table>{% endif %}
-  </div>
-</div>
-{% else %}
-<div class="card"><p>No visitor data for this period. Add this snippet just before <code>&lt;/head&gt;</code> on every page:</p>
-<p><code>&lt;script defer src="{{ cfg.public_url }}/t.js" data-site="{{ site.id }}"&gt;&lt;/script&gt;</code></p></div>
-{% endif %}
-
-<h2><span class="n">05</span>Site health audit</h2>
-{% if audit %}
-<div class="grid g2">
-  <div class="card"><h3>Scores by area</h3>
-    {% for cat, s in audit.scores.items() if cat != 'Overall' %}
-    <div class="bar-row"><span>{{ cat }}</span><span class="track"><i class="{{ bclass(s) }}" style="width:{{ s }}%"></i></span><span class="num small">{{ s }}</span></div>
+  <div class="col" style="gap:10px">
+    <h2>This month at a glance</h2>
+    {% for c in client.cards if c.id != 'visitors' %}{% set st = STATUS[c.status] %}
+    <div class="row" style="border-left-color:{{ st[1] }}"><span class="tag" style="color:{{ st[2] }};background:{{ st[3] }}">{{ st[0] }}</span>
+      <div><div class="t">{{ c.label }}</div><div class="d">{{ c.text }}</div></div></div>
     {% endfor %}
-    <p class="muted small">{{ audit.pages }} pages crawled{% if prev_audit %} · previous score {{ prev_audit.scores.Overall }}{% endif %}.</p>
   </div>
-  <div class="card"><h3>Changes since last audit</h3>
-    {% if prev_audit %}
-      {% if fixed_issues %}<p class="small"><span class="pill p-ok">Fixed</span></p><ul class="small">{% for i in fixed_issues %}<li>{{ i.title }}</li>{% endfor %}</ul>{% endif %}
-      {% if new_issues %}<p class="small"><span class="pill p-high">New</span></p><ul class="small">{% for i in new_issues %}<li>{{ i.title }}</li>{% endfor %}</ul>{% endif %}
-      {% if not fixed_issues and not new_issues %}<p class="muted small">No change in issue types since the previous audit.</p>{% endif %}
-    {% else %}<p class="muted small">This is the first audit — next month's report will show what was fixed.</p>{% endif %}
-    {% for label, ps in (('mobile', audit.pagespeed.mobile), ('desktop', audit.pagespeed.desktop)) if audit.pagespeed and ps %}<h3 style="margin-top:14px">Google PageSpeed ({{ label }})</h3><table>
-      {% for k, v in ps.scores.items() %}<tr><td>{{ k|replace('-', ' ')|title }}</td><td class="num">{{ v }}</td></tr>{% endfor %}
-      {% if ps.lcp_ms %}<tr><td>Largest Contentful Paint</td><td class="num">{{ '%.1f'|format(ps.lcp_ms/1000) }} s</td></tr>{% endif %}
-      {% if ps.cls is not none %}<tr><td>Cumulative Layout Shift</td><td class="num">{{ '%.2f'|format(ps.cls) }}</td></tr>{% endif %}
-      {% if ps.inp_ms %}<tr><td>Interaction to Next Paint</td><td class="num">{{ ps.inp_ms }} ms</td></tr>{% endif %}
-    </table>{% endfor %}
-  </div>
-</div>
-<div class="card" style="margin-top:14px">
-  <h3>All findings ({{ audit.issues|length }})</h3>
-  {% for i in audit.issues %}
-  <details {% if i.severity == 'high' %}open{% endif %}>
-    <summary><span class="pill p-{{ i.severity }}">{{ i.severity|capitalize }}</span><span>{{ i.title }}</span><span class="c">{{ i.category }} · {{ i.count }} URL{{ 's' if i.count != 1 }}</span></summary>
-    <div class="issue-body"><b>Fix:</b> {{ i.fix }}
-      <ul>{% for e in i.examples[:5] %}<li>{{ e.url }}{% if e.detail %} — {{ e.detail }}{% endif %}</li>{% endfor %}</ul></div>
-  </details>
-  {% else %}<p>No issues found. Excellent.</p>{% endfor %}
-</div>
-{% else %}
-<div class="card"><p class="muted">No audit has been run yet.</p></div>
-{% endif %}
 
-<p class="muted small" style="margin-top:36px;text-align:center">{% if brand.watermark %}{{ brand.wm.text }}. Upgrade to remove this line. · {% elif brand.name %}Prepared by {{ brand.name }} · {% endif %}Analytics are cookieless and anonymous</p>
+  <div class="tiles">
+    <div class="tile"><div class="l">Time online</div><div class="v">{{ ('100%' if up.uptime >= 99.995 else '%.2f%%'|format(up.uptime)) if up.uptime is not none else '—' }}</div><div class="s">{{ 'No downtime' if not up.incidents else (up.incidents|length ~ (' outage' if up.incidents|length == 1 else ' outages')) if up.uptime is not none else 'Not enough checks yet' }}</div></div>
+    <div class="tile"><div class="l">Visitors{{ ' so far' if partial }}</div><div class="v">{{ '{:,}'.format(a.visitors) if a.pageviews else '—' }}</div><div class="s">{{ ('{:,}'.format(a.pageviews) ~ ' pages viewed') if a.pageviews else 'Not counting yet' }}</div></div>
+    <div class="tile"><div class="l">Security certificate</div><div class="v">{{ ssl_days ~ ' days' if ssl_days is not none else '—' }}</div><div class="s">{{ 'Renew by ' ~ ssl_date if ssl_date else 'Not checked yet' }}</div></div>
+    <div class="tile"><div class="l">Domain name</div><div class="v">{{ health.domain.days_left ~ ' days' if health and health.domain and health.domain.days_left is not none else '—' }}</div><div class="s">{{ 'Renews ' ~ domain_date if domain_date else 'Not checked yet' }}</div></div>
+  </div>
 
-{% set h = health or {} %}
-{% if h.domain or h.dns or h.sitemap %}
-<h2><span class="n">06</span>Domain, DNS &amp; sitemap</h2>
-<div class="grid g2">
-  <div class="card"><h3>Domain</h3>
-    {% if h.domain and h.domain.expires %}
-      <p style="margin:0"><b>{{ h.domain.domain }}</b> expires on <b>{{ h.domain.expires }}</b> ({{ h.domain.days_left }} days).</p>
-      {% if h.domain.registrar %}<p class="muted small">Registrar: {{ h.domain.registrar }}</p>{% endif %}
-    {% else %}<p class="muted small">{{ h.domain.error if h.domain else 'Not checked yet.' }}</p>{% endif %}
+  <div class="spacer"></div>
+  <div class="toc"><span class="h">In this report</span>
+    <span>Your to-do list and what is working well <b>2</b></span><span>Technical details for your web developer <b>4</b></span>
+    <span>Your visitors and health check scores <b>3</b></span><span>Speed tests, DNS and email records <b>5</b></span></div>
+  <div class="foot"><span>Generated {{ generated }} by SiteRadar{% if brand.name %} for {{ brand.name }}{% endif %}</span><span>Page 1 of 5</span></div>
+</section>
+
+<!-- ============ PAGE 2: TO-DO ============ -->
+<section class="sheet" style="gap:12px">
+  {{ head() }}
+  <div class="stack6">
+    <span class="eyebrow">What to do next</span>
+    <h1>Your to-do list</h1>
+    <p class="lead">{% if client.todo %}{% set k = client.todo|length %}The {{ 'one thing' if k == 1 else (['', '', 'two', 'three', 'four'][k] ~ ' things') }} that matter{{ 's' if k == 1 }} most this month, in order. Forward this page to whoever looks after your website.{% else %}Nothing needs your attention this month. 🎉{% endif %}</p>
   </div>
-  <div class="card"><h3>Sitemap</h3>
-    {% if h.sitemap and h.sitemap.sitemap_url %}
-      <p style="margin:0"><b>{{ h.sitemap.total }}</b> pages listed. {{ h.sitemap.checked }} checked, <b>{{ h.sitemap.broken|length }}</b> with errors.</p>
-      {% if h.sitemap.added is not none %}<p class="muted small">{{ h.sitemap.added }} added and {{ h.sitemap.removed }} removed since the last check.</p>{% endif %}
-    {% else %}<p class="muted small">{{ h.sitemap.error if h.sitemap else 'Not checked yet.' }}</p>{% endif %}
+  {% for t in client.todo %}
+  <div class="action">
+    <div class="hd" style="background:{{ t.bg }}"><span class="no">{{ loop.index }}</span><span class="ti">{{ t.title }}</span><span class="tag" style="margin:0;color:{{ t.fg }};background:{{ t.pill }}">{{ t.tag }}</span></div>
+    <div class="bd"><p><b>Why it matters:</b> {{ t.why }}</p>
+      <div class="mt"><span><b>Who:</b> {{ t.who|lower if t.who.startswith('Your ') or t.who.startswith('Whoever') else t.who }}</span><span><b>Time:</b> {{ t.time|lower if t.time.startswith('About') else t.time }}</span><span><b>Details:</b> {{ t.where }}</span></div></div>
   </div>
-</div>
-{% if h.dns %}<div class="card" style="margin-top:14px"><h3>DNS &amp; email health{% if h.dns.score is not none %} · {{ h.dns.score }}/100{% endif %}</h3>
-  {% for c in h.dns.checks if c.status != 'na' %}
-  <div style="display:flex;gap:12px;padding:8px 0;border-top:1px solid var(--line)">
-    <span class="pill {{ 'p-ok' if c.status == 'ok' else ('p-high' if c.status == 'bad' else 'p-medium') }}" style="min-width:64px;text-align:center">{{ {'ok':'Good','warn':'Check','bad':'Fix'}[c.status] }}</span>
-    <div><b>{{ c.label }}</b><div class="muted small">{{ c.detail }}{% if c.fix %} — {{ c.fix }}{% endif %}</div></div>
-  </div>{% endfor %}
-</div>{% endif %}
-{% endif %}
-</div></body></html>
+  {% endfor %}
+  {% if client.wins %}<div class="good"><h2>Already working well</h2>
+    <div class="g">{% for w in client.wins %}<span>{{ CHECK }}{{ w }}</span>{% endfor %}</div></div>{% endif %}
+  <div class="spacer"></div>
+  <p class="note">Every finding, including the smaller technical tidy-ups, is listed for your developer on page 4.</p>
+  {{ foot(2) }}
+</section>
+
+<!-- ============ PAGE 3: VISITORS AND SCORES ============ -->
+<section class="sheet">
+  {{ head() }}
+  <div class="stack6">
+    <span class="eyebrow">Who visited</span>
+    <h1>Your visitors</h1>
+    <p class="lead">{% if first_month %}Visitor tracking started recently, so these are early numbers for {{ covers }}. From next month you will see how they change over time.{% else %}Visitors for {{ covers }}, compared with last month.{% endif %}</p>
+  </div>
+  {% if a.pageviews %}
+  <div class="tiles">
+    <div class="tile"><div class="l">Visits</div><div class="v" style="font-size:26px">{{ '{:,}'.format(a.visits) }}</div><div class="s">Times someone came to your site</div></div>
+    <div class="tile"><div class="l">Pages viewed</div><div class="v" style="font-size:26px">{{ '{:,}'.format(a.pageviews) }}</div><div class="s">Across all visits</div></div>
+    <div class="tile"><div class="l">Pages per visit</div><div class="v" style="font-size:26px">{{ a.pages_per_visit }}</div><div class="s">{{ 'People look around' if a.pages_per_visit >= 2 else 'Most people view one page' }}</div></div>
+    <div class="tile"><div class="l">Left after one page</div><div class="v" style="font-size:26px">{{ a.bounce_rate }}%</div><div class="s">{{ (a.visits * a.bounce_rate / 100)|round|int }} of {{ a.visits }} visit{{ '' if a.visits == 1 else 's' }}</div></div>
+  </div>
+  {% if deltas.visitors is not none or deltas.pageviews is not none %}<p class="note">Compared with last month: visitors {{ ('up ' ~ deltas.visitors ~ '%') if deltas.visitors and deltas.visitors > 0 else (('down ' ~ (deltas.visitors|abs) ~ '%') if deltas.visitors else 'about the same') }}.</p>{% endif %}
+  <div class="g2">
+    <div class="box"><h2>How people found you</h2>
+      {% for r, n, pct in a.referrers[:5] %}<div class="bar"><div class="t"><span>{{ friendly_source(r) }}</span><b class="mono">{{ pct }}%</b></div><div class="tr"><i style="width:{{ pct }}%"></i></div></div>{% endfor %}</div>
+    <div class="box"><h2>What they used</h2>
+      {% for r, n, pct in a.devices %}<div class="bar"><div class="t"><span>{{ friendly_device(r) }}</span><b class="mono">{{ pct }}%</b></div><div class="tr"><i style="width:{{ pct }}%"></i></div></div>{% endfor %}
+      {% if a.browsers %}<p class="note">Mostly {{ a.browsers[0][0] }} ({{ a.browsers[0][2] }}%).{% if a.devices and a.devices[0][0] == 'Mobile' and a.devices[0][2] >= 60 %} Most of your visitors use a phone, so your phone speed matters most.{% endif %}</p>{% endif %}</div>
+  </div>
+  <div class="box"><h2>Most viewed pages</h2>
+    <div class="pg">{% for p, n in a.top_pages[:8] %}<span>{{ friendly_page(p) }} <span class="pp">{{ p[:48] }}</span></span><b class="mono">{{ n }}</b>{% endfor %}</div>
+    {% set ns = namespace(app=false) %}{% for p, n in a.top_pages %}{% if p.startswith(('/app', '/admin', '/login', '/dashboard')) %}{% set ns.app = true %}{% endif %}{% endfor %}
+    {% if ns.app %}<p class="note">Some of these are pages people see after logging in, so they can include your own customers using the app, not only new visitors.</p>{% endif %}</div>
+  {% else %}
+  <div class="box"><h2>We are not counting visitors yet</h2><p class="lead">Ask your web developer to add the tracking code from your SiteRadar dashboard. Once it is added, this page fills in with who visits, how they found you and what they use.</p></div>
+  {% endif %}
+
+  <div class="col" style="gap:10px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><h2>Health check scores</h2>{% if audit %}<span class="s12">{{ audit.pages }} pages checked · {% if prev_audit %}previous overall score {{ prev_audit.scores.Overall }}{% else %}first check, so no comparison yet{% endif %}</span>{% endif %}</div>
+    {% if audit %}
+    <div class="sc">
+      {% for cat, name, what in (('SEO', 'Found on Google', 'how easily search engines understand your pages'), ('Performance', 'Speed', 'how quickly your pages load overall'), ('Security', 'Security', 'protection for you and your visitors'), ('Accessibility', 'Easy to use', 'works for people with disabilities too'), ('Best practices', 'Built well', 'follows modern web standards')) %}
+      {% set v = audit.scores[cat] %}{% set w = score_word(v) %}
+      <b class="n" style="color:{{ w[1] }}">{{ v }}</b><span><b>{{ name }}</b> · {{ what }}</span><span class="tag" style="margin:0;color:{{ w[1] }};background:{{ w[2] }}">{{ w[0] }}</span>
+      {% endfor %}
+    </div>
+    <div class="leg"><span><b style="color:#166534">90–100</b> Very good</span><span><b style="color:#92400E">70–89</b> Good, room to improve</span><span><b style="color:#991B1B">Below 70</b> Needs work</span></div>
+    {% else %}<p class="lead">No health check has run yet. The first one runs overnight.</p>{% endif %}
+  </div>
+  <div class="spacer"></div>
+  {{ foot(3) }}
+</section>
+
+<!-- ============ PAGE 4: TECHNICAL FINDINGS ============ -->
+<section class="sheet" style="gap:12px">
+  {{ head() }}
+  <div style="display:flex;gap:16px;align-items:flex-end;justify-content:space-between">
+    <div class="stack6"><span class="eyebrow">Appendix · for your web developer</span><h1 style="font-size:26px">Technical details</h1></div>
+    <span class="s12" style="text-align:right">{{ findings|length }} finding{{ '' if findings|length == 1 else 's' }} · {{ findings|selectattr('sev', 'eq', 'High')|list|length }} high · {{ findings|selectattr('sev', 'eq', 'Medium')|list|length }} medium · {{ findings|selectattr('sev', 'eq', 'Low')|list|length }} low</span>
+  </div>
+  {% if prev_audit and (fixed_issues or new_issues) %}<p class="note">Since the last audit: {% if fixed_issues %}<b>{{ fixed_issues|length }} fixed</b> ({{ fixed_issues|map(attribute='title')|join(', ') }}){% endif %}{% if fixed_issues and new_issues %}; {% endif %}{% if new_issues %}<b>{{ new_issues|length }} new</b> ({{ new_issues|map(attribute='title')|join(', ') }}){% endif %}.</p>{% endif %}
+  {% if findings %}
+  <table class="t f">
+    <thead><tr><th style="width:56px">Priority</th><th>Finding</th><th style="width:54px">Pages</th><th style="width:250px">Recommended fix</th></tr></thead>
+    <tbody>{% for f in findings %}
+      <tr><td><span class="p {{ {'High': 'ph', 'Medium': 'pm', 'Low': 'pl'}[f.sev] }}">{{ f.sev }}</span></td>
+        <td><b>{{ f.title }}</b><br>{{ f.area }}{% if f.urls %}<div class="urls">{{ f.urls|join('  ·  ') }}</div>{% endif %}</td>
+        <td>{{ f.count if f.count else '–' }}</td><td>{{ f.fix }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="box"><p class="lead">No findings. Excellent.</p></div>{% endif %}
+  <div class="spacer"></div>
+  {{ foot(4) }}
+</section>
+
+<!-- ============ PAGE 5: RECORDS ============ -->
+<section class="sheet" style="gap:10px">
+  {{ head() }}
+  <div class="stack6"><span class="eyebrow">Appendix · for your web developer</span><h1 style="font-size:26px">Speed tests, DNS and email records</h1></div>
+  {% set mob = audit.pagespeed.mobile if audit and audit.pagespeed else none %}{% set desk = audit.pagespeed.desktop if audit and audit.pagespeed else none %}
+  <div class="g2" style="grid-template-columns:1.25fr 1fr">
+    <div class="col" style="gap:8px"><h2 style="font-size:14px">Google PageSpeed (homepage)</h2>
+      {% if mob or desk %}<table class="t"><thead><tr><th>Metric</th><th>Mobile</th><th>Desktop</th></tr></thead><tbody>
+        {% for k in ['performance', 'accessibility', 'best-practices', 'seo'] %}<tr><td>{{ k|replace('-', ' ')|capitalize }}</td><td class="mono">{{ mob.scores[k] if mob and mob.scores and k in mob.scores else '—' }}</td><td class="mono">{{ desk.scores[k] if desk and desk.scores and k in desk.scores else '—' }}</td></tr>{% endfor %}
+        <tr><td>Largest Contentful Paint</td><td class="mono">{{ ('%.1f s'|format(mob.lcp_ms / 1000)) if mob and mob.lcp_ms else '—' }}</td><td class="mono">{{ ('%.1f s'|format(desk.lcp_ms / 1000)) if desk and desk.lcp_ms else '—' }}</td></tr>
+        <tr><td>Cumulative Layout Shift</td><td class="mono">{{ ('%.2f'|format(mob.cls)) if mob and mob.cls is not none else '—' }}</td><td class="mono">{{ ('%.2f'|format(desk.cls)) if desk and desk.cls is not none else '—' }}</td></tr>
+        {% if (mob and mob.inp_ms) or (desk and desk.inp_ms) %}<tr><td>Interaction to Next Paint</td><td class="mono">{{ mob.inp_ms ~ ' ms' if mob and mob.inp_ms else '—' }}</td><td class="mono">{{ desk.inp_ms ~ ' ms' if desk and desk.inp_ms else '—' }}</td></tr>{% endif %}
+      </tbody></table>{% else %}<p class="note">No PageSpeed result yet.</p>{% endif %}</div>
+    <div class="col" style="gap:8px"><h2 style="font-size:14px">Availability</h2>
+      <table class="t"><tbody>
+        <tr><td>Uptime</td><td class="mono"><b>{{ ('%.2f%%'|format(up.uptime)) if up.uptime is not none else '—' }}</b></td></tr>
+        <tr><td>Incidents</td><td class="mono">{{ up.incidents|length }}</td></tr>
+        <tr><td>Checks run</td><td class="mono">{{ up.checks }}</td></tr>
+        <tr><td>Average response</td><td class="mono">{{ up.avg_ms ~ ' ms' if up.avg_ms else '—' }}</td></tr>
+        <tr><td>95% of checks within</td><td class="mono">{{ up.p95_ms ~ ' ms' if up.p95_ms else '—' }}</td></tr>
+        <tr><td>Real-user median load</td><td class="mono">{{ ('%.1f s'|format(a.median_load_ms / 1000)) if a.median_load_ms else '—' }}</td></tr>
+      </tbody></table></div>
+  </div>
+
+  <div class="box" style="gap:6px"><h2>Daily uptime and response time</h2>
+    {{ charts.uptime }}
+    <div class="legend"><span style="--c:var(--ok)">100%</span><span style="--c:var(--warn)">Degraded</span><span style="--c:var(--bad)">Outage</span><span style="--c:var(--nodata)">No data</span></div>
+    <div class="rc" style="margin-top:8px">{{ charts.response }}</div></div>
+  {% if up.incidents %}<div class="col" style="gap:8px"><h2 style="font-size:14px">Incidents</h2>
+    <table class="t"><thead><tr><th>Started</th><th>Resolved</th><th>Duration</th><th>Cause</th></tr></thead><tbody>
+    {% for i in up.incidents %}<tr><td>{{ fmt_ts(i.started) }}</td><td>{{ fmt_ts(i.ended) }}</td>
+      <td>{% if not i.ended %}ongoing{% elif i.ended - i.started < 60 %}&lt;1 min{% else %}{{ '%.0f'|format((i.ended - i.started) / 60) }} min{% endif %}</td><td>{{ i.cause }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+
+  {% set h = health or {} %}
+  {% if h.dns %}<div class="col" style="gap:8px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="font-size:14px">DNS and email</h2>{% if h.dns.score is not none %}<span class="s12">Score <b class="mono" style="color:#92400E">{{ h.dns.score }}</b>/100</span>{% endif %}</div>
+    <table class="t"><thead><tr><th style="width:150px">Check</th><th style="width:64px">Status</th><th>Value / note</th></tr></thead><tbody>
+      {% for c in h.dns.checks if c.status != 'na' %}<tr><td>{{ c.label }}</td>
+        <td><span class="st" style="{{ {'ok': 'color:#166534;background:#DCFCE7', 'bad': 'color:#991B1B;background:#FEE2E2', 'warn': 'color:#92400E;background:#FEF3C7'}[c.status] }}">{{ {'ok': 'OK', 'warn': 'Check', 'bad': 'Fix'}[c.status] }}</span></td>
+        <td>{{ c.detail }}{% if c.fix and c.status != 'ok' %} — {{ c.fix }}{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+
+  <div class="g2">
+    <div class="col" style="gap:8px"><h2 style="font-size:14px">Domain and certificate</h2><table class="t"><tbody>
+      {% if h.domain and h.domain.registrar %}<tr><td>Registrar</td><td>{{ h.domain.registrar }}</td></tr>{% endif %}
+      <tr><td>Domain expires</td><td class="mono">{{ (h.domain.expires ~ ' (' ~ h.domain.days_left ~ ' days)') if h.domain and h.domain.expires else '—' }}</td></tr>
+      <tr><td>SSL certificate expires</td><td class="mono">{{ (ssl_date ~ ' (' ~ ssl_days ~ ' days)') if ssl_date else '—' }}</td></tr></tbody></table></div>
+    <div class="col" style="gap:8px"><h2 style="font-size:14px">Sitemap</h2><table class="t"><tbody>
+      {% if h.sitemap and h.sitemap.sitemap_url %}
+      <tr><td>URLs listed / checked</td><td class="mono">{{ h.sitemap.total }} / {{ h.sitemap.checked }}</td></tr>
+      <tr><td>Errors</td><td class="mono">{{ h.sitemap.broken|length }}</td></tr>
+      {% if h.sitemap.added is not none %}<tr><td>Added / removed</td><td class="mono">{{ h.sitemap.added }} / {{ h.sitemap.removed }}</td></tr>{% endif %}
+      {% else %}<tr><td colspan="2">{{ h.sitemap.error if h.sitemap and h.sitemap.error else 'No sitemap found or not checked yet.' }}</td></tr>{% endif %}</tbody></table></div>
+  </div>
+
+  <div class="spacer"></div>
+  <p class="note">Data collected by SiteRadar for {{ covers }}.{% if audit %} Health check: {{ audit.pages }} pages crawled. {% endif %}Report generated {{ generated }}. Visitor analytics are cookieless and anonymous.</p>
+  {{ foot(5) }}
+</section>
+</body></html>
