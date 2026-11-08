@@ -77,11 +77,11 @@ export function Select({ options, value, defaultValue, onChange, name, id, ariaL
               <Search aria-hidden="true" size={15} className="shrink-0 text-muted" />
               <input
                 autoFocus value={q} onChange={(e) => { setQ(e.target.value); setActive(0); }} onKeyDown={onKey}
-                aria-label="Search options" placeholder="Search" className="min-h-11 w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
+                aria-label="Search options" placeholder="Search" className="min-h-12 w-full bg-transparent text-sm text-ink placeholder:text-muted focus:outline-none"
               />
             </div>
           )}
-          <ul id={listId} role="listbox" aria-label={ariaLabel} className="max-h-64 overflow-y-auto p-1.5">
+          <ul id={listId} role="listbox" aria-label={ariaLabel} className="flex max-h-72 flex-col gap-1 overflow-y-auto p-2">
             {shown.length === 0 && <li className="px-3 py-3 text-sm text-muted">Nothing matches.</li>}
             {shown.map((o, i) => (
               <li
@@ -89,9 +89,9 @@ export function Select({ options, value, defaultValue, onChange, name, id, ariaL
                 ref={(el) => { if (el && i === active) el.scrollIntoView({ block: "nearest" }); }}
                 onMouseEnter={() => setActive(i)} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(o)}
                 aria-disabled={o.locked ? true : undefined}
-                className={`flex min-h-10 items-center justify-between gap-3 rounded-lg px-3 text-sm ${o.locked ? "cursor-not-allowed text-muted" : "cursor-pointer"} ${i === active ? "bg-soft" : ""} ${o.value === current ? "font-semibold text-ink" : o.locked ? "" : "text-ink-2"}`}
+                className={`flex shrink-0 items-center justify-between gap-3 rounded-lg px-3.5 text-sm ${o.hint ? "min-h-[52px] py-2" : "min-h-11 py-2"} ${o.locked ? "cursor-not-allowed text-muted" : "cursor-pointer"} ${i === active ? "bg-soft" : ""} ${o.value === current ? "font-semibold text-ink" : o.locked ? "" : "text-ink-2"}`}
               >
-                <span className="min-w-0"><span className="block truncate">{o.label}</span>{o.hint && <span className="block truncate text-xs font-normal text-muted">{o.hint}</span>}</span>
+                <span className="min-w-0"><span className="block truncate leading-snug">{o.label}</span>{o.hint && <span className="mt-0.5 block truncate text-xs font-normal leading-snug text-muted">{o.hint}</span>}</span>
                 {o.locked ? <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-line-soft px-2 py-0.5 text-xs font-semibold text-ink-2"><Lock aria-hidden="true" size={11} />{o.locked}</span>
                   : o.value === current && <Check aria-hidden="true" size={16} className="shrink-0 text-brand" />}
               </li>
