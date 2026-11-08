@@ -2,7 +2,7 @@
 
 import { Locked } from "./locked";
 import { useToast } from "@/components/toast";
-import { FileText, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
+import { CheckCircle2, AlertTriangle, FileText, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -30,8 +30,29 @@ function Loading() {
 }
 
 // ---- Overview ---------------------------------------------------------------
+interface TrackingCheck { installed: boolean; found: string | null; receiving: boolean; last_hit: number | null; error: string | null; url: string }
+
+/** What a snippet check means for the person, in plain words: [good news or not, headline, what to do next]. */
+function trackingVerdict(c: TrackingCheck, host: string, id: string): [boolean, string, string] {
+  if (c.installed && c.receiving) return [true, "Installed and receiving data", "Visitors are being recorded. Nothing more to do."];
+  if (c.installed) return [true, "Snippet found on your home page", "Open your website once. The first visit shows up here within a minute."];
+  if (c.receiving) return [true, "Receiving data", `We did not see the snippet on the home page of ${host}, but visits are arriving, so it is installed on other pages or added through a tag manager.`];
+  if (c.error) return [false, "We could not check your website", `${c.error} Make sure ${host} is online, then try again.`];
+  if (c.found && c.found !== "?") return [false, "The snippet has a different website ID", `The page uses data-site="${c.found}" but this website's ID is "${id}". Copy the snippet again and replace the old one.`];
+  return [false, "Snippet not found", `We could not find it on the home page of ${host}. Paste it just before </head>, save and publish, then check again. If you use a cache or a plugin, clear it first.`];
+}
+
 export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [check, setCheck] = useState<TrackingCheck | null>(null);
+  const [checking, setChecking] = useState(false);
+  async function verify() {
+    setChecking(true);
+    try { setCheck(await send<TrackingCheck>("POST", `/api/sites/${site.id}/verify-tracking`)); onChange(); }
+    catch { setCheck({ installed: false, found: null, receiving: false, last_hit: null, error: "Something went wrong.", url: site.url }); }
+    setChecking(false);
+  }
+  const verdict = check ? trackingVerdict(check, site.host, site.id) : null;
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
   const waitChecks = !!site.first_run?.checks;
@@ -100,7 +121,14 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
           <button className={btn.secondary} onClick={async () => { await navigator.clipboard.writeText(site.snippet); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
             {copied ? "Copied" : "Copy snippet"}
           </button>
+          <button className={`${btn.primary} ml-2.5`} disabled={checking} onClick={verify}>{checking ? "Checking…" : "Verify installation"}</button>
         </div>
+        {verdict && (
+          <div role="status" className={`flex items-start gap-3 rounded-lg border p-3.5 ${verdict[0] ? "border-ok/40 bg-ok-soft" : "border-warn/40 bg-warn-soft"}`}>
+            {verdict[0] ? <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" /> : <AlertTriangle size={20} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />}
+            <div className="flex flex-col gap-0.5"><span className="text-sm font-semibold">{verdict[1]}</span><span className="text-[13px] leading-relaxed text-muted">{verdict[2]}</span></div>
+          </div>
+        )}
       </Card>
     </div>
   );

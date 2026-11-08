@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Page not found" };
 const links = [
   { href: "/agencies", icon: Users, title: "For agencies", text: "Every client website on one radar." },
   { href: "/businesses", icon: Building2, title: "For businesses", text: "Your digital presence, watched around the clock." },
-  { href: "/pricing", icon: Tag, title: "Pricing", text: "Compare plans in Ghana cedis." },
+  { href: "/pricing", icon: Tag, title: "Pricing", text: "Compare plans in cedis or dollars." },
   { href: "/login", icon: LogIn, title: "Log in", text: "Back to your dashboard." },
 ];
 

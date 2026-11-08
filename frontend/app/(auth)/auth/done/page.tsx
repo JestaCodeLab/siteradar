@@ -12,7 +12,9 @@ export default function AuthDone() {
   const router = useRouter();
   useEffect(() => {
     const ticket = new URLSearchParams(window.location.search).get("t");
-    const signedIn = ticket ? send<Me>("POST", "/api/auth/ticket", { t: ticket }) : fetcher<Me>("/api/auth/me");
+    // The ticket answer only proves the sign-in worked. Where to go next is read from /api/auth/me, the same answer the app uses on every
+    // later page, so a returning member is never sent to onboarding because the ticket answer left their company out.
+    const signedIn = ticket ? send<Me>("POST", "/api/auth/ticket", { t: ticket }).then((t) => (t.authenticated ? fetcher<Me>("/api/auth/me") : t)) : fetcher<Me>("/api/auth/me");
     signedIn
       .then(async (me) => {
         if (!me.authenticated) return router.replace("/login?error=google");

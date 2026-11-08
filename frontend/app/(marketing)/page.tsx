@@ -124,7 +124,7 @@ export default function Home() {
                   )}
                   {st.n === "03" && (
                     <div className="flex flex-col gap-2.5">
-                      <div className="rounded-xl border border-l-[4px] border-[#EFE4D8] border-l-[#16A34A] bg-white px-4 py-3 text-sm"><div className="text-[#475569]">SMS · SiteRadar</div><div><b>UP:</b> shop.example.com is back after 19 minutes.</div></div>
+                      <div className="rounded-xl border border-l-[4px] border-[#EFE4D8] border-l-[#16A34A] bg-white px-4 py-3 text-sm"><div className="text-[#475569]">SMS (Ghana) · SiteRadar</div><div><b>UP:</b> shop.example.com is back after 19 minutes.</div></div>
                       <div className="rounded-xl border border-l-[4px] border-[#EFE4D8] border-l-[#F97316] bg-white px-4 py-3 text-sm"><div className="text-[#475569]">Email · 1 Nov</div><div>Your October report for shop.example.com is ready.</div></div>
                     </div>
                   )}
@@ -142,12 +142,12 @@ export default function Home() {
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-4 md:gap-[18px]">
             <span className={`${eyebrow} text-[#FDBA74]`}>Alerts</span>
             <h2 className={h2}>Alerts that reach you where you are.</h2>
-            <p className="text-base text-[#CBD5E1] md:text-lg"><span className="md:hidden">Only after two failed checks, so you are not woken up by a blip.</span><span className="hidden md:inline">A text message when a site goes down, an email before a certificate or domain expires, and a message in Slack or Teams for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</span></p>
-            <div className="flex flex-wrap gap-2">{["SMS", "Email", "Slack", "Microsoft Teams"].map((c) => <span key={c} className="rounded-full bg-[#1E293B] px-3 py-1.5 text-[13px] font-semibold text-[#E2E8F0]">{c}</span>)}</div>
+            <p className="text-base text-[#CBD5E1] md:text-lg"><span className="md:hidden">Only after two failed checks, so you are not woken up by a blip.</span><span className="hidden md:inline">A text message in Ghana when a site goes down, an email before a certificate or domain expires, and a message in Slack or Teams for the whole team. Alerts only fire after two failed checks, so you are not woken up by a blip.</span></p>
+            <div className="flex flex-wrap gap-2">{["SMS (Ghana only)", "Email", "Slack", "Microsoft Teams"].map((c) => <span key={c} className="rounded-full bg-[#1E293B] px-3 py-1.5 text-[13px] font-semibold text-[#E2E8F0]">{c}</span>)}</div>
           </div>
           <div className="flex min-w-0 flex-[1_1_420px] flex-col gap-3.5">
-            {[["SMS · SiteRadar · 14:02", <><b>DOWN:</b> shop.example.com has failed 2 checks in a row. We will text you when it is back.</>, "border-[#DC2626]", ""],
-            ["SMS · SiteRadar · 14:21", <><b>UP:</b> shop.example.com is back after 19 minutes.</>, "border-[#16A34A]", "md:ml-10"],
+            {[["SMS (Ghana) · SiteRadar · 14:02", <><b>DOWN:</b> shop.example.com has failed 2 checks in a row. We will text you when it is back.</>, "border-[#DC2626]", ""],
+            ["SMS (Ghana) · SiteRadar · 14:21", <><b>UP:</b> shop.example.com is back after 19 minutes.</>, "border-[#16A34A]", "md:ml-10"],
             ["Email · 30 days before expiry", <>Your domain example.com expires on 31 Jan 2027. Renew it with your registrar before then.</>, "border-[#F97316]", ""]].map(([k, v, b, m], i) => (
               <div key={i} className={`rounded-xl border-l-[5px] bg-white px-4 py-3.5 text-[#0F172A] shadow-[0_10px_30px_rgba(0,0,0,0.3)] md:rounded-[14px] md:px-[18px] md:py-4 ${i > 0 ? "hidden md:block" : ""} ${b} ${m}`}><div className="text-xs text-[#475569]">{k}</div><div className="text-[15px]">{v}</div></div>))}
           </div>

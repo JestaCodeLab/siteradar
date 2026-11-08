@@ -32,7 +32,7 @@ function features(p: PlanInfo): string[] {
 /** What a plan leaves out, for the phone layout where the comparison table is replaced by a list on each card. */
 function missing(p: PlanInfo): string[] {
   const out: string[] = [];
-  if (!p.sms) out.push("SMS alerts");
+  if (!p.sms && p.currency === "GHS") out.push("SMS alerts");
   if (!p.clean_reports) out.push("Reports without a watermark");
   if (p.interval_minutes > 1) out.push("1-minute checks");
   return out;

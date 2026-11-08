@@ -40,7 +40,7 @@ const sections: LegalSection[] = [
       <ul>
         <li><strong>Paystack</strong> for payments;</li>
         <li><strong>Resend</strong> to send email;</li>
-        <li><strong>FlockText</strong> to send SMS alerts (phone number and message);</li>
+        <li><strong>FlockText</strong> to send SMS alerts to numbers in Ghana (phone number and message);</li>
         <li><strong>Cloudinary</strong> to store invoices, reports, screenshots and logos;</li>
         <li><strong>Google</strong> for sign-in and, for speed tests, the address of the website being tested;</li>
         <li>our hosting and database providers, <strong>Railway</strong> and <strong>Vercel</strong>.</li>

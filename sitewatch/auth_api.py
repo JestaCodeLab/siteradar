@@ -44,6 +44,16 @@ def blueprint(cfg):
         if ws_id:
             session["ws"] = ws_id
 
+    def load_workspace(user, ws_id=None):
+        """Set the request's user and workspace the way a later request would (the one the session names, else the first), so the answer to
+        a sign-in already says where the person belongs. Without it an existing member would look like someone with no company yet."""
+        mine = accounts.memberships(user["id"])
+        chosen = next((w for w in mine if w["id"] == ws_id), None) or (mine[0] if mine else None)
+        g.user, g.impersonating = user, None
+        g.ws, g.role = (chosen, chosen["role"]) if chosen else (None, None)
+        if chosen:
+            session["ws"] = chosen["id"]
+
     def announcement():
         a = db.kv_get("announcement")
         if not a or not g.ws:
@@ -69,7 +79,10 @@ def blueprint(cfg):
     def public_plans():
         """Prices in the signed-in workspace's currency; otherwise in cedis for Ghana (or an unknown country) and dollars elsewhere."""
         cur = g.ws["currency"] if g.get("ws") else plans.currency_for_country(request_country())
-        return jsonify(plans.public(cur))
+        resp = jsonify(plans.public(cur))
+        resp.headers["Cache-Control"] = "private, no-store"      # the answer depends on who is asking, so no shared cache may reuse it
+        resp.headers["Vary"] = "Cookie, X-Vercel-IP-Country, CF-IPCountry, X-Country-Code"
+        return resp
 
     @bp.post("/contact")
     def contact():
@@ -106,7 +119,10 @@ def blueprint(cfg):
     @bp.get("/geo")
     def geo():
         """Which country the visitor is in, from the headers our host or CDN adds. Null when unknown."""
-        return jsonify(country=request_country())
+        resp = jsonify(country=request_country())
+        resp.headers["Cache-Control"] = "private, no-store"
+        resp.headers["Vary"] = "X-Vercel-IP-Country, CF-IPCountry, X-Country-Code"
+        return resp
 
     @bp.post("/auth/verify")
     def verify():
@@ -114,7 +130,7 @@ def blueprint(cfg):
             return jsonify(error="Too many attempts. Try again in a few minutes."), 429
         user = accounts.verify_email(body().get("email"), body().get("code"))
         sign_in(user)
-        g.user, g.ws, g.role, g.impersonating = user, None, None, None
+        load_workspace(user)
         return jsonify(me_payload())
 
     @bp.post("/auth/resend")
@@ -202,7 +218,7 @@ def blueprint(cfg):
         if not user or user["disabled"]:
             return jsonify(error="This account is not available.", code="disabled"), 403
         sign_in(user, row["ws_id"])
-        g.user, g.ws, g.role, g.impersonating = user, None, None, None
+        load_workspace(user, row["ws_id"])
         return jsonify(me_payload())
 
     @bp.post("/auth/extend")

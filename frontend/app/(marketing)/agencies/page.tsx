@@ -22,11 +22,11 @@ const clients = [["Shop", "shop.example.com", "Up"], ["Jesta Digital Solutions",
 const who = [
   ["Digital marketing agencies", "#F97316", "Show results every month. Cookieless visitor analytics, an SEO and speed audit, and a client-ready PDF that explains what changed and what to do next.", "Analytics, SEO audit and a client-ready monthly PDF."],
   ["Web development agencies", "#FBA23C", "Care plans that run themselves after launch. Uptime, SSL, domain and DNS change alerts, plus a daily audit of about 50 checks for every site you build.", "Care plans that run themselves after launch."],
-  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on SMS, email, Slack or Teams.", "Look after clients like a full team would."],
+  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on email, Slack or Teams, and by SMS in Ghana.", "Look after clients like a full team would."],
 ];
 const grid = [
   { Icon: CalendarDays, short: "Renewals and invoices tracked", t: "Renewals on autopilot", d: "Every client’s domains, hosting and tools with renewal dates, reminders, invoice PDFs and a monthly spend report." },
-  { Icon: Bell, short: "Alerts before the client calls", t: "Alerts before the client calls", d: "SMS, email, Slack or Teams, only after two failed checks, so your team is not chasing blips." },
+  { Icon: Bell, short: "Alerts before the client calls", t: "Alerts before the client calls", d: "Email, Slack or Teams, and SMS in Ghana, only after two failed checks, so your team is not chasing blips." },
   { Icon: SearchCheck, short: "Daily audit with a fix list", t: "Upsell with evidence", d: "The daily audit turns about 50 checks into a prioritised fix list, a ready-made scope for your next piece of work." },
   { Icon: Users, short: "Team and client access", t: "The right access for everyone", d: "Full admins, team members and read-only client viewers, each seeing exactly what they should." },
 ];

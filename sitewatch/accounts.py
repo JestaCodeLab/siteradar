@@ -400,7 +400,7 @@ def update_workspace(ws_id, data):
     if "alert_webhooks" in data:
         hooks = [h.strip() for h in (data["alert_webhooks"] or []) if netguard.chat_webhook_ok(str(h).strip())][:5]
         sets.append("alert_webhooks=?"); args.append(json.dumps(hooks))
-    if "country" in data:        # the billing currency follows the country until the workspace has paid for something
+    if str(data.get("country") or "").strip():        # the billing currency follows the country until the workspace has paid for something
         w = workspace(ws_id)
         if w and not w["paystack_auth"] and not db.q1("SELECT 1 FROM payments WHERE workspace_id=? AND status='success'", (ws_id,)):
             sets.append("currency=?"); args.append(plans.currency_for_country(str(data["country"] or "")))

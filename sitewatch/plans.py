@@ -35,8 +35,18 @@ CURRENCIES = ("GHS", "USD")
 
 
 def currency_for_country(country):
-    """Ghana pays in cedis and everywhere else in US dollars. Accepts a name ("Ghana") or a code ("GH")."""
-    return "GHS" if (country or "").strip().lower() in ("ghana", "gh", "") else "USD"
+    """Ghana pays in cedis and everywhere else, including an unknown country, in US dollars. Accepts a name ("Ghana") or a code ("GH")."""
+    return "GHS" if (country or "").strip().lower() in ("ghana", "gh") else "USD"
+
+
+def sms_allowed(ws):
+    """Text alerts only reach Ghanaian numbers, so only workspaces in Ghana get them."""
+    return currency_for_country(ws.get("country")) == "GHS"
+
+
+def without_sms(plan):
+    """The plan as a customer outside Ghana gets it: no text alerts and no monthly texts."""
+    return {**plan, "sms": 0, "channels": [c for c in plan["channels"] if c != "sms"]}
 
 
 def money(amount, currency="GHS"):
@@ -58,6 +68,8 @@ def public(currency="GHS"):
     out = []
     for p in all_plans():
         yearly = price(p, "yearly", currency)
+        if currency != "GHS":
+            p = without_sms(p)
         out.append({**p, "currency": currency, "price_month": price(p, "monthly", currency), "price_year": yearly, "price_year_month": round(yearly / 12)})
     return {"plans": out, "yearly_discount": d, "currency": currency}
 
@@ -88,7 +100,7 @@ def limits(ws):
     custom = ws.get("limits_override") or {}
     if custom:
         plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}
-    return plan
+    return plan if sms_allowed(ws) else without_sms(plan)
 
 
 def watermark():

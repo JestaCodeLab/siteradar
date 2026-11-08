@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import { Check, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { fmtAgo, fmtDateTs } from "@/lib/format";
 
@@ -97,5 +97,19 @@ export function EmptyState({ Icon, title, text, compact = false }: { Icon: Lucid
       <p className="text-base font-semibold">{title}</p>
       <p className="max-w-sm text-sm leading-relaxed text-[#5B6472]">{text}</p>
     </div>
+  );
+}
+
+/** A styled checkbox. The real input stays in the page (hidden, keyboard focusable) so screen readers and forms work as usual. */
+export function Checkbox({ checked, onChange, disabled = false, label, className = "" }: { checked: boolean; onChange?: (v: boolean) => void; disabled?: boolean; label: string; className?: string }) {
+  return (
+    <span className={`relative inline-flex size-[22px] shrink-0 ${className}`}>
+      <input type="checkbox" aria-label={label} checked={checked} disabled={disabled} onChange={(e) => onChange?.(e.target.checked)}
+        className="peer absolute inset-0 z-10 m-0 size-full cursor-pointer appearance-none rounded-md disabled:cursor-not-allowed" />
+      <span aria-hidden="true" className={`flex size-full items-center justify-center rounded-md border-2 transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[#6B4FE0] ${
+        checked ? (disabled ? "border-[#8B93A1] bg-[#8B93A1]" : "border-[#6B4FE0] bg-[#6B4FE0]") : disabled ? "border-[#C9CFD8] bg-[#EDEFF3]" : "border-[#9AA3B2] bg-transparent peer-hover:border-[#6B4FE0]"}`}>
+        <Check size={14} strokeWidth={3.5} className={`text-white transition-opacity ${checked ? "opacity-100" : "opacity-0"}`} />
+      </span>
+    </span>
   );
 }
