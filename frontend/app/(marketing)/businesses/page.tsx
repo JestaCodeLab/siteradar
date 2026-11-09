@@ -19,8 +19,8 @@ export const metadata: Metadata = pageMeta({
 });
 
 const who = [
-  ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and a Free plan to start with.", "Peace of mind without an IT team."],
-  ["E-commerce brands", "#FBA23C", "When the shop is down, sales stop. Uptime and speed checks, SMS alerts in Ghana, and checks every minute on Scale.", "When the shop is down, sales stop."],
+  ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and plans from GHS 175 a month.", "Peace of mind without an IT team."],
+  ["E-commerce brands", "#FBA23C", "When the shop is down, sales stop. Uptime and speed checks, email and Slack alerts, and checks every minute on Scale.", "When the shop is down, sales stop."],
   ["Enterprises", "#7C2D12", "Many sites and domains in one view, alerts in Slack or Teams, and team roles for every department.", "Many sites and domains in one view."],
   ["Organisations", "#0F172A", "NGOs, churches and schools: keep certificates, domains and email trusted, with no specialist needed.", "Keep certificates, domains and email trusted."],
 ];
@@ -87,7 +87,7 @@ export default function Businesses() {
         </div>
       </Container>
 
-      <SolutionPlans variant="businesses" eyebrowText="Plans for businesses" title="Start free with one site. Scale up to 50." />
+      <SolutionPlans variant="businesses" eyebrowText="Plans for businesses" title="Start small. Scale up to 50 websites." />
       <CtaBand title="Stop finding out from your customers." text="Create an account and add your first website in a couple of minutes." primary={{ href: "/signup", label: "Get started" }} secondary={{ href: "/contact", label: "Talk to us" }} onPage />
     </>
   );

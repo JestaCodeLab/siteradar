@@ -28,7 +28,7 @@ export default function Customers() {
   const { data, error, mutate } = useSWR<Resp>(`/api/admin/customers?${qs}`, fetcher, { keepPreviousData: true });
   const c = data?.counts;
   const tabs: { id: Tab; label: string }[] = [
-    { id: "all", label: `All (${c?.all ?? 0})` }, { id: "paid", label: `Paying (${c?.paid ?? 0})` }, { id: "free", label: `Free (${c?.free ?? 0})` },
+    { id: "all", label: `All (${c?.all ?? 0})` }, { id: "paid", label: `Paying (${c?.paid ?? 0})` }, { id: "free", label: `Complimentary or unpaid (${c?.free ?? 0})` },
     { id: "past_due", label: `Past due (${c?.past_due ?? 0})` }, { id: "suspended", label: `Suspended (${c?.suspended ?? 0})` },
   ];
 
@@ -40,7 +40,7 @@ export default function Customers() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E5EA] px-5 py-3.5">
           <Tabs items={tabs} value={tab} onChange={(t) => { setTab(t); setPage(1); }} />
           <div className="flex flex-wrap gap-2.5">
-            <Select compact ariaLabel="Plan" value={plan} onChange={(v) => { setPlan(v); setPage(1); }} className="w-40" options={[{ value: "", label: "All plans" }, { value: "free", label: "Free" }, { value: "starter", label: "Starter" }, { value: "growth", label: "Growth" }, { value: "scale", label: "Scale" }]} />
+            <Select compact ariaLabel="Plan" value={plan} onChange={(v) => { setPlan(v); setPage(1); }} className="w-40" options={[{ value: "", label: "All plans" }, { value: "freelance", label: "Freelance" }, { value: "starter", label: "Starter" }, { value: "growth", label: "Growth" }, { value: "scale", label: "Scale" }]} />
             <Select compact ariaLabel="Sort" value={sort} onChange={(v) => { setSort(v); setPage(1); }} className="w-48" options={[{ value: "newest", label: "Newest first" }, { value: "revenue", label: "Highest revenue" }, { value: "sites", label: "Most websites" }]} />
           </div>
         </div>

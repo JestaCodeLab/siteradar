@@ -11,7 +11,7 @@ import { ApiError, send, type SiteCard } from "@/lib/api";
 import { splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
-const NEXT: Record<string, string> = { free: "Starter", starter: "Growth", growth: "Scale" };
+const NEXT: Record<string, string> = { freelance: "Starter", starter: "Growth", growth: "Scale" };
 const AddWebsiteContext = createContext<{ open: () => void } | null>(null);
 
 /** Lets any page open the Add website dialog: const { open } = useAddWebsite(). */

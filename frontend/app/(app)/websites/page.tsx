@@ -16,7 +16,7 @@ export default function WebsitesPage() {
   const s = data?.summary;
   const used = ws?.usage.sites ?? 0, limit = ws?.plan.sites ?? 0;
   const atLimit = !!ws && used >= limit;
-  const next = { free: "Starter", starter: "Growth", growth: "Scale" }[ws?.plan_id ?? ""];
+  const next = { freelance: "Starter", starter: "Growth", growth: "Scale" }[ws?.plan_id ?? ""];
 
   return (
     <>

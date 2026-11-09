@@ -201,11 +201,10 @@ function Profile() {
 function PlanPill() {
   const { ws, isAdmin } = useMe();
   if (!ws) return <span />;
-  const free = ws.plan_id === "free";
   const href = isAdmin ? "/settings?tab=billing" : "/overview";
-  return free ? (
+  return ws.locked ? (
     <Link href={href} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-warn-soft px-3.5 text-sm font-semibold text-warn">
-      <span className="size-2 rounded-full bg-warn" />Free plan{isAdmin && <span className="font-semibold text-brand-ink">Upgrade</span>}</Link>
+      <span className="size-2 rounded-full bg-warn" />No active plan{isAdmin && <span className="font-semibold text-brand-ink">Choose a plan</span>}</Link>
   ) : (
     <Link href={href} className="inline-flex min-h-9 items-center gap-2 rounded-full bg-brand-soft px-3.5 text-sm font-semibold text-brand-ink">
       <span className="size-2 rounded-full bg-brand" />{ws.plan.name} plan</Link>

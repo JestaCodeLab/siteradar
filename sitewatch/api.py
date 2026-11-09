@@ -39,6 +39,8 @@ def blueprint(cfg):
             return denied
         if request.method not in ("GET", "HEAD", "OPTIONS") and g.role == "viewer":
             return jsonify(error="You have view-only access.", code="forbidden"), 403
+        if request.method not in ("GET", "HEAD", "OPTIONS") and plans.is_locked(g.ws) and not g.impersonating:
+            return jsonify(error="Your plan has ended, so this workspace is read-only. Choose a plan in Billing to continue.", code="plan_locked"), 402
 
     def body():
         return request.get_json(silent=True) or {}

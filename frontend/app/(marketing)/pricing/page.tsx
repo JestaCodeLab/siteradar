@@ -10,10 +10,10 @@ import type { PlanInfo } from "@/lib/api";
 import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
-const TAGLINE: Record<string, string> = { free: "Try SiteRadar on one site", starter: "For a small business or freelancer", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
-const CTA: Record<string, string> = { free: "Start free", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
-const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth: "50", scale: "100" };
-const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
+const TAGLINE: Record<string, string> = { freelance: "For a freelancer with a single website", starter: "For a small business or a small agency", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
+const CTA: Record<string, string> = { freelance: "Choose Freelance", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
+const AUDIT_PAGES: Record<string, string> = { freelance: "15", starter: "25", growth: "50", scale: "100" };
+const SUPPORT: Record<string, string> = { freelance: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 
 function features(p: PlanInfo): string[] {
   const out = [
@@ -21,9 +21,8 @@ function features(p: PlanInfo): string[] {
     `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}`,
     p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only",
   ];
-  if (p.sms) out.push(`${p.sms} SMS alerts a month`);
   out.push("Domain, SSL, DNS and sitemap monitoring", "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled",
-    p.clean_reports ? "Monthly report with your logo, no watermark" : "Monthly report with a light watermark", "Your logo on every report", "Subscriptions and invoices tracker");
+    "Monthly report with your logo", "Subscriptions and invoices tracker");
   if (p.client_access) out.push("Read-only viewer access for clients");
   out.push(`${p.history_months} month${p.history_months === 1 ? "" : "s"} of history`, `${SUPPORT[p.id] ?? "Email"} support`);
   return out;
@@ -32,19 +31,18 @@ function features(p: PlanInfo): string[] {
 /** What a plan leaves out, for the phone layout where the comparison table is replaced by a list on each card. */
 function missing(p: PlanInfo): string[] {
   const out: string[] = [];
-  if (!p.sms && p.currency === "GHS") out.push("SMS alerts");
-  if (!p.clean_reports) out.push("Reports without a watermark");
+  if (!p.client_access) out.push("Client viewer access");
   if (p.interval_minutes > 1) out.push("1-minute checks");
   return out;
 }
 
 const faq = [
-  ["Is the Free plan really free?", "Yes. It is free for ever and you do not need a card to sign up."],
+  ["Is there a free plan or a free trial?", "No. Our entry plan, Freelance, is the most affordable way to start, and every plan has the same features. The plans differ only in how many websites, team members and history you get, and in which alert channels you can use."],
   ["Will I get woken up by a blip?", "No. Alerts only fire after two failed checks in a row, and you hear again when the site is back."],
   ["Do I need a cookie banner for the analytics?", "No. The tracking script is tiny and cookieless, and installing it is optional."],
   ["Can my clients see their own site?", "Yes. Invite them as read-only viewers, or simply send them the monthly PDF report."],
-  ["How do I pay?", "By card or mobile money through Paystack. Cards renew automatically. With mobile money we email you a payment link before each renewal."],
-  ["What if a renewal payment fails?", "Your plan stays active for 7 days while we ask you to pay. After that the account drops to Free limits. Nothing is deleted, and upgrading again restores everything."],
+  ["How do I pay?", "By card, securely through Paystack. Your card is charged automatically at each renewal, and you can cancel any time from Billing."],
+  ["What if a renewal payment fails?", "Your plan stays active for 7 days while we ask you to pay. After that the workspace becomes read-only and monitoring pauses. Nothing is deleted, and choosing a plan again restores everything."],
 ];
 
 export default function Pricing() {
@@ -72,12 +70,12 @@ export default function Pricing() {
       <Container className="relative -mt-16 md:-mt-24">
         <div className="grid gap-4 md:[grid-template-columns:repeat(auto-fit,minmax(250px,1fr))]">
           {plans.map((p) => {
-            const pop = p.id === "growth", free = p.price_month === 0;
+            const pop = p.id === "growth";
             return (
               <div key={p.id} className={`flex flex-col gap-4 rounded-[20px] ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] p-[27px] shadow-[0_20px_40px_rgba(124,45,18,0.15)]" : "border border-[#EFE4D8] bg-white p-7 shadow-[0_20px_40px_rgba(15,23,42,0.08)]"}`}>
                 <div className="flex flex-col gap-1"><span className={`text-xl font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</span><span className="text-sm text-[#475569]">{TAGLINE[p.id] ?? p.tagline}</span></div>
-                <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{free ? money(0, p.currency) : money(yearly ? p.price_year : p.price_month, p.currency)}</span><span className="text-sm text-[#475569]"> / {!free && yearly ? "year" : "month"}</span>
-                  {!free && yearly && <div className="mt-1 text-[13px] text-[#475569]">{money(Math.round(p.price_year_month), p.currency)} a month, billed yearly</div>}</div>
+                <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{money(yearly ? p.price_year : p.price_month, p.currency)}</span><span className="text-sm text-[#475569]"> / {yearly ? "year" : "month"}</span>
+                  {yearly && <div className="mt-1 text-[13px] text-[#475569]">{money(p.price_year_month, p.currency)} a month, billed yearly</div>}</div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
                 <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#DCFCE7] md:size-auto md:bg-transparent"><Check size={14} strokeWidth={2.8} className="text-[#15803D] md:size-[18px] md:text-[#F97316]" aria-hidden="true" /></span>{b}</li>)}
                   {missing(p).map((b) => <li key={b} className="flex gap-2.5 text-[#64748B] md:hidden"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#F1F5F9]"><X size={12} strokeWidth={2.6} className="text-[#94A3B8]" aria-hidden="true" /></span><span className="flex-1">{b}</span><span className="text-xs font-semibold">Not available</span></li>)}</ul>

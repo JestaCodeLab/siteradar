@@ -117,7 +117,7 @@ export default function CustomerPage() {
 
       {data.failed && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FBE7E5] px-5 py-4">
-          <span className="max-w-[680px] text-sm leading-relaxed text-[#B3261E]"><b>Payment failed on {shortDate(data.failed.ts)}.</b> The workspace keeps working for {data.grace_days} days after the plan period ends, then drops to the Free plan.</span>
+          <span className="max-w-[680px] text-sm leading-relaxed text-[#B3261E]"><b>Payment failed on {shortDate(data.failed.ts)}.</b> The workspace keeps working for {data.grace_days} days after the plan period ends, then becomes read-only.</span>
           <span className="flex gap-2">
             <button disabled={busy} onClick={() => run(() => send("POST", `/api/admin/customers/${id}/payment-link`), "Payment link sent to the owner.")} className="inline-flex min-h-11 items-center rounded-lg border border-[#B3261E] bg-white px-4 text-sm font-semibold text-[#B3261E]">Send payment link</button>
             <button disabled={busy} onClick={() => run(async () => { const r = await send<{ result: string }>("POST", `/api/admin/customers/${id}/retry-payment`); setNote({ ok: r.result !== "failed", text: r.result === "charged" ? "Payment collected." : r.result === "link" ? "No saved card, so a payment link was emailed instead." : "The charge failed again." }); })} className="inline-flex min-h-11 items-center rounded-lg bg-[#B3261E] px-4 text-sm font-semibold text-white">Retry payment</button></span>

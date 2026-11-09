@@ -58,7 +58,7 @@ def blueprint(cfg):
         a = db.kv_get("announcement")
         if not a or not g.ws:
             return None
-        paying = g.ws["plan_id"] != "free"
+        paying = not g.ws["comped"] and g.ws["plan_status"] in ("active", "past_due")
         return a["message"] if a["audience"] == "everyone" or (a["audience"] == "paying") == paying else None
 
     def me_payload():
@@ -360,10 +360,12 @@ def blueprint(cfg):
     def onboarding_plan():
         d = body()
         try:
-            out = billing.checkout(cfg, g.ws, g.user, d.get("plan") or "free", d.get("cycle") or "monthly", code=d.get("code"))
+            if not d.get("plan"):
+                return jsonify(error="Choose a plan to continue."), 400
+            out = billing.checkout(cfg, g.ws, g.user, d["plan"], d.get("cycle") or "monthly", code=d.get("code"))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
-        # Onboarding ends when a plan is really in place: the Free plan (or a test-mode payment) at once, a paid plan only once the
+        # Onboarding ends when a plan is really in place: a test-mode payment or a full discount at once, otherwise only once the
         # payment is confirmed (billing.confirm). Starting a checkout and walking away must not skip the step.
         if out.get("done"):
             db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (g.ws["id"],))
@@ -477,9 +479,8 @@ def blueprint(cfg):
     @need("owner")
     def billing_checkout():
         d = body()
-        channels = {"card": ["card"], "mobile_money": ["mobile_money"]}.get(d.get("channel"))
         try:
-            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", channels, code=d.get("code")))
+            return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", code=d.get("code")))
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
 

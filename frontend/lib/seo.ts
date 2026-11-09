@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 export const SITE_NAME = "SiteRadar";
 export const DEFAULT_DESCRIPTION =
-  "Website monitoring for agencies and businesses: uptime, SSL, domain and DNS checks, visitor stats and monthly reports, with alerts by email, Slack and Teams, and by SMS in Ghana.";
+  "Website monitoring for agencies and businesses: uptime, SSL, domain and DNS checks, visitor stats and monthly reports, with alerts by email, Slack and Teams.";
 
 /** The 1200 x 630 share pictures in public/og. Pages without their own use the home one. */
 export const DEFAULT_OG = "/og/og-home.png";

@@ -239,6 +239,26 @@ ALTER TABLE payments ADD COLUMN discount_amount DOUBLE PRECISION NOT NULL DEFAUL
 ALTER TABLE workspaces ADD COLUMN coupon_code TEXT;
 ALTER TABLE workspaces ADD COLUMN coupon_left INTEGER;
 """),
+    (13, """
+INSERT INTO plans(id, name, tagline, price_month, price_month_usd, sites, members, interval_minutes, sms, history_months, channels, clean_reports, client_access, sort, audit_pages, storage_mb, priority_support)
+ VALUES ('freelance', 'Freelance', 'For a freelancer with a single website', 175, 15, 1, 1, 10, 0, 2, '["email"]', 1, 0, 1, 15, 50, 0);
+UPDATE workspaces SET plan_id='freelance', comped=1, plan_status='active' WHERE plan_id='free';
+UPDATE workspaces SET pending_plan='freelance' WHERE pending_plan='free';
+UPDATE payments SET plan_id='freelance' WHERE plan_id='free';
+DELETE FROM plans WHERE id='free';
+UPDATE plans SET price_month=350,  price_month_usd=29.99  WHERE id='starter';
+UPDATE plans SET price_month=750,  price_month_usd=69.99  WHERE id='growth';
+UPDATE plans SET price_month=1750, price_month_usd=149.99 WHERE id='scale';
+UPDATE plans SET client_access=1 WHERE id <> 'freelance';
+ALTER TABLE workspaces ALTER COLUMN plan_id SET DEFAULT 'freelance';
+ALTER TABLE workspaces ADD COLUMN cancels INTEGER NOT NULL DEFAULT 0;
+"""),
+    (14, """
+UPDATE plans SET sites=1, members=1, client_access=0, tagline='For a freelancer with a single website' WHERE id='freelance';
+"""),
+    (15, """
+UPDATE plans SET price_month_usd=12.99 WHERE id='freelance';
+"""),
 ]
 
 

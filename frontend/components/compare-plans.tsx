@@ -5,9 +5,9 @@ import { Check, X } from "lucide-react";
 import type { PlanInfo } from "@/lib/api";
 import { money } from "@/lib/me";
 
-const AUDIT_PAGES: Record<string, string> = { free: "10", starter: "25", growth: "50", scale: "100" };
-const SUPPORT: Record<string, string> = { free: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
-const CTA: Record<string, string> = { free: "Start free", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
+const AUDIT_PAGES: Record<string, string> = { freelance: "15", starter: "25", growth: "50", scale: "100" };
+const SUPPORT: Record<string, string> = { freelance: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
+const CTA: Record<string, string> = { freelance: "Choose Freelance", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
 
 type Cell = { text: string; mono?: boolean; strong?: boolean } | { yes: boolean; note?: string };
 type Group = { title: string; rows: { label: string; cell: (p: PlanInfo) => Cell }[] };
@@ -25,10 +25,9 @@ const GROUPS: Group[] = [
   { title: "Alerts", rows: [
     { label: "Email alerts", cell: () => ({ yes: true }) },
     { label: "Chat alerts (Slack, Teams)", cell: (p) => ({ yes: p.channels.includes("chat") }) },
-    { label: "SMS alerts", cell: (p) => ({ yes: p.sms > 0, note: p.sms > 0 ? `${p.sms} a month` : undefined }) },
   ] },
   { title: "Reports", rows: [
-    { label: "Monthly PDF report", cell: (p) => ({ text: p.clean_reports ? "Your logo, no watermark" : "Watermarked" }) },
+    { label: "Monthly PDF report", cell: (p) => ({ text: "Your logo on every page" }) },
   ] },
   { title: "Team and support", rows: [
     { label: "Client viewer access", cell: (p) => ({ yes: p.client_access }) },
@@ -51,7 +50,7 @@ function Value({ c }: { c: Cell }) {
 export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boolean }) {
   const hot = (p: PlanInfo) => p.id === "growth";
   const tint = (p: PlanInfo) => (hot(p) ? "bg-[#FFF7ED]" : "");
-  const price = (p: PlanInfo) => (p.price_month === 0 ? 0 : yearly ? p.price_year : p.price_month);
+  const price = (p: PlanInfo) => (yearly ? p.price_year : p.price_month);
   return (
     <section aria-labelledby="compare-title" className="mx-auto flex max-w-[1320px] flex-col gap-6 px-6 pb-12 pt-24">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -70,8 +69,8 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
               {plans.map((p) => (
                 <th key={p.id} scope="col" className={`px-[22px] pb-5 pt-9 text-left align-bottom ${tint(p)} ${hot(p) ? "border-t-4 border-[#F97316]" : "border-t-4 border-transparent"}`}>
                   <div className={`text-lg font-bold ${hot(p) ? "text-[#9A3412]" : ""}`}>{p.name}</div>
-                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{money(price(p), p.currency)}</span><span className="text-[13px] font-normal text-[#475569]"> / {yearly && p.price_month > 0 ? "year" : "month"}</span></div>
-                  {yearly && p.price_month > 0 && <div className="whitespace-nowrap text-[13px] font-normal text-[#475569]">{money(Math.round(p.price_year_month), p.currency)} a month</div>}
+                  <div className="whitespace-nowrap"><span className="font-mono text-xl font-semibold">{money(price(p), p.currency)}</span><span className="text-[13px] font-normal text-[#475569]"> / {yearly ? "year" : "month"}</span></div>
+                  {yearly && <div className="whitespace-nowrap text-[13px] font-normal text-[#475569]">{money(p.price_year_month, p.currency)} a month</div>}
                 </th>
               ))}
             </tr>
@@ -79,7 +78,7 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
           {GROUPS.map((g) => (
             <tbody key={g.title} className="border-t-2 border-[#EFE4D8]">
               <tr><th colSpan={plans.length + 1} scope="colgroup" className="px-7 pb-3 pt-6 text-left text-xs font-bold uppercase tracking-[0.1em] text-[#C2410C]">{g.title}</th></tr>
-              {g.rows.filter((r) => r.label !== "SMS alerts" || plans.some((p) => p.sms > 0)).map((r) => (
+              {g.rows.map((r) => (
                 <tr key={r.label} className="border-t border-[#EFE4D8]">
                   <th scope="row" className="px-7 py-[18px] text-left font-medium">{r.label}</th>
                   {plans.map((p) => <td key={p.id} className={`px-[22px] py-[18px] ${tint(p)}`}><Value c={r.cell(p)} /></td>)}

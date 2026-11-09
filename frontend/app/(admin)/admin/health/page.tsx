@@ -82,7 +82,7 @@ export default function AdminHealth() {
         <form onSubmit={publish} className="flex flex-col gap-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex flex-[3_1_320px] flex-col gap-2"><label htmlFor="msg" className="text-sm font-medium">Message</label><input id="msg" name="message" required maxLength={300} placeholder="Planned maintenance on Saturday 14 Nov, 02:00 to 03:00" className={aInput} /></div>
-            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="aud" className="text-sm font-medium">Show to</label><Select id="aud" name="audience" defaultValue="everyone" options={[{ value: "everyone", label: "Everyone" }, { value: "paying", label: "Paying customers" }, { value: "free", label: "Free plan only" }]} /></div>
+            <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="aud" className="text-sm font-medium">Show to</label><Select id="aud" name="audience" defaultValue="everyone" options={[{ value: "everyone", label: "Everyone" }, { value: "paying", label: "Paying customers" }, { value: "free", label: "Complimentary or unpaid only" }]} /></div>
           </div>
           <div><button className={aBtn.primary}>Publish banner</button></div>
         </form>

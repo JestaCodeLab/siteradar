@@ -8,10 +8,10 @@ type Tile = { id: string; per: string; line: (p: { sites: number; members: numbe
 
 const SETS: Record<"agencies" | "businesses", { tiles: Tile[]; min: number; flex: string }> = {
   agencies: { min: 240, flex: "1.4 1 520px", tiles: [
-    { id: "growth", per: " / month", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members${p.sms ? " · SMS alerts" : ""}` },
+    { id: "growth", per: " / month", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members` },
     { id: "scale", per: " / month", line: (p) => `${p.sites} websites · ${p.members} team members · checks every minute` } ] },
   businesses: { min: 200, flex: "1.6 1 560px", tiles: [
-    { id: "free", per: " / mo", line: (p) => `${p.sites} website · email alerts` },
+    { id: "freelance", per: " / mo", line: (p) => `${p.sites} website${p.sites === 1 ? "" : "s"} · email alerts` },
     { id: "starter", per: " / mo", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members` },
     { id: "scale", per: " / mo", line: (p) => `${p.sites} websites · checks every minute` } ] },
 };

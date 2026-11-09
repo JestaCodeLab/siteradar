@@ -29,7 +29,7 @@ export async function checkout(path: string, body: { plan: string; cycle: string
   return payFor(path, body);
 }
 
-/** Same as checkout, for any payment endpoint (plans, a card or mobile money for the next period, SMS bundles). */
+/** Same as checkout, for any payment endpoint (plans, the next period by card, SMS bundles). */
 export async function payFor(path: string, body: object): Promise<CheckoutResult> {
   const r = await send<{ done?: boolean; access_code?: string; reference?: string; url?: string }>("POST", path, body);
   if (r.done) return "done";

@@ -21,12 +21,11 @@ export function planFeatures(p: PlanInfo): string[] {
     channelLabel(p),
   ];
   if (p.sms) out.push(`${p.sms} SMS alerts a month`);
-  out.push(p.clean_reports ? "Monthly reports without the watermark" : "Monthly report with a light SiteRadar watermark");
-  out.push("Your logo on every report");
+  out.push("Monthly report with your logo");
   if (p.client_access) out.push("Read-only viewer access for clients");
   out.push(`${p.history_months} month${p.history_months === 1 ? "" : "s"} of history`);
   return out;
 }
 
 export const priceLine = (p: PlanInfo, yearly: boolean) =>
-  money(p.price_month === 0 ? 0 : yearly ? Math.round(p.price_year_month) : p.price_month, p.currency);
+  money(yearly ? p.price_year_month : p.price_month, p.currency);
