@@ -16,7 +16,7 @@ const links = [
 /** Shown for any address that does not exist. It sits outside the marketing layout, so it brings its own header and footer. */
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen flex-col bg-[#FBF8F4] text-[#0F172A]">
+    <div className="mkt flex min-h-screen flex-col bg-[#FBF8F4] text-[#0F172A]">
       <MktHeader />
       <main className="flex-1">
         <section className="relative overflow-hidden border-b border-[#F5E6D3] bg-[#FFF7ED]">

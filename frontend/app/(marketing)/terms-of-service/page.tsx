@@ -32,14 +32,14 @@ const sections: LegalSection[] = [
       <p>SiteRadar has several plans, each with its own limits on websites, team members, checks, storage and features. The current plans and prices are on our <a href="/pricing">pricing page</a>. Prices are shown in Ghana cedis (GHS) for customers in Ghana and in US dollars (USD) elsewhere. We may change prices and plan limits; a change never applies to a period you have already paid for.</p>
       <p>Paid plans are billed in advance, monthly or yearly, as you choose. Payments are handled by Paystack, and we do not store your full card details. Plans renew automatically unless you cancel before the renewal date. Taxes may be added where the law requires.</p>
       <p>SMS alerts use bundles of messages that you buy separately. Bundles are available for numbers in Ghana only.</p>
-      <p>We do not offer free trials. The Free plan stays free for as long as you stay within its limits.</p>
+      <p>We do not offer free trials or a free plan. Every plan includes the same features. Plans differ only in how many websites, team members and months of history they include, and in the alert channels available.</p>
     </>
   ) },
   { id: "changes", title: "Changing, cancelling and refunds", body: (
     <>
-      <p>You can upgrade, downgrade or cancel at any time from Billing in your dashboard. If you cancel, your plan stays active until the end of the period you paid for and then moves to the Free plan. We do not refund the unused part of a period unless the law says we must.</p>
+      <p>You can upgrade, downgrade or cancel at any time from Billing in your dashboard. If you cancel, your plan stays active until the end of the period you paid for and then ends. We do not refund the unused part of a period unless the law says we must.</p>
       <p>If you were charged in error, or you cannot use the service because of a fault on our side, email {mail} within 14 days and we will look into it and put it right, including a refund where that is fair.</p>
-      <p>When a plan ends, features outside the Free plan stop working. Websites or team members above the Free limits are paused rather than deleted, and come back if you upgrade again.</p>
+      <p>When a plan ends, your workspace becomes read-only. Monitoring and alerts stop and you cannot add websites, but your data, reports and history are kept and nothing is deleted. Choosing a plan again restores everything straight away.</p>
     </>
   ) },
   { id: "acceptable-use", title: "Acceptable use", body: (

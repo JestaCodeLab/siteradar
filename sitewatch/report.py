@@ -42,12 +42,11 @@ def _delta(now, before):
 
 
 def brand(site):
-    """Company name and logo for the report header; plans without clean reports get a small SiteRadar credit."""
+    """Company name and logo for the report header."""
     ws = accounts.workspace(site.get("workspace_id"))
     if not ws:
-        return {"name": "", "logo": None, "watermark": False}
-    mark = not plans.limits(ws)["clean_reports"]
-    return {"name": ws["name"], "logo": ws["logo_url"], "watermark": mark, **({"wm": plans.watermark()} if mark else {})}
+        return {"name": "", "logo": None}
+    return {"name": ws["name"], "logo": ws["logo_url"]}
 
 
 def build(cfg, site, year, month):

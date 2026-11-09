@@ -104,7 +104,7 @@ def payment_received(first_name, workspace, plan, cycle, amount, method, referen
 
 
 def billing_notice(tone, first_name, workspace, plan, renews=None, amount=None, grace_days=7):
-    """tone: 'soon' (renewal coming up), 'due' (payment did not go through), 'ended' (plan dropped to Free)."""
+    """tone: 'soon' (renewal coming up), 'due' (payment did not go through), 'ended' (plan ended, workspace locked)."""
     billing = app_url() + "/settings?tab=billing"
     rows = [("Plan", plan)]
     if renews:
@@ -113,14 +113,14 @@ def billing_notice(tone, first_name, workspace, plan, renews=None, amount=None, 
         rows.append(("Amount", amount))
     c = {
         "soon": dict(subject="Your SiteRadar plan renews soon", headline=f"Your {plan} plan renews soon",
-                     message="your plan renews in a few days. Open Billing to pay for the next period by card or mobile money, so there is no break in service.",
+                     message="your plan renews in a few days. Open Billing to pay for the next period by card, so there is no break in service.",
                      note="", button="Pay for the next period"),
         "due": dict(subject="Payment needed to keep your SiteRadar plan", headline="We could not take your payment",
-                    message=f"we could not take payment for your {plan} plan. Open Billing to pay by card or mobile money and keep your plan.",
-                    note=f"Your plan stays active for {grace_days} days while you sort this out. After that the account moves to Free limits. Nothing is deleted.",
+                    message=f"we could not take payment for your {plan} plan. Open Billing to pay by card and keep your plan.",
+                    note=f"Your plan stays active for {grace_days} days while you sort this out. After that the workspace becomes read-only and monitoring pauses. Nothing is deleted.",
                     button="Update payment"),
         "ended": dict(subject="Your SiteRadar plan has ended", headline="Your plan has ended",
-                      message="we could not renew your plan, so your account is now on Free limits. Your data is safe, and upgrading again restores everything.",
+                      message="we could not renew your plan, so your workspace is now read-only and monitoring has paused. Your data is safe, and choosing a plan again restores everything.",
                       note="", button="Choose a plan"),
     }[tone]
     text = _text(f"Hi {first_name or 'there'}, {c['message']}", c["note"], f"{c['button']}: {billing}")

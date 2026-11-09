@@ -1,6 +1,5 @@
 "use client";
 
-import { opts, Select } from "@/components/select";
 import { useNoteToast } from "@/components/toast";
 import { useState } from "react";
 import useSWR from "swr";
@@ -10,7 +9,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type PlanInfo } from "@/lib/api";
 
 type Plan = PlanInfo & { customers: number; audit_pages: number; storage_mb: number; priority_support: boolean };
-interface Resp { plans: Plan[]; yearly_discount: number; watermark_text: string; watermark_strength: number; methods: string[]; currency: string; sms_bundles: { qty: number; price: number }[] }
+interface Resp { plans: Plan[]; yearly_discount: number; methods: string[]; currency: string; sms_bundles: { qty: number; price: number }[] }
 
 const fmtStorage = (mb: number) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
 const fmtMonths = (n: number) => `${n} month${n === 1 ? "" : "s"}`;
@@ -34,7 +33,6 @@ const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: bo
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
   { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
   { label: "SMS alerts", get: (p) => p.channels.includes("sms"), set: (p, v) => ({ channels: toggle(p.channels, "sms", v) }) },
-  { label: "Report without watermark", get: (p) => p.clean_reports, set: (_p, v) => ({ clean_reports: v }) },
   { label: "Company logo on reports", get: () => true, set: () => ({}), fixed: true },
   { label: "Client viewer access", get: (p) => p.client_access, set: (_p, v) => ({ client_access: v }) },
   { label: "Priority support", get: (p) => p.priority_support, set: (_p, v) => ({ priority_support: v }) },
@@ -43,33 +41,32 @@ function toggle(list: Plan["channels"], ch: "chat" | "sms", on: boolean): Plan["
   const set = new Set(list); on ? set.add(ch) : set.delete(ch); if (ch === "sms" && on) set.add("chat"); if (ch === "chat" && !on) set.delete("sms"); set.add("email");
   return (["email", "chat", "sms"] as const).filter((c) => set.has(c));
 }
-const STRENGTH = [[8, "Light (8%)"], [15, "Medium (15%)"], [25, "Strong (25%)"]] as const;
+const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 
 export default function AdminPlans() {
   const { data, error, mutate } = useSWR<Resp>("/api/admin/plans", fetcher);
-  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; wmText: string; wmStrength: number; bundles: { qty: number; price: number }[] } | null>(null);
+  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; bundles: { qty: number; price: number }[] } | null>(null);
   const [typing, setTyping] = useState<Record<string, string>>({});
   const setMsg = useNoteToast();
   const [busy, setBusy] = useState(false);
-  const [preview, setPreview] = useState(false);
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
-  const base = { plans: data.plans, discount: String(data.yearly_discount), wmText: data.watermark_text, wmStrength: data.watermark_strength, bundles: data.sms_bundles };
+  const base = { plans: data.plans, discount: String(data.yearly_discount), bundles: data.sms_bundles };
   const cur = draft ?? base;
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
   const edit = (patch: Partial<typeof cur>) => setDraft({ ...cur, ...patch });
   const editPlan = (id: string, patch: Partial<Plan>) => edit({ plans: cur.plans.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
   const disc = Math.min(60, Math.max(0, num(cur.discount)));
-  const yearlyPerMonth = (m: number) => Math.round(m * (1 - disc / 100));
+  const yearlyPerMonth = (m: number) => Math.round(m * (1 - disc / 100) * 100) / 100;
 
   async function save() {
     setBusy(true); setMsg(null);
     try {
       await send("PUT", "/api/admin/plans", {
-        settings: { yearly_discount: disc, watermark_text: cur.wmText, watermark_strength: cur.wmStrength, sms_bundles: cur.bundles },
+        settings: { yearly_discount: disc, sms_bundles: cur.bundles },
         plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
-          history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, channels: p.channels, clean_reports: p.clean_reports,
+          history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, channels: p.channels,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
       });
       await mutate(); setDraft(null); setTyping({}); setMsg({ ok: true, text: "Saved. New prices apply to new subscriptions and renewals." });
@@ -101,38 +98,21 @@ export default function AdminPlans() {
           <div className="flex flex-col gap-2 sm:max-w-[240px]"><label htmlFor="disc" className="text-sm font-medium">Yearly discount (%) <span className="block font-normal text-[#5B6472]">off the price of 12 months</span></label>
             <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
 
-          <div className="flex flex-col gap-2.5"><span className="text-sm font-medium">SMS bundle prices (GHS) <span className="font-normal text-[#5B6472]">Ghana customers only, shown on their Billing page</span></span>
-            <div className="grid gap-3 sm:grid-cols-3">{cur.bundles.map((b, i) => (
-              <label key={b.qty} className="flex flex-col gap-1.5 text-[13px] text-[#5B6472]"><span>{b.qty.toLocaleString()} SMS</span>
-                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={aInput} /></label>))}</div></div>
-
-          <div className="flex flex-col gap-2.5"><span className="text-sm font-medium">Payment methods offered <span className="font-normal text-[#5B6472]">cedis customers can use all of these; dollar customers pay by card</span></span>
+          <div className="flex flex-col gap-2.5"><span className="text-sm font-medium">Payment methods offered <span className="font-normal text-[#5B6472]">every customer pays by card, and cards renew automatically</span></span>
             <div className="flex flex-wrap gap-2">{data.methods.map((m) => <span key={m} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#E3F4EC] px-3 text-[13px] font-semibold text-[#0B7A4B]"><Check size={14} strokeWidth={3} aria-hidden="true" />{m}</span>)}</div></div>
         </AdminCard>
 
-        <AdminCard label="Free plan reports" className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-          <h2 className="text-lg font-semibold">Free plan report watermark</h2>
-          <div className="flex flex-col gap-2"><label htmlFor="wm" className="text-sm font-medium">Watermark text</label><input id="wm" value={cur.wmText} onChange={(e) => edit({ wmText: e.target.value })} maxLength={60} className={aInput} /></div>
-          <div className="flex flex-col gap-2"><label htmlFor="op" className="text-sm font-medium">Strength</label>
-            <Select id="op" value={String(cur.wmStrength)} onChange={(v) => edit({ wmStrength: Number(v) })} options={STRENGTH.map(([v, l]) => ({ value: String(v), label: l }))} /></div>
-          <button onClick={() => setPreview((p) => !p)} className="flex min-h-11 w-fit items-center text-sm font-semibold text-[#4A33B0]">{preview ? "Hide the preview" : "See how it looks on a report"}</button>
+        <AdminCard label="SMS bundles" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
+          <div className="flex flex-col gap-1"><h2 className="text-lg font-semibold">SMS bundle prices</h2>
+            <p className="text-sm leading-relaxed text-[#5B6472]">Customers in Ghana can top up text messages on their Billing page. Prices are in cedis (GHS).</p></div>
+          <div className="flex flex-col gap-3">{cur.bundles.map((b, i) => (
+            <label key={b.qty} className="flex items-center justify-between gap-4 rounded-xl border border-[#E2E5EA] px-4 py-3">
+              <span className="flex flex-col"><span className="text-[15px] font-semibold">{b.qty.toLocaleString()} SMS</span><span className="text-[13px] text-[#5B6472]">{fmtAmt(Math.round((b.price / b.qty) * 1000) / 1000)} each</span></span>
+              <span className="flex items-center gap-2"><span className="text-sm font-medium text-[#5B6472]">GHS</span>
+                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={`${aInput} !w-28`} /></span>
+            </label>))}</div>
         </AdminCard>
       </div>
-
-      {preview && (
-        <div className="grid gap-5 md:grid-cols-2">
-          {[{ tag: "Free plan", tone: "bg-[#FFF1D6] text-[#8A5A00]", title: "Logo, watermark and footer line", wm: true }, { tag: "Paid plans", tone: "bg-[#E3F4EC] text-[#0B7A4B]", title: "Logo only, clean page", wm: false }].map((p) => (
-            <AdminCard key={p.tag} className="!p-5">
-              <span className={`rounded-full px-2.5 py-[3px] text-xs font-semibold ${p.tone}`}>{p.tag}</span><p className="mb-3 mt-2 text-sm font-semibold">{p.title}</p>
-              <div className="relative flex h-[220px] flex-col gap-2 overflow-hidden rounded-lg border border-[#E2E5EA] bg-white p-4">
-                <div className="flex items-center gap-2"><span className="size-7 rounded bg-[#EFEAFF]" /><span className="text-xs font-semibold">Your company</span></div>
-                <div className="flex h-24 items-end gap-1">{[60, 70, 64, 80, 76, 90, 84, 72, 78, 88, 82, 76].map((h, i) => <span key={i} style={{ height: h * 0.9 }} className="flex-1 rounded-t bg-[#6B4FE0]/70" />)}</div>
-                {p.wm && <span aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center whitespace-nowrap text-3xl font-bold text-[#1F4FD8]" style={{ opacity: cur.wmStrength / 100, transform: "rotate(-28deg)" }}>{cur.wmText}</span>}
-                <span className="mt-auto text-[11px] text-[#5B6472]">{p.wm ? `${cur.wmText}. Upgrade to remove this line.` : "Prepared by Your company"}</span>
-              </div>
-            </AdminCard>))}
-        </div>
-      )}
 
       <section aria-label="Plans" className="overflow-hidden rounded-[14px] border border-[#E2E5EA] bg-white">
         <div className="px-[22px] pb-1 pt-[22px]"><h2 className="text-lg font-semibold">Plan limits and prices</h2></div>
@@ -144,7 +124,7 @@ export default function AdminPlans() {
               <span className="text-[15px] font-semibold">{p.name}<span className="block text-xs font-normal text-[#5B6472]">{p.customers} customer{p.customers === 1 ? "" : "s"}</span></span>
               <Cell plan={p} col={COLS[0]} typing={typing} setTyping={setTyping} apply={editPlan} />
               <Cell plan={p} col={USD_COL} typing={typing} setTyping={setTyping} apply={editPlan} />
-              <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${yearlyPerMonth(p.price_month)} (GHS ${Math.round(p.price_month * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr) · $${yearlyPerMonth(p.price_month_usd ?? 0)} ($${Math.round((p.price_month_usd ?? 0) * 12 * (1 - disc / 100)).toLocaleString("en-US")}/yr)`}</span>
+              <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${fmtAmt(yearlyPerMonth(p.price_month))} (GHS ${fmtAmt(Math.round(p.price_month * 12 * (1 - disc / 100) * 100) / 100)}/yr) · $${fmtAmt(yearlyPerMonth(p.price_month_usd ?? 0))} ($${fmtAmt(Math.round((p.price_month_usd ?? 0) * 12 * (1 - disc / 100) * 100) / 100)}/yr)`}</span>
               {COLS.slice(1).map((c) => <Cell key={c.key} plan={p} col={c} typing={typing} setTyping={setTyping} apply={editPlan} />)}
               <Checkbox label={`${p.name} active`} checked={p.active} onChange={(v) => editPlan(p.id, { active: v })} />
             </div>))}

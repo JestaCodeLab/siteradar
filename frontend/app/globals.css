@@ -275,9 +275,11 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 .sr-loader--full { position: fixed; inset: 0; z-index: 9999; }
 .sr-loader--fill { min-height: 60vh; flex: 1; background: transparent; }
 .sr-loader--dark, html.dark .sr-loader--full { background: #0F172A; }
+html.dark-public .sr-loader--full { background: #0b0b0c; }
 .sr-loader.is-done { opacity: 0; visibility: hidden; }
 .sr-loader__label { font: 600 14px/1 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: .18em; text-transform: uppercase; color: #475569; }
 .sr-loader--dark .sr-loader__label, html.dark .sr-loader__label { color: #CBD5E1; }
+html.dark-public .sr-loader__label { color: #cfcfd4; }
 .sr-loader svg { overflow: visible; }
 @keyframes sr-sweep { to { transform: rotate(360deg); } }
 @keyframes sr-ping { 0% { transform: scale(.25); opacity: .7; } 100% { transform: scale(1.2); opacity: 0; } }
@@ -315,3 +317,65 @@ button:disabled, [aria-disabled="true"] { cursor: not-allowed; }
 @keyframes sr-blink{0%,100%{opacity:1}50%{opacity:.35}}
 .sr-live{animation:sr-blink 1.8s ease-in-out infinite}
 @media (prefers-reduced-motion: reduce){.sr-bars>*,.sr-live{animation:none!important}}
+
+/* ---- dark theme on the marketing pages -----------------------------------------------------
+   These pages use fixed hex colours, so each light (or navy) colour is swapped for a neutral dark one here. Only inside .mkt, so the app is
+   untouched. The wrapper itself carries .mkt, so every rule lists it as well as its descendants. */
+html.dark .mkt { background-color: #0b0b0c; color: #ececee; }
+html.dark .mkt .bg-white { background-color: #161618; }
+html.dark .mkt input:not([type="checkbox"]):not([type="radio"]), html.dark .mkt textarea, html.dark .mkt select { background-color: #161618; color: #ececee; }
+html.dark .mkt.bg-\[\#FBF8F4\], html.dark .mkt .bg-\[\#FBF8F4\] { background-color: #0b0b0c; }
+html.dark .mkt.bg-\[\#FFF7ED\], html.dark .mkt .bg-\[\#FFF7ED\] { background-color: #1a1a1c; }
+html.dark .mkt.bg-\[\#FFEDD5\], html.dark .mkt .bg-\[\#FFEDD5\] { background-color: #2e2118; }
+html.dark .mkt.bg-\[\#FEF3C7\], html.dark .mkt .bg-\[\#FEF3C7\] { background-color: #2f2610; }
+html.dark .mkt.bg-\[\#FEE2E2\], html.dark .mkt .bg-\[\#FEE2E2\] { background-color: #331a18; }
+html.dark .mkt.bg-\[\#DCFCE7\], html.dark .mkt .bg-\[\#DCFCE7\] { background-color: #15301f; }
+html.dark .mkt.bg-\[\#FEF2F2\], html.dark .mkt .bg-\[\#FEF2F2\] { background-color: #2b1816; }
+html.dark .mkt.bg-\[\#F1F5F9\], html.dark .mkt .bg-\[\#F1F5F9\] { background-color: #1c1c1e; }
+html.dark .mkt.bg-\[\#E2E8F0\], html.dark .mkt .bg-\[\#E2E8F0\] { background-color: #2c2c2f; }
+html.dark .mkt.bg-\[\#E8EDF3\], html.dark .mkt .bg-\[\#E8EDF3\] { background-color: #222225; }
+html.dark .mkt.bg-\[\#0F172A\], html.dark .mkt .bg-\[\#0F172A\] { background-color: #121214; }
+html.dark .mkt.bg-\[\#1E293B\], html.dark .mkt .bg-\[\#1E293B\] { background-color: #1d1d20; }
+html.dark .mkt.bg-\[\#111827\], html.dark .mkt .bg-\[\#111827\] { background-color: #131315; }
+html.dark .mkt.bg-\[\#4B5563\], html.dark .mkt .bg-\[\#4B5563\] { background-color: #4a4a4f; }
+html.dark .mkt.text-\[\#0F172A\], html.dark .mkt .text-\[\#0F172A\] { color: #ececee; }
+html.dark .mkt.text-\[\#475569\], html.dark .mkt .text-\[\#475569\] { color: #a8a8ad; }
+html.dark .mkt.text-\[\#334155\], html.dark .mkt .text-\[\#334155\] { color: #c9c9ce; }
+html.dark .mkt.text-\[\#64748B\], html.dark .mkt .text-\[\#64748B\] { color: #8e8e93; }
+html.dark .mkt.text-\[\#C2410C\], html.dark .mkt .text-\[\#C2410C\] { color: #fb923c; }
+html.dark .mkt.text-\[\#9A3412\], html.dark .mkt .text-\[\#9A3412\] { color: #fdba74; }
+html.dark .mkt.text-\[\#7C2D12\], html.dark .mkt .text-\[\#7C2D12\] { color: #fed7aa; }
+html.dark .mkt.text-\[\#92400E\], html.dark .mkt .text-\[\#92400E\] { color: #f5c04a; }
+html.dark .mkt.text-\[\#B45309\], html.dark .mkt .text-\[\#B45309\] { color: #f5c04a; }
+html.dark .mkt.text-\[\#991B1B\], html.dark .mkt .text-\[\#991B1B\] { color: #ff8a7a; }
+html.dark .mkt.text-\[\#B3261E\], html.dark .mkt .text-\[\#B3261E\] { color: #ff8a7a; }
+html.dark .mkt.text-\[\#166534\], html.dark .mkt .text-\[\#166534\] { color: #4fd08f; }
+html.dark .mkt.text-\[\#15803D\], html.dark .mkt .text-\[\#15803D\] { color: #4fd08f; }
+html.dark .mkt.text-\[\#CBD5E1\], html.dark .mkt .text-\[\#CBD5E1\] { color: #cfcfd4; }
+html.dark .mkt.text-\[\#94A3B8\], html.dark .mkt .text-\[\#94A3B8\] { color: #9a9aa0; }
+html.dark .mkt.text-\[\#E2E8F0\], html.dark .mkt .text-\[\#E2E8F0\] { color: #e4e4e7; }
+html.dark .mkt .border-\[\#EFE4D8\] { border-color: #2a2a2d; }
+html.dark .mkt .border-\[\#F1E8DD\] { border-color: #232326; }
+html.dark .mkt .border-\[\#F5E6D3\] { border-color: #2a2a2d; }
+html.dark .mkt .border-\[\#CBD5E1\] { border-color: #3c3c40; }
+html.dark .mkt .border-\[\#0F172A\] { border-color: #ececee; }
+html.dark .mkt .border-\[\#1E293B\] { border-color: #2a2a2d; }
+html.dark .mkt .border-\[\#334155\] { border-color: #3a3a3e; }
+html.dark .mkt .border-\[\#475569\] { border-color: #55555a; }
+html.dark .mkt .ring-\[\#334155\] { --tw-ring-color: #3a3a3e; }
+html.dark .mkt .hover\:bg-\[\#FFF7ED\]:hover { background-color: #1a1a1c; }
+html.dark .mkt .hover\:bg-\[\#1E293B\]:hover, html.dark .mkt .hover\:bg-\[\#0F172A\]:hover { background-color: #2c2c2f; }
+html.dark .mkt .hover\:text-\[\#7C2D12\]:hover { color: #fed7aa; }
+/* colours used by the feature pages' example cards */
+html.dark .mkt .bg-\[\#FFFFFF\] { background-color: #161618; }
+html.dark .mkt .bg-\[\#FFFBEB\] { background-color: #2a2210; }
+html.dark .mkt .bg-\[\#DBEAFE\] { background-color: #1b2a4d; }
+html.dark .mkt .text-\[\#1E40AF\] { color: #9bb8ff; }
+html.dark .mkt .border-\[\#FDE68A\] { border-color: #4a3d12; }
+html.dark .mkt .bg-\[\#334155\] { background-color: #2c2c2f; }
+/* dark text that sits on a bright orange or amber fill stays dark, and plain links get a lighter orange */
+html.dark .mkt .bg-\[\#F97316\].text-\[\#0F172A\],
+html.dark .mkt .bg-\[\#FBA23C\].text-\[\#0F172A\],
+html.dark .mkt .bg-\[\#FDBA74\].text-\[\#0F172A\] { color: #0F172A; }
+html.dark .mkt a:not([class]) { color: #fb923c; }
+html.dark .mkt a:not([class]):hover { color: #fed7aa; }

@@ -11,7 +11,7 @@ DEFAULT_DISCOUNT = 20          # yearly billing, percent off; editable by a supe
 def _row(r):
     p = dict(r)
     p["channels"] = json.loads(p["channels"] or "[]")
-    for f in ("clean_reports", "client_access", "active", "priority_support"):
+    for f in ("client_access", "active", "priority_support"):
         p[f] = bool(p[f])
     return p
 
@@ -58,8 +58,8 @@ def price(plan, cycle, currency="GHS"):
     """Amount to charge for one billing period, in whole units of the currency."""
     m = plan["price_month_usd"] if currency == "USD" else plan["price_month"]
     if cycle == "yearly":
-        return float(round(m * 12 * (1 - yearly_discount() / 100)))
-    return float(round(m))
+        return round(m * 12 * (1 - yearly_discount() / 100), 2)
+    return round(float(m), 2)
 
 
 def public(currency="GHS"):
@@ -70,7 +70,7 @@ def public(currency="GHS"):
         yearly = price(p, "yearly", currency)
         if currency != "GHS":
             p = without_sms(p)
-        out.append({**p, "currency": currency, "price_month": price(p, "monthly", currency), "price_year": yearly, "price_year_month": round(yearly / 12)})
+        out.append({**p, "currency": currency, "price_month": price(p, "monthly", currency), "price_year": yearly, "price_year_month": round(yearly / 12, 2)})
     return {"plans": out, "yearly_discount": d, "currency": currency}
 
 
@@ -93,20 +93,20 @@ OVERRIDABLE = ("sites", "members", "sms", "interval_minutes", "history_months", 
 
 
 def limits(ws):
-    """Plan for a workspace row: a lapsed paid plan falls back to Free, and a super admin's custom limits win."""
-    plan = get(ws["plan_id"]) or get("free")
-    if ws["plan_status"] == "lapsed" and not ws.get("comped"):
-        plan = get("free")
+    """Plan for a workspace row. A workspace without a paid plan (never subscribed, or lapsed) is locked: it keeps its data but can
+    run no websites. A super admin's custom limits win over the plan's."""
+    plan = get(ws["plan_id"]) or get("freelance")
     custom = ws.get("limits_override") or {}
     if custom:
         plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}
+    if is_locked(ws):
+        plan = {**plan, "sites": 0, "sms": 0, "channels": ["email"]}
     return plan if sms_allowed(ws) else without_sms(plan)
 
 
-def watermark():
-    """Text and strength (percent) of the Free plan report watermark, set by the super admin."""
-    v = db.kv_get("platform") or {}
-    return {"text": v.get("watermark_text") or "Made with SiteRadar", "strength": int(v.get("watermark_strength", 8))}
+def is_locked(ws):
+    """True when the workspace has no paid plan in force: it never subscribed or its plan lapsed or was cancelled. Complimentary plans are never locked."""
+    return not ws.get("comped") and ws.get("plan_status") in ("none", "lapsed")
 
 
 def check_can_add_site(ws):

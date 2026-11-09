@@ -10,7 +10,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send } from "@/lib/api";
 
 interface Resp {
-  tiles: { collected: number; successful: number; failed: number; at_risk: number; refunds: number; momo_pct: number; usd_collected?: number };
+  tiles: { collected: number; successful: number; failed: number; at_risk: number; refunds: number; usd_collected?: number };
   counts: Record<string, number>;
   followup: { reference: string; workspace_id: number; workspace: string; plan: string; method: string; amount: number; created: number }[];
   payments: { reference: string; workspace: string; workspace_id: number; plan_id: string; amount: number; currency?: string; method: string; label: string; created: number; paid: number | null }[];
@@ -37,7 +37,6 @@ export default function AdminPayments() {
     { label: "Collected this month", value: money(t.collected), note: `${t.successful} successful payment${t.successful === 1 ? "" : "s"}${t.usd_collected ? `, plus $${Math.round(t.usd_collected).toLocaleString("en-US")} in USD` : ""}`, c: "#0B7A4B" },
     { label: "Failed payments", value: String(t.failed), note: `${money(t.at_risk)} at risk`, c: t.failed ? "#B3261E" : "#5B6472" },
     { label: "Refunds", value: money(t.refunds), note: t.refunds ? "This month" : "None this month", c: "#5B6472" },
-    { label: "Paid with mobile money", value: `${t.momo_pct}%`, note: "The rest by card", c: "#5B6472" },
   ];
   const filters: { id: Filter; label: string }[] = [
     { id: "all", label: "All" }, { id: "paid", label: "Paid" }, { id: "failed", label: `Failed (${data.counts.failed ?? 0})` },

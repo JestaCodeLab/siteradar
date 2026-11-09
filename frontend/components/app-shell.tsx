@@ -38,8 +38,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {ws.plan_status === "past_due" && (
           <p role="alert" className="bg-warn-soft px-4 py-2.5 text-sm text-warn lg:px-6">Your last payment did not go through. <Link href="/settings?tab=billing" className="font-semibold underline">Update billing</Link> to keep your {ws.plan.name} plan.</p>
         )}
-        {ws.plan_status === "lapsed" && (
-          <p role="alert" className="bg-bad-soft px-4 py-2.5 text-sm text-bad lg:px-6">Your plan ended after a failed payment, so your account is on Free limits. <Link href="/settings?tab=billing" className="font-semibold underline">Choose a plan</Link> to restore it.</p>
+        {ws.locked && ws.onboarded && (
+          <p role="alert" className="bg-bad-soft px-4 py-2.5 text-sm text-bad lg:px-6"><b>Your plan has ended, so this workspace is read-only.</b> Monitoring and alerts are off, and nothing has been deleted. <Link href="/settings?tab=billing" className="font-semibold underline">Choose a plan</Link> to switch everything back on.</p>
         )}
         {ws.role === "viewer" && <p className="bg-line-soft px-4 py-2.5 text-sm text-ink-2 lg:px-6"><b>You have view-only access.</b> You can see dashboards and reports. Ask an admin if you need to change something.</p>}
         <main className="min-w-0 flex-1 px-4 py-5 lg:px-6">

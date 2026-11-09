@@ -8,13 +8,12 @@ import { usePlans } from "@/lib/plans";
 import { money, useMe } from "@/lib/me";
 
 /** What a plan has to offer for a feature to be on. Used for the workspace's own plan and to find the cheapest plan that has it. */
-type Shape = Pick<PlanInfo, "members" | "channels" | "client_access" | "clean_reports" | "sms">;
+type Shape = Pick<PlanInfo, "members" | "channels" | "client_access" | "sms">;
 const has = {
   team: (p: Shape) => p.members > 1,
   chat: (p: Shape) => p.channels.includes("chat"),
   sms: (p: Shape) => p.channels.includes("sms") || p.sms > 0,
   clients: (p: Shape) => p.client_access,
-  clean: (p: Shape) => p.clean_reports,
 } as const;
 export type Feature = keyof typeof has;
 

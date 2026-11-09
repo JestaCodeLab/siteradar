@@ -5,7 +5,7 @@ import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
-import { CalendarCheck, CreditCard, Smartphone, Sparkles, Tag, XCircle } from "lucide-react";
+import { CalendarCheck, CreditCard, Sparkles, Tag, XCircle } from "lucide-react";
 import { FileText, MessageSquare } from "lucide-react";
 import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
@@ -28,10 +28,8 @@ function Bar({ label, value, pct, warn }: { label: string; value: string; pct: n
 
 const planLine = (p: PlanInfo) => {
   const parts = [`${p.sites} website${p.sites === 1 ? "" : "s"}`, `${p.members} team member${p.members === 1 ? "" : "s"}`];
-  if (!p.clean_reports) parts.push("email alerts", "watermarked reports");
-  else if (p.sms) parts.push(`${p.sms} SMS a month`, ...(p.client_access ? ["client viewers"] : []));
-  else parts.push(`checks every ${p.interval_minutes} minutes`);
-  if (p.interval_minutes === 1) parts[parts.length - 1] = "checks every minute";
+  if (p.sms) parts.push(`${p.sms} SMS a month`);
+  parts.push(p.interval_minutes === 1 ? "checks every minute" : `checks every ${p.interval_minutes} minutes`);
   return parts.join(", ") + ".";
 };
 
@@ -46,7 +44,7 @@ export function BillingPanel() {
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <div className="flex flex-col gap-4"><Skeleton className="h-40" /><Skeleton className="h-64" /></div>;
   const ws = data.workspace, cur = ws.plan_id, ccy = data.catalogue.currency, isYearly = yearly ?? ws.cycle === "yearly";
-  const plans = data.catalogue.plans, free = cur === "free";
+  const plans = data.catalogue.plans, locked = !!ws.locked;
   const currentPlan = plans.find((p) => p.id === cur);
   const curIdx = plans.findIndex((p) => p.id === cur);
   const disc = data.catalogue.yearly_discount;
@@ -64,28 +62,30 @@ export function BillingPanel() {
     setBusy(null);
   }
   const choose = (plan: string, cycle = isYearly ? "yearly" : "monthly") => run(plan + cycle, () => checkout("/api/billing/checkout", { plan, cycle, ...(code.trim() ? { code: code.trim() } : {}) }));
-  const payBy = (channel: "card" | "mobile_money") => {
-    if (free) { document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" }); return; }
-    if (!confirm("This pays for your next period now and keeps the method for automatic renewals. Continue?")) return;
-    run("pm" + channel, () => payFor("/api/billing/checkout", { plan: cur, cycle: ws.cycle, channel }), "Payment received. Your plan is extended.");
+  const payNow = () => {
+    if (locked) { document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" }); return; }
+    if (!confirm("This pays for your next period now and keeps the card for automatic renewals. Continue?")) return;
+    run("pmcard", () => payFor("/api/billing/checkout", { plan: cur, cycle: ws.cycle }), "Payment received. Your plan is extended.");
   };
   async function cancel() {
-    if (!confirm("Move to the Free plan now? Websites above the Free limit will be paused (not deleted). The paid period is not refunded.")) return;
-    try { await send("POST", "/api/billing/cancel"); await Promise.all([mutate(), refreshMe()]); setNote({ ok: true, text: "You are now on the Free plan." }); }
+    const ends = ws.plan_renews ? fmtDateTs(ws.plan_renews) : "now";
+    if (!confirm(`Cancel your plan? It stays active until ${ends}, then the workspace becomes read-only. Nothing is deleted, and choosing a plan again restores everything. The paid period is not refunded.`)) return;
+    try { await send("POST", "/api/billing/cancel"); await Promise.all([mutate(), refreshMe()]); setNote({ ok: true, text: `Your plan is cancelled and ends on ${ends}. Your data is kept.` }); }
     catch (e) { setNote({ ok: false, text: e instanceof Error ? e.message : "Could not cancel." }); }
   }
   const tab = (on: boolean) => `flex min-h-11 items-center gap-2 rounded-lg px-5 text-sm font-semibold ${on ? "bg-brand text-white" : "text-ink-2 hover:bg-soft"}`;
-  const statusChip = ws.plan_status === "active" ? ["Active", "bg-ok-soft text-ok"] : ws.plan_status === "past_due" ? ["Payment due", "bg-warn-soft text-warn"] : ["Lapsed", "bg-bad-soft text-bad"];
+  const statusChip = ws.plan_status === "active" ? ["Active", "bg-ok-soft text-ok"] : ws.plan_status === "past_due" ? ["Payment due", "bg-warn-soft text-warn"] : ws.plan_status === "none" ? ["Not started", "bg-warn-soft text-warn"] : ["Plan ended", "bg-bad-soft text-bad"];
+  if (ws.cancels && !locked) { statusChip[0] = "Ending"; statusChip[1] = "bg-warn-soft text-warn"; }
   const yearlyTotal = currentPlan ? currentPlan.price_year : 0, monthlyYear = currentPlan ? currentPlan.price_month * 12 : 0;
 
   return (
     <>
       {!isOwner && <p className="rounded-xl bg-line-soft px-5 py-3 text-sm">Only the workspace owner can change the plan.</p>}
       {data.test_mode && <p className="rounded-xl bg-warn-soft px-5 py-3 text-sm text-warn">Test mode: plan changes apply without taking payment.</p>}
-      {!ws.plan.clean_reports && (
+      {locked && (
         <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-brand-soft px-5 py-4">
-          <span className="max-w-[760px] text-[15px] leading-relaxed text-brand-ink"><b>Reports on the Free plan carry a light SiteRadar watermark.</b> Upgrade to a paid plan to remove it and to add more websites, team members and alert channels.</span>
-          <Link href="/pricing" className="inline-flex min-h-11 items-center rounded-lg border border-brand-ink/30 bg-surface px-4 text-sm font-semibold text-brand-ink">Compare plans</Link>
+          <span className="max-w-[760px] text-[15px] leading-relaxed text-brand-ink"><b>{ws.plan_status === "none" ? "Choose a plan to start monitoring." : "Your plan has ended, so this workspace is read-only."}</b> Your websites, reports and history are safe. Pick a plan below and everything switches back on straight away.</span>
+          <a href="#plans" className="inline-flex min-h-11 items-center rounded-lg border border-brand-ink/30 bg-surface px-4 text-sm font-semibold text-brand-ink">See plans</a>
         </div>
       )}
 
@@ -94,17 +94,19 @@ export function BillingPanel() {
           <div className="flex items-center justify-between gap-3"><h2 className={h2}>Current plan</h2><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusChip[1]}`}>{statusChip[0]}</span></div>
 
           <div className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="text-[32px] font-bold leading-tight tracking-[-0.02em]">{ws.plan.name}</span>
-              <span className="text-base text-muted">{free ? `${money(0, ccy)}, for ever` : currentPlan ? <><b className="font-semibold text-ink">{money(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month, ccy)}</b> / {ws.cycle === "yearly" ? "year" : "month"}</> : ""}</span></div>
-            {(free || data.comped) && <p className="text-sm leading-relaxed text-muted">{free ? "One website with email alerts and a monthly report that carries a light SiteRadar watermark." : "Complimentary plan from SiteRadar."}</p>}
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1"><span className="text-[32px] font-bold leading-tight tracking-[-0.02em]">{locked ? "No active plan" : ws.plan.name}</span>
+              <span className="text-base text-muted">{locked ? "" : currentPlan ? <><b className="font-semibold text-ink">{money(ws.cycle === "yearly" ? currentPlan.price_year : currentPlan.price_month, ccy)}</b> / {ws.cycle === "yearly" ? "year" : "month"}</> : ""}</span></div>
+            {(locked || data.comped) && <p className="text-sm leading-relaxed text-muted">{locked ? "Monitoring and alerts are off until you choose a plan. Your data is kept." : "Complimentary plan from SiteRadar."}</p>}
           </div>
 
-          {!free && !data.comped && (
+          {!locked && !data.comped && (
             <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
-              {[["Billing", ws.cycle === "yearly" ? "Yearly" : "Monthly"], ["Next renewal", fmtDateTs(ws.plan_renews)], ["Payment", data.card ?? data.last_method ?? "Not set"]].map(([k, v]) => (
+              {[["Billing", ws.cycle === "yearly" ? "Yearly" : "Monthly"], [ws.cancels ? "Plan ends" : "Next renewal", fmtDateTs(ws.plan_renews)], ["Payment", data.card ?? data.last_method ?? "Not set"]].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5 bg-surface px-4 py-3"><dt className="text-xs text-muted">{k}</dt><dd className="truncate text-[15px] font-semibold">{v}</dd></div>))}
             </dl>
           )}
+
+          {ws.cancels && !locked && <p className="rounded-xl bg-warn-soft px-4 py-3 text-sm leading-relaxed text-warn">Your plan is cancelled and will not renew. Choose a plan any time before it ends to keep everything running.</p>}
 
           {ws.coupon && (
             <div className="flex items-center gap-3 rounded-xl border border-ok/30 bg-ok-soft p-3">
@@ -114,18 +116,18 @@ export function BillingPanel() {
             </div>
           )}
 
-          {!free && !data.comped && ws.cycle === "monthly" && currentPlan && monthlyYear > yearlyTotal && (
+          {!locked && !data.comped && ws.cycle === "monthly" && currentPlan && monthlyYear > yearlyTotal && (
             <p className="rounded-xl bg-brand-soft px-4 py-3 text-sm leading-relaxed text-brand-ink">Pay yearly and <b>save {money(monthlyYear - yearlyTotal, ccy)} a year</b>: {money(yearlyTotal, ccy)} instead of {money(monthlyYear, ccy)}.</p>
           )}
 
-          {isOwner && (free || !data.comped) && (
+          {isOwner && (locked || !data.comped) && (
             <div className="mt-auto flex flex-wrap gap-2.5 border-t border-line-soft pt-4">
-              {free ? (
-                <a href="#plans" className={`${actBtn} bg-brand !text-white hover:bg-brand-hover`}><Sparkles aria-hidden="true" size={16} />Choose a paid plan</a>
+              {locked ? (
+                <a href="#plans" className={`${actBtn} bg-brand !text-white hover:bg-brand-hover`}><Sparkles aria-hidden="true" size={16} />Choose a plan</a>
               ) : <>
                 {ws.cycle === "monthly" && <button disabled={busy !== null} onClick={() => choose(cur, "yearly")} className={`${actBtn} bg-brand !text-white hover:bg-brand-hover`}><CalendarCheck aria-hidden="true" size={16} />Switch to yearly and save {disc}%</button>}
-                <button disabled={busy !== null} onClick={() => payBy("card")} className={`${actBtn} border border-[#c9cfd8] bg-surface text-ink hover:bg-soft`}><CreditCard aria-hidden="true" size={16} />Update payment method</button>
-                <button disabled={busy !== null} onClick={cancel} className={`${actBtn} border border-bad/40 bg-surface text-bad hover:bg-bad-soft`}><XCircle aria-hidden="true" size={16} />Cancel and move to Free</button>
+                <button disabled={busy !== null} onClick={payNow} className={`${actBtn} border border-[#c9cfd8] bg-surface text-ink hover:bg-soft`}><CreditCard aria-hidden="true" size={16} />Update payment method</button>
+                {!ws.cancels && <button disabled={busy !== null} onClick={cancel} className={`${actBtn} border border-bad/40 bg-surface text-bad hover:bg-bad-soft`}><XCircle aria-hidden="true" size={16} />Cancel plan</button>}
               </>}
             </div>
           )}
@@ -148,42 +150,39 @@ export function BillingPanel() {
         {isOwner && <DiscountBox value={code} onChange={setCode} />}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((p, idx) => {
-            const here = p.id === cur && (p.price_month === 0 || ws.cycle === (isYearly ? "yearly" : "monthly"));
-            const isCur = p.id === cur;
+            const isCur = p.id === cur && !locked;
+            const here = isCur && ws.cycle === (isYearly ? "yearly" : "monthly");
             return (
               <div key={p.id} className={`flex flex-col gap-2.5 rounded-xl p-[18px] ${isCur ? "border-2 border-brand bg-brand-soft/40" : "border border-line bg-surface"}`}>
                 <div className="flex items-center justify-between"><span className="text-base font-semibold">{p.name}</span>{isCur && <span className="rounded-full bg-brand-soft px-2.5 py-[3px] text-xs font-semibold text-brand-ink">Current</span>}</div>
-                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly && p.price_month > 0 ? money(p.price_year, p.currency) : priceLine(p, false)}</span><span className="text-sm text-muted">{p.price_month === 0 ? "for ever" : isYearly ? "/ year" : "/ month"}</span></div>
-                {isYearly && p.price_month > 0 && <span className="-mt-1.5 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
+                <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly ? money(p.price_year, p.currency) : priceLine(p, false)}</span><span className="text-sm text-muted">{isYearly ? "/ year" : "/ month"}</span></div>
+                {isYearly && <span className="-mt-1.5 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
                 <span className="flex-1 text-[13px] leading-snug text-muted">{planLine(p)}</span>
                 {here ? <span className="flex min-h-11 items-center justify-center text-sm font-semibold text-muted">Your plan</span>
-                  : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${idx > curIdx ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
-                    {busy === p.id + (isYearly ? "yearly" : "monthly") ? "Please wait…" : idx > curIdx ? `Upgrade to ${p.name}` : `Switch to ${p.name}`}</button>}
+                  : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${locked || idx > curIdx ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
+                    {busy === p.id + (isYearly ? "yearly" : "monthly") ? "Please wait…" : locked ? `Choose ${p.name}` : idx > curIdx ? `Upgrade to ${p.name}` : `Switch to ${p.name}`}</button>}
               </div>
             );
           })}
         </div>
-        <span className="text-[13px] leading-relaxed text-muted">Upgrades apply straight away. Payment is handled by Paystack, by card{ccy === "GHS" ? " or mobile money" : ""}. Moving to Free applies straight away; websites above the Free limit are paused, not deleted.</span>
+        <span className="text-[13px] leading-relaxed text-muted">Upgrades apply straight away. Payment is handled securely by Paystack, by card, and your card renews automatically. Moving to a smaller plan applies straight away; websites above its limit are paused, not deleted.</span>
       </section>
 
       <div className="flex flex-wrap items-stretch gap-5">
         <section aria-label="Payment method" className={`${box} flex min-w-0 flex-[1_1_420px] flex-col gap-3`}>
           <h2 className={h2}>Payment method</h2>
-          {!free && (data.card || data.last_method) ? (
+          {!locked && (data.card || data.last_method) ? (
             <div className="flex items-center gap-3 rounded-xl border border-line p-3.5">
-              <span className="flex h-8 min-w-12 items-center justify-center rounded-md bg-[#fff1d6] px-2 text-xs font-bold text-warn">{data.card ? "Card" : "MoMo"}</span>
+              <span className="flex h-8 min-w-12 items-center justify-center rounded-md bg-[#fff1d6] px-2 text-xs font-bold text-warn">Card</span>
               <span className="flex flex-col"><span className="text-sm font-semibold">{data.card ?? data.last_method}</span>
                 <span className="text-[13px] text-muted">{data.card ? "Renews automatically each period" : "We email you a payment link 3 days before renewal"}</span></span>
             </div>
-          ) : <p className="text-sm leading-relaxed text-muted">No payment method. You only need one when you choose a paid plan.</p>}
+          ) : <p className="text-sm leading-relaxed text-muted">No payment method yet. You add one when you choose a plan.</p>}
           {isOwner && (
             <>
-              <button disabled={busy !== null} onClick={() => payBy("card")} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
+              <button disabled={busy !== null} onClick={payNow} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
                 <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><CreditCard size={18} aria-hidden="true" /></span>
                 <span className="flex flex-col"><span className="text-sm font-semibold">Add a card</span><span className="text-[13px] text-muted">Renews automatically each period</span></span></button>
-              {ccy === "GHS" && (<button disabled={busy !== null} onClick={() => payBy("mobile_money")} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-brand-soft text-brand"><Smartphone size={18} aria-hidden="true" /></span>
-                <span className="flex flex-col"><span className="text-sm font-semibold">Use another mobile money number</span><span className="text-[13px] text-muted">MTN MoMo, Telecel Cash, AirtelTigo</span></span></button>)}
             </>
           )}
         </section>

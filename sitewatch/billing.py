@@ -1,8 +1,8 @@
 """Paystack billing: checkout, verification, webhooks and renewals.
 
-Cards are charged again automatically each period (Paystack keeps a reusable authorisation). Mobile money cannot be
-pulled, so those customers get an email with a payment link before the plan ends. If a renewal fails the workspace
-is `past_due` for a week and then `lapsed`, which drops it to Free limits; nothing is deleted.
+Plans are paid by card, and the card is charged again automatically each period (Paystack keeps a reusable authorisation).
+A workspace with no saved card gets an email with a payment link before the plan ends. If a renewal fails the workspace
+is `past_due` for a week and then `lapsed`, which locks it read-only; nothing is deleted.
 Set BILLING_TEST_MODE=1 to switch plans without any payment while developing.
 """
 import hashlib
@@ -53,12 +53,12 @@ def quote(plan_id, cycle, currency="GHS"):
 
 
 def switch_plan(cfg, ws, plan_id, cycle="monthly", renews=None):
-    db.run("UPDATE workspaces SET plan_id=?, cycle=?, plan_status='active', plan_renews=?, pending_plan=NULL, pending_cycle=NULL WHERE id=?",
+    db.run("UPDATE workspaces SET plan_id=?, cycle=?, plan_status='active', plan_renews=?, pending_plan=NULL, pending_cycle=NULL, cancels=0 WHERE id=?",
            (plan_id, cycle, renews, ws["id"]))
     sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
 
 
-def _start(cfg, ws, user, ref, amount, metadata, channels=None, currency="GHS"):
+def _start(cfg, ws, user, ref, amount, metadata, currency="GHS"):
     """Open a Paystack transaction (or finish at once in test mode) for a payment row that already exists."""
     if test_mode():
         confirm(cfg, ref)
@@ -66,11 +66,8 @@ def _start(cfg, ws, user, ref, amount, metadata, channels=None, currency="GHS"):
     if not configured():
         raise RuntimeError("Payments are not set up yet. Please contact support.")
     payload = {"email": user["email"], "amount": int(round(amount * 100)), "currency": currency, "reference": ref,
-               "callback_url": f"{app_url()}/billing/callback", "metadata": metadata}
-    if currency != "GHS":
-        payload["channels"] = ["card"]          # mobile money only exists for cedi payments
-    elif channels:
-        payload["channels"] = channels
+               "callback_url": f"{app_url()}/billing/callback", "metadata": metadata,
+               "channels": ["card"]}            # cards only: they can be charged again for each renewal
     if os.environ.get("PAYSTACK_SUBACCOUNT"):          # payments settle to this subaccount
         payload["subaccount"] = os.environ["PAYSTACK_SUBACCOUNT"]
         payload["bearer"] = os.environ.get("PAYSTACK_FEE_BEARER", "account")    # who pays Paystack's fee: account (us) or subaccount
@@ -79,7 +76,7 @@ def _start(cfg, ws, user, ref, amount, metadata, channels=None, currency="GHS"):
     return {"access_code": data["access_code"], "url": data["authorization_url"], "reference": ref}
 
 
-def checkout(cfg, ws, user, plan_id, cycle, channels=None, code=None):
+def checkout(cfg, ws, user, plan_id, cycle, code=None):
     """Returns {url} to send the customer to, or {done: True} when no payment is needed. `code` is a discount code the customer typed."""
     cur = ws["currency"]
     plan, amount = quote(plan_id, cycle, cur)
@@ -95,7 +92,7 @@ def checkout(cfg, ws, user, plan_id, cycle, channels=None, code=None):
                  (ws["id"], ref, plan_id, cycle, amount, cur, "pending", "subscription", time.time(), row["code"] if row else None, off))
     if amount == 0:                       # a code that takes the whole price off: nothing to charge
         return _activate_free(cfg, ws, pid, plan_id, cycle)
-    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle, **({"discount": row["code"]} if row else {})}, channels, cur)
+    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "plan": plan_id, "cycle": cycle, **({"discount": row["code"]} if row else {})}, cur)
 
 
 def _activate_free(cfg, ws, pay_id, plan_id, cycle):
@@ -143,8 +140,6 @@ def confirm(cfg, reference):
         db.exec("UPDATE workspaces SET paystack_auth=?, paystack_email=?, paystack_card=? WHERE id=?",
                 (auth["authorization_code"], (data.get("customer") or {}).get("email"),
                  f"{auth.get('brand', 'Card')} ending {auth.get('last4', '')}", ws["id"]))
-    elif data.get("channel") == "mobile_money":
-        db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws["id"],))
     if pay["kind"] == "sms":
         db.exec("UPDATE workspaces SET sms_bonus=sms_bonus+? WHERE id=?", (int(pay["plan_id"][3:]), ws["id"]))
         return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
@@ -156,7 +151,7 @@ def confirm(cfg, reference):
 
 
 def method_label(channel, auth):
-    if channel == "mobile_money":
+    if channel == "mobile_money":            # kept so older payments still read properly
         bank = (auth or {}).get("bank") or ""
         return {"MTN": "MTN MoMo", "TGO": "Telecel Cash", "ATL": "AirtelTigo Money"}.get(bank.upper(), bank or "Mobile money")
     return "Card" if channel == "card" else (channel or "Test payment").replace("_", " ").title()
@@ -198,16 +193,19 @@ def history(ws_id):
 
 
 def cancel(cfg, ws):
-    """Back to Free straight away. The paid period is not refunded."""
-    db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws["id"],))
+    """Stop the plan renewing. It stays active until the end of the period that was paid for, then the workspace is locked: its data stays
+    and can be read, websites stop being monitored, and choosing a plan again restores everything. The paid period is not refunded."""
+    db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL, cancels=1, pending_plan=NULL, pending_cycle=NULL WHERE id=?", (ws["id"],))
     db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)",
             (time.time(), ws["id"], "plan.cancel", f"Owner cancelled the {ws['plan_id']} plan"))
-    switch_plan(cfg, ws, "free", "monthly")
+    if not ws["plan_renews"] or ws["plan_renews"] <= time.time():          # nothing left to run out: lock at once
+        db.exec("UPDATE workspaces SET plan_status='lapsed', plan_renews=NULL WHERE id=?", (ws["id"],))
+        sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
 
 
 def renew_all(cfg):
     now = time.time()
-    for r in db.q("SELECT id FROM workspaces WHERE plan_id!='free' AND comped=0 AND plan_renews IS NOT NULL"):
+    for r in db.q("SELECT id FROM workspaces WHERE comped=0 AND plan_renews IS NOT NULL"):
         ws = accounts.workspace(r["id"])
         try:
             _renew(cfg, ws, now)
@@ -217,6 +215,12 @@ def renew_all(cfg):
 
 def _renew(cfg, ws, now):
     left = ws["plan_renews"] - now
+    if ws.get("cancels"):                 # cancelled: no reminders or charges, the plan just ends when the paid period does
+        if left <= 0:
+            db.exec("UPDATE workspaces SET plan_status='lapsed', plan_renews=NULL WHERE id=?", (ws["id"],))
+            db.exec("INSERT INTO admin_audit(ts, workspace_id, action, detail) VALUES (?,?,?,?)", (now, ws["id"], "plan.lapsed", "Plan ended after it was cancelled"))
+            sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
+        return
     flag = f"renewal-notice:{ws['id']}:{int(ws['plan_renews'])}"
     if left > 3 * 86400:
         return

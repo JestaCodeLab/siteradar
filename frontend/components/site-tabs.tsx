@@ -1,8 +1,7 @@
 "use client";
 
-import { Locked } from "./locked";
 import { useToast } from "@/components/toast";
-import { CheckCircle2, AlertTriangle, FileText, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -255,12 +254,6 @@ export function ReportsTab({ id }: { id: string }) {
   const link = "inline-flex min-h-11 items-center rounded-lg border border-[#c9cfd8] px-4 text-sm font-semibold hover:bg-soft";
   return (
     <>
-    <Locked compact feature="clean" icon={FileText} title="Reports without the watermark" text="Send clients clean monthly reports with your logo and no SiteRadar watermark." chips={["Your logo", "No watermark"]}>
-      <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
-        <span className="flex flex-col gap-0.5"><span className="text-[15px] font-semibold">Clean, branded reports</span><span className="text-sm text-muted">Your logo and no SiteRadar watermark on every monthly report.</span></span>
-        <span className="inline-flex min-h-11 items-center rounded-lg border border-[#c9cfd8] px-4 text-sm font-semibold">Included</span>
-      </Card>
-    </Locked>
     <Card className="px-5 pb-2 pt-5">
       <CardTitle aside={data.recipients.length ? `Emailed on the 1st to ${data.recipients.length} ${data.recipients.length === 1 ? "person" : "people"}` : "No recipients set. Add them in Settings."}>Monthly reports</CardTitle>
       {data.months.map((m) => (

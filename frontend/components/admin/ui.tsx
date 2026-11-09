@@ -26,7 +26,7 @@ export function Pill({ tone = "purple", children, className = "" }: { tone?: Ton
   return <span className={`inline-block whitespace-nowrap rounded-full px-2.5 py-[3px] text-xs font-semibold ${tones[tone]} ${className}`}>{children}</span>;
 }
 
-export const statusTone = (s: string): Tone => (s === "Past due" || s === "Lapsed" ? "bad" : s === "Suspended" ? "muted" : s === "Free" ? "purple" : "ok");
+export const statusTone = (s: string): Tone => (s === "Past due" || s === "Lapsed" ? "bad" : s === "Suspended" ? "muted" : s === "Complimentary" || s === "Not subscribed" ? "purple" : "ok");
 
 export function AdminCard({ children, className = "", label }: { children: ReactNode; className?: string; label?: string }) {
   return <section aria-label={label} className={`rounded-[14px] border border-[#E2E5EA] bg-white p-[22px] ${className}`}>{children}</section>;

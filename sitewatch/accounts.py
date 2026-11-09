@@ -374,8 +374,8 @@ def create_workspace(user, data):
         raise ValueError("Enter your company name.")
     now = time.time()
     country = data.get("country") or "Ghana"
-    ws_id = db.run("""INSERT INTO workspaces(name, website, industry, size, country, phone, address, owner_id, alert_emails, created, currency)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+    ws_id = db.run("""INSERT INTO workspaces(name, website, industry, size, country, phone, address, owner_id, alert_emails, created, currency, plan_id, plan_status)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,'freelance','none')""",
                    (name[:120], (data.get("website") or "").strip()[:200], data.get("industry"), data.get("size"),
                     country, (data.get("phone") or user["phone"] or "")[:30],
                     (data.get("address") or "")[:300], user["id"], json.dumps([user["email"]]), now, plans.currency_for_country(country)))
@@ -425,8 +425,8 @@ def public_workspace(ws, role=None):
         "plan": {"id": plan["id"], "name": plan["name"], "sites": plan["sites"], "members": plan["members"], "storage_mb": plan["storage_mb"],
                  "interval_minutes": plan["interval_minutes"], "sms": plan["sms"],
                  "history_months": plan["history_months"], "channels": plan["channels"],
-                 "clean_reports": plan["clean_reports"], "client_access": plan["client_access"]},
-        "sms_credits": ws.get("sms_bonus") or 0, "plan_id": ws["plan_id"], "cycle": ws["cycle"], "plan_status": ws["plan_status"], "plan_renews": ws["plan_renews"],
+                 "client_access": plan["client_access"]},
+        "sms_credits": ws.get("sms_bonus") or 0, "plan_id": ws["plan_id"], "cycle": ws["cycle"], "plan_status": ws["plan_status"], "locked": plans.is_locked(ws), "cancels": bool(ws.get("cancels")), "plan_renews": ws["plan_renews"],
         "usage": u,
     }
 

@@ -11,9 +11,9 @@ from flask import Blueprint, Response, abort, g, jsonify, request, session
 from . import accounts, billing, db, discounts, mailer, plans, sites, sms, storage
 from .ctx import SUPPORT_MINUTES, super_required
 
-PLAN_COLORS = {"free": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
+PLAN_COLORS = {"freelance": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
 AUDIENCES = ("everyone", "paying", "free")
-METHODS = ["Card", "MTN MoMo", "Telecel Cash", "AirtelTigo Money"]
+METHODS = ["Card"]
 
 
 def audit(action, ws_id=None, detail=""):
@@ -33,7 +33,9 @@ def _status(w):
         return "Past due"
     if w["plan_status"] == "lapsed":
         return "Lapsed"
-    return "Free" if w["plan_id"] == "free" else "Active"
+    if w["plan_status"] == "none":
+        return "Not subscribed"
+    return "Complimentary" if w["comped"] else "Active"
 
 
 def csv_response(name, header, rows):
@@ -63,7 +65,7 @@ def blueprint(cfg):
         cat = cat or catalogue()
         if currency and (w.get("currency") or "GHS") != currency:
             return 0.0
-        if w["plan_id"] == "free" or w["comped"] or w["plan_status"] not in ("active", "past_due") or w["plan_id"] not in cat:
+        if w["comped"] or w["plan_status"] not in ("active", "past_due") or w["plan_id"] not in cat:
             return 0.0
         return plans.price(cat[w["plan_id"]], w["cycle"], w.get("currency") or "GHS") / (12 if w["cycle"] == "yearly" else 1)
 
@@ -226,10 +228,10 @@ def blueprint(cfg):
         tab, plan, sort = request.args.get("tab", "all"), request.args.get("plan", ""), request.args.get("sort", "newest")
         cat = catalogue()
         rows = [customer_row(w, cat) for w in all_workspaces()]
-        counts = {"all": len(rows), "paid": sum(1 for r in rows if r["plan_id"] != "free"), "free": sum(1 for r in rows if r["plan_id"] == "free"),
+        counts = {"all": len(rows), "paid": sum(1 for r in rows if r["status"] in ("Active", "Past due")), "free": sum(1 for r in rows if r["status"] in ("Complimentary", "Not subscribed")),
                   "past_due": sum(1 for r in rows if r["status"] in ("Past due", "Lapsed")), "suspended": sum(1 for r in rows if r["suspended"])}
-        if tab == "paid": rows = [r for r in rows if r["plan_id"] != "free"]
-        elif tab == "free": rows = [r for r in rows if r["plan_id"] == "free"]
+        if tab == "paid": rows = [r for r in rows if r["status"] in ("Active", "Past due")]
+        elif tab == "free": rows = [r for r in rows if r["status"] in ("Complimentary", "Not subscribed")]
         elif tab == "past_due": rows = [r for r in rows if r["status"] in ("Past due", "Lapsed")]
         elif tab == "suspended": rows = [r for r in rows if r["suspended"]]
         if plan: rows = [r for r in rows if r["plan_id"] == plan]
@@ -304,8 +306,8 @@ def blueprint(cfg):
             customer=row, limits_override=w["limits_override"], base_limits={k: base[k] for k in plans.OVERRIDABLE} if base else {},
             owner=row["owner"], billing=[
                 {"k": "Plan", "v": f"{plan['name']}, billed {w['cycle']}"},
-                {"k": "Price", "v": "Free" if not base or base["price_month"] == 0 else f"{plans.money(plans.price(base, w['cycle'], w.get('currency') or 'GHS'), w.get('currency') or 'GHS')} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
-                {"k": "Next renewal", "v": nxt}, {"k": "Payment method", "v": w["paystack_card"] or ("Mobile money or one-off card" if w["plan_id"] != "free" else "None")},
+                {"k": "Price", "v": "Complimentary" if w["comped"] else "—" if not base or base["price_month"] == 0 else f"{plans.money(plans.price(base, w['cycle'], w.get('currency') or 'GHS'), w.get('currency') or 'GHS')} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
+                {"k": "Next renewal", "v": nxt}, {"k": "Payment method", "v": w["paystack_card"] or ("No card saved" if not w["comped"] and w["plan_status"] in ("active", "past_due") else "None")},
                 {"k": "Revenue so far", "v": plans.money(revenue, w.get("currency") or "GHS")},
                 {"k": "Discount or override", "v": "Complimentary" if w["comped"] else ("Custom limits" if w["limits_override"] else "None")}],
             usage=[{"label": "Websites", "text": f"{row['sites']} of {plan['sites']}", "pct": row["sites"] / max(plan["sites"], 1)},
@@ -329,7 +331,7 @@ def blueprint(cfg):
             p = plans.get(d["plan_id"]) or abort(400, "Unknown plan")
             cycle = d.get("cycle") or w["cycle"]
             days = int(d.get("extend_days") or (365 if cycle == "yearly" else 30))
-            billing.switch_plan(cfg, w, p["id"], cycle, None if p["id"] == "free" else time.time() + days * 86400)
+            billing.switch_plan(cfg, w, p["id"], cycle, time.time() + days * 86400)
             changes.append(f"plan {p['id']} ({cycle}, {days} days)")
         if "free_days" in d:
             days = max(1, int(d["free_days"]))
@@ -430,9 +432,8 @@ def blueprint(cfg):
     # ---- plans and prices ----------------------------------------------------------------------
     def plans_payload():
         counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces WHERE name != '[deleted]' GROUP BY plan_id")}
-        wm = plans.watermark()
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
-                "watermark_text": wm["text"], "watermark_strength": wm["strength"], "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES), "sms_bundles": billing.sms_bundles()}
+                "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES), "sms_bundles": billing.sms_bundles()}
 
     @bp.get("/plans")
     def plans_list():
@@ -446,8 +447,6 @@ def blueprint(cfg):
             v = float(s["yearly_discount"])
             if not 0 <= v <= 60:
                 raise ValueError("The yearly discount must be between 0 and 60 percent.")
-        if "watermark_strength" in s and int(s["watermark_strength"]) not in (8, 15, 25):
-            raise ValueError("Choose Light, Medium or Strong for the watermark.")
         for p in d.get("plans") or []:
             plans.get(p.get("id")) or abort(400, "Unknown plan")
             sets, args = [], []
@@ -462,7 +461,7 @@ def blueprint(cfg):
                     if v < 0 or (f in ("sites", "members", "interval_minutes") and v < 1):
                         raise ValueError(f"{f.replace('_', ' ')} must be at least 1." if f in ("sites", "members", "interval_minutes") else "Limits can't be negative.")
                     sets.append(f"{f}=?"); args.append(v)
-            for f in ("clean_reports", "client_access", "active", "priority_support"):
+            for f in ("client_access", "active", "priority_support"):
                 if f in p:
                     sets.append(f"{f}=?"); args.append(int(bool(p[f])))
             if "channels" in p:
@@ -473,10 +472,8 @@ def blueprint(cfg):
             cur = db.kv_get("platform") or {}
             if "sms_bundles" in s:
                 cur["sms_bundles"] = [{"qty": int(b["qty"]), "price": float(b["price"])} for b in s["sms_bundles"] if int(b["qty"]) > 0 and float(b["price"]) >= 0]
-            for k in ("yearly_discount", "watermark_text", "watermark_strength"):
-                if k in s:
-                    cur[k] = s[k] if k == "watermark_text" else float(s[k])
-            cur["watermark_text"] = (cur.get("watermark_text") or "Made with SiteRadar")[:60]
+            if "yearly_discount" in s:
+                cur["yearly_discount"] = float(s["yearly_discount"])
             db.kv_set("platform", cur)
         audit("plans.save", None, json.dumps(d)[:900])
         return jsonify(plans_payload())
@@ -610,14 +607,12 @@ def blueprint(cfg):
         ok = [p for p in ok if ghs(p)]
         failed_all = [p for p in allp if p["status"] in ("failed", "abandoned")]
         recent_failed = [p for p in failed_all if p["created"] > now - 14 * 86400 and ghs(p)]
-        momo = [p for p in ok if p["channel"] == "mobile_money"]
         refunds = sum((p["refunded"] or 0) for p in allp if (p["refunded"] or 0) and (p["paid"] or p["created"]) >= month and (p["currency"] or "GHS") == "GHS")
         counts = {k: sum(1 for p in allp if p["label"].lower() == k) for k in ("paid", "failed", "pending", "refunded")}
         status = request.args.get("status", "all")
         return jsonify(
             tiles={"collected": round(sum(p["amount"] - (p["refunded"] or 0) for p in ok), 2), "successful": len(ok), "failed": len(recent_failed),
-                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2), "usd_collected": round(usd_collected, 2),
-                   "momo_pct": round(100 * len(momo) / len(ok)) if ok else 0},
+                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2), "usd_collected": round(usd_collected, 2)},
             counts=counts, followup=[{"reference": p["reference"], "workspace_id": p["workspace_id"], "workspace": p["workspace"], "plan": p["plan_id"],
                                       "method": p["method"], "amount": p["amount"], "created": p["created"], "status": p["status"]} for p in recent_failed[:10]],
             payments=[{k: p[k] for k in ("reference", "workspace", "workspace_id", "plan_id", "cycle", "amount", "currency", "method", "label", "created", "paid")}

@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Building2, ChevronDown, LayoutGrid, LogOut, Menu, Settings, Users, X } from "lucide-react";
-import { POWERED_BY } from "@/lib/brand";
 import { Logo } from "./logo";
 import { homeFor, useMe } from "@/lib/me";
 import { useLogoutConfirm } from "./confirm-logout";
+import { ThemeToggle, useDark } from "./theme";
+import { FeaturesMobile, FeaturesPanel, SolutionsPanel } from "./features-menu";
+import { FEATURES, featureHref } from "@/lib/features";
 
 export { Logo } from "./logo";
 
@@ -58,21 +60,42 @@ function MktAccount() {
   );
 }
 
+/** A navbar button with a wide dropdown panel. It opens on hover or click, and closes on Escape, a click outside, or shortly after the pointer leaves. */
+function NavMenu({ id, label, active, open, onOpen, onClose, maxWidth, children }: {
+  id: string; label: string; active: boolean; open: boolean; onOpen: () => void; onClose: () => void; maxWidth: string; children: React.ReactNode;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isOpen = useRef(open);
+  useEffect(() => { isOpen.current = open; }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
+  }, [open, onClose]);
+  const hold = () => { if (timer.current) clearTimeout(timer.current); };
+  return (
+    <div ref={box} onMouseEnter={() => { hold(); onOpen(); }} onMouseLeave={() => { hold(); timer.current = setTimeout(() => { if (isOpen.current) onClose(); }, 160); }}>
+      <button onClick={() => (open ? onClose() : onOpen())} aria-expanded={open} aria-haspopup="true" aria-controls={id}
+        className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${active || open ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`}>
+        {label}<ChevronDown size={16} aria-hidden="true" className={open ? "rotate-180" : ""} />
+      </button>
+      {open && <div className={`absolute inset-x-5 top-full z-30 mx-auto pt-2 md:inset-x-6 ${maxWidth}`}>{children}</div>}
+    </div>
+  );
+}
+
 export function MktHeader() {
   const { user } = useMe();
+  const dark = useDark();
   const path = usePathname();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const open = openFor === path;          // the phone menu is opened on one page; moving to another page closes it
   const setOpen = (v: boolean | ((o: boolean) => boolean)) => setOpenFor((cur) => ((typeof v === "function" ? v(cur === path) : v) ? path : null));
-  const [menu, setMenu] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    const down = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMenu(false); };
-    const key = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
-    document.addEventListener("mousedown", down); document.addEventListener("keydown", key);
-    return () => { document.removeEventListener("mousedown", down); document.removeEventListener("keydown", key); };
-  }, [menu]);
+  const [menu, setMenu] = useState<"features" | "solutions" | null>(null);
+  const closeMenu = useCallback(() => setMenu(null), []);
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -83,44 +106,42 @@ export function MktHeader() {
   }, [open]);
   const link = (href: string) => `rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${path === href ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`;
   const inSolutions = path.startsWith("/agencies") || path.startsWith("/businesses");
+  const inFeatures = path.startsWith("/features");
 
   return (
     <header className="sticky top-0 z-30 border-b border-[#EFE4D8] bg-white">
-      <nav aria-label="Main" className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-5 py-3 md:px-6">
-        <Link href="/" aria-label="SiteRadar home"><Logo height={50} className="hidden md:block" /><Logo height={40} className="md:hidden" /></Link>
+      <nav aria-label="Main" className="relative mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-5 py-3 md:px-6">
+        <Link href="/" aria-label="SiteRadar home"><Logo dark={dark} height={50} className="hidden md:block" /><Logo dark={dark} height={40} className="md:hidden" /></Link>
         <div className="hidden items-center gap-1 md:flex">
-          <Link href="/" className={link("/")}>Home</Link>
-          <div ref={ref} className="relative">
-            <button onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-haspopup="true"
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2.5 text-[15px] font-normal ${inSolutions ? "bg-[#FFEDD5] font-normal text-[#9A3412]" : "text-[#334155] hover:bg-[#FFF7ED]"}`}>Solutions<ChevronDown size={16} aria-hidden="true" className={menu ? "rotate-180" : ""} /></button>
-            {menu && (
-              <div className="absolute left-0 top-[calc(100%+8px)] z-30 flex w-[360px] flex-col gap-1 rounded-[14px] border border-[#EFE4D8] bg-white p-2 shadow-[0_20px_50px_rgba(15,23,42,0.15)]">
-                {solutions.map(({ href, label, Icon, text }) => (
-                  <Link key={href} href={href} onClick={() => setMenu(false)} className="flex gap-3 rounded-[10px] p-3 hover:bg-[#FFF7ED]">
-                    <span className="flex size-10 flex-none items-center justify-center rounded-[10px] bg-[#FFEDD5] text-[#C2410C]"><Icon size={20} aria-hidden="true" /></span>
-                    <span className="flex flex-col gap-0.5"><span className="text-[15px] font-bold text-[#0F172A]">{label}</span><span className="text-[13px] leading-snug text-[#475569]">{text}</span></span>
-                  </Link>))}
-              </div>)}
-          </div>
+          <NavMenu id="features-menu" label="Features" active={inFeatures} open={menu === "features"} onOpen={() => setMenu("features")} onClose={closeMenu} maxWidth="max-w-[1120px]">
+            <FeaturesPanel onNavigate={closeMenu} />
+          </NavMenu>
+          <NavMenu id="solutions-menu" label="Solutions" active={inSolutions} open={menu === "solutions"} onOpen={() => setMenu("solutions")} onClose={closeMenu} maxWidth="max-w-[860px]">
+            <SolutionsPanel onNavigate={closeMenu} />
+          </NavMenu>
           <Link href="/pricing" className={link("/pricing")}>Pricing</Link>
           <Link href="/contact" className={link("/contact")}>Contact</Link>
         </div>
         <div className="hidden items-center gap-2.5 md:flex">
+          <ThemeToggle marketing />
           {user ? <MktAccount /> : <>
             <Link href="/login" className="px-4 py-3 text-[15px] font-semibold text-[#0F172A]">Log in</Link>
             <Link href="/signup" className="rounded-[10px] bg-[#F97316] px-5 py-3 text-[15px] font-bold text-white hover:bg-[#EA580C]">Get started</Link>
           </>}
         </div>
-        <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Open menu" className="flex size-11 items-center justify-center rounded-[10px] border border-[#EFE4D8] hover:bg-[#FFF7ED] md:hidden"><Menu size={22} aria-hidden="true" /></button>
+        <div className="flex items-center gap-1.5 md:hidden">
+          <ThemeToggle marketing />
+          <button onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label="Open menu" className="flex size-11 items-center justify-center rounded-[10px] border border-[#EFE4D8] hover:bg-[#FFF7ED]"><Menu size={22} aria-hidden="true" /></button>
+        </div>
       </nav>
       {open && (
         <div role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-50 flex flex-col bg-white md:hidden">
           <div className="flex items-center justify-between border-b border-[#EFE4D8] px-5 py-3">
-            <Link href="/" aria-label="SiteRadar home" onClick={() => setOpen(false)}><Logo height={40} /></Link>
-            <button onClick={() => setOpen(false)} aria-label="Close menu" className="flex size-11 items-center justify-center rounded-[10px] bg-[#0F172A] text-white"><X size={22} aria-hidden="true" /></button>
+            <Link href="/" aria-label="SiteRadar home" onClick={() => setOpen(false)}><Logo dark={dark} height={40} /></Link>
+            <button onClick={() => setOpen(false)} aria-label="Close menu" className="flex size-11 items-center justify-center rounded-[10px] bg-[#0F172A] text-white ring-1 ring-[#334155]"><X size={22} aria-hidden="true" /></button>
           </div>
           <nav aria-label="Main" className="flex flex-1 flex-col overflow-y-auto px-5 py-3">
-            <Link href="/" onClick={() => setOpen(false)} className="border-b border-[#F1E8DD] py-4 text-xl font-bold">Home</Link>
+            <FeaturesMobile onNavigate={() => setOpen(false)} />
             <div className="flex flex-col gap-1.5 border-b border-[#F1E8DD] pb-2 pt-4">
               <span className="text-xl font-bold">Solutions</span>
               {solutions.map(({ href, label, Icon, text }) => (
@@ -146,6 +167,12 @@ export function MktHeader() {
   );
 }
 
+/** The company's social pages, set in the environment so they can change without touching the code. An icon with no address is left out. */
+const SOCIAL = [
+  { name: "Facebook", url: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK, icon: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /> },
+  { name: "Instagram", url: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM, icon: <><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></> },
+].filter((x) => x.url);
+
 export function MktFooter() {
   const col = "text-[#CBD5E1] hover:text-white";
   return (
@@ -159,16 +186,26 @@ export function MktFooter() {
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[15px] md:hidden">
             {[["/agencies", "For agencies"], ["/businesses", "For businesses"], ["/pricing", "Pricing"], ["/contact", "Contact"], ["/login", "Log in"], ["/signup", "Sign up"], ["/terms-of-service", "Terms of Service"], ["/privacy", "Privacy Policy"]].map(([h, l]) => <Link key={h} href={h} className={`${col} py-1.5`}>{l}</Link>)}
           </div>
-          <div className="hidden flex-wrap gap-16 md:flex">
+          <div className="hidden flex-wrap gap-x-16 gap-y-10 md:flex">
+            <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Features</span>
+              <div className="grid grid-flow-col grid-rows-7 gap-x-10 gap-y-2.5">{FEATURES.map((f) => <Link key={f.slug} href={featureHref(f)} className={col}>{f.name}</Link>)}</div></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
               <Link href="/agencies" className={col}>For agencies</Link><Link href="/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/signup" className={col}>Get started</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link><Link href="/terms-of-service" className={col}>Terms of Service</Link><Link href="/privacy" className={col}>Privacy Policy</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>
         </div>
-        <div className="flex flex-col gap-1 border-t border-[#1E293B] pt-4 text-[13px] text-[#94A3B8] md:flex-row md:flex-wrap md:justify-between md:gap-3 md:pt-6 md:text-sm">
+        <div className="flex flex-col gap-3 border-t border-[#1E293B] pt-4 text-[13px] text-[#94A3B8] md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-3 md:pt-6 md:text-sm">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#E2E8F0] hover:text-white">{POWERED_BY.name}</a></span>
+          {SOCIAL.length > 0 && (
+            <div className="flex items-center gap-2">
+              {SOCIAL.map((x) => (
+                <a key={x.name} href={x.url} target="_blank" rel="noopener noreferrer" aria-label={`SiteRadar on ${x.name}`}
+                  className="flex size-8 items-center justify-center rounded-full border border-[#334155] text-[#CBD5E1] hover:border-[#F97316] hover:text-white">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{x.icon}</svg>
+                </a>))}
+            </div>
+          )}
         </div>
       </div>
     </footer>

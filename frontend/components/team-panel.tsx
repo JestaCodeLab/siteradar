@@ -12,7 +12,7 @@ import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
 const roleName: Record<Role, string> = { owner: "Owner", admin: "Admin", member: "Member", viewer: "Viewer" };
-const NEXT: Record<string, string> = { free: "Starter", starter: "Growth", growth: "Scale" };
+const NEXT: Record<string, string> = { freelance: "Starter", starter: "Growth", growth: "Scale" };
 const AVATARS = ["#1f4fd8", "#0b7a4b", "#8a5a00", "#5b6472", "#4a33b0", "#b3261e", "#0f1420"];
 const color = (s: string) => AVATARS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATARS.length];
 const initials = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "?";

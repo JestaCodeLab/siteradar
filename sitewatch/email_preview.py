@@ -14,7 +14,7 @@ def samples():
         "reset": emails.reset_code("Ama", "730196"),
         "welcome": emails.welcome("Ama"),
         "invite": emails.invite("Acme Ltd", "Kofi Mensah", "admin", "https://www.siteradar.com/invite/abc123", 7, "ama@acme.test"),
-        "payment-received": emails.payment_received("Ama", "Acme Ltd", "Growth", "yearly", "GHS 2,870", "Mobile money (MTN MoMo)",
+        "payment-received": emails.payment_received("Ama", "Acme Ltd", "Growth", "yearly", "GHS 2,870", "Card (Visa ending 4081)",
                                                     "sw_4f9c2a71d0e8b3", "6 November 2026", "6 November 2027"),
         "plan-renews-soon": emails.billing_notice("soon", "Ama", "Acme Ltd", "Growth", renews="9 November 2026", amount="GHS 299"),
         "payment-needed": emails.billing_notice("due", "Ama", "Acme Ltd", "Growth", renews="6 November 2026", amount="GHS 299"),
