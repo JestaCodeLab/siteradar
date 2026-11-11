@@ -8,7 +8,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import accounts, alerts, auditor, billing, db, emails, health, monitor, plans, report, sites, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, billing, db, emails, health, monitor, plans, report, sites, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -93,7 +93,10 @@ class Scheduler(threading.Thread):
                         self.save()
                         for s in live:
                             if s.get("workspace_id") == ws_id:
-                                self.pool.submit(self._safe, report.generate, self.cfg, s, None, None, True, True)
+                                if analytics.is_verified(s["id"]):
+                                    self.pool.submit(self._safe, report.generate, self.cfg, s, None, None, True, True)
+                                else:      # the report needs visitor data, so it waits until the tracking snippet is installed
+                                    self.pool.submit(self._safe, self.remind_tracking, ws, s, f"{local:%Y-%m}")
                         if subscriptions.available_months(ws_id):
                             py, pm = report.previous_month(local.year, local.month)
                             self.pool.submit(self._safe, sub_report.email, self.cfg, ws, py, pm)
@@ -109,6 +112,21 @@ class Scheduler(threading.Thread):
             except Exception:
                 log.exception("Scheduler loop error")
             time.sleep(20)
+
+    def remind_tracking(self, ws, site, month):
+        """The monthly report is on hold until the tracking snippet is installed: tell the people who get the report, once a month."""
+        kind = f"tracking-reminder:{month}"
+        if db.last_alert(site["id"], kind):
+            return
+        to = accounts.filter_emails(site.get("report_to") or ws.get("alert_emails") or [], "report")
+        link = f"{emails.app_url()}/websites/{site['id']}"
+        if to:
+            alerts.send_email(self.cfg, to, f"Action needed: install the tracking snippet on {site['name']}",
+                              f"The monthly report for {site['name']} is on hold because the SiteRadar tracking snippet has not been installed yet. "
+                              f"Without it we cannot show visitors, sources or real page speed.\n\n"
+                              f"Open {link}, copy the snippet, paste it just before </head> on the website and press Verify installation. "
+                              f"The report is sent as soon as the installation is verified.")
+        db.log_alert(site["id"], kind, "Monthly report held until the tracking snippet is installed")
 
     def purge_old_data(self):
         """Drop checks, hits and incidents older than each plan's history window."""

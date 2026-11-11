@@ -30,6 +30,13 @@ TRACKER_JS = r"""(function(){
     addEventListener('popstate',send);}
 })();"""
 
+def is_verified(site_id):
+    """The tracking snippet is installed: a visit has arrived, or a check of the home page found it. Required for reports with visitor data."""
+    if db.q1("SELECT 1 FROM hits WHERE site_id=? LIMIT 1", (site_id,)):
+        return True
+    return bool((db.kv_get(f"tracking:{site_id}") or {}).get("verified_at"))
+
+
 BOTS = re.compile(r"bot|crawl|spider|slurp|headless|lighthouse|pingdom|uptime|monitor|curl|wget|python-requests", re.I)
 
 

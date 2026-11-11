@@ -100,7 +100,7 @@ def update(cfg, site_id, data):
     for f in LIST_FIELDS:
         if f in data:
             sets.append(f"{f}=?"); args.append(json.dumps(list(data[f] or [])))
-    for f in ("track_analytics", "audit"):
+    for f in ("audit",):          # visitor tracking is required, so it can no longer be switched off
         if f in data:
             sets.append(f"{f}=?"); args.append(int(bool(data[f])))
     if sets:

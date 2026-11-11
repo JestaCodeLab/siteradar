@@ -21,7 +21,7 @@ export default function DashboardPage() {
     { title: "Verify your email", sub: "Done", href: "/settings?tab=profile", done: true },
     { title: "Choose a plan", sub: `${ws.plan.name} plan is active`, href: "/settings?tab=billing", done: true },
     { title: "Add your first website", sub: data.sites.length ? `${data.sites.length} website${data.sites.length === 1 ? "" : "s"} added` : "Paste its address and we start checking.", href: "/websites/new", done: data.sites.length > 0 },
-    { title: "Install the tracking snippet", sub: "See visitors and real page speed.", href: data.sites[0] ? `/websites/${data.sites[0].id}` : "/websites/new", done: data.setup.snippet },
+    { title: "Install the tracking snippet", sub: data.setup.unverified.length ? `Required. Missing on ${data.setup.unverified.length} website${data.setup.unverified.length === 1 ? "" : "s"}; reports wait for it.` : "Required for visitor data and monthly reports.", href: data.setup.unverified[0] ? `/websites/${data.setup.unverified[0]}#tracking` : data.sites[0] ? `/websites/${data.sites[0].id}` : "/websites/new", done: data.setup.snippet },
   ] : [];
   const done = steps.filter((x) => x.done).length;
 
