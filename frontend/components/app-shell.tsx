@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AddWebsiteProvider>
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#F3F4F6]">
       <SupportFrame />
       <Sidebar open={menu} onClose={() => setMenu(false)} />
       <div className="flex min-h-screen flex-col lg:pl-64">
