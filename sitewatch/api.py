@@ -236,6 +236,7 @@ def blueprint(cfg):
         # first check right away so the new site shows a status instead of "unknown"
         threading.Thread(target=monitor.check_site, args=(cfg, site), daemon=True).start()
         threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
+        threading.Thread(target=stack.auto_detect, args=(site,), daemon=True).start()      # what it is built with, so the right connector is offered
         if site.get("audit", True):
             start_audit(site)         # Google PageSpeed and the page audit, so the first results are not a night away
         return jsonify({**site_card(site), "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site["id"]}"></script>'}), 201
