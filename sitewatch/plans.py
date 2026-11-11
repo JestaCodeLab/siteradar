@@ -11,7 +11,7 @@ DEFAULT_DISCOUNT = 20          # yearly billing, percent off; editable by a supe
 def _row(r):
     p = dict(r)
     p["channels"] = json.loads(p["channels"] or "[]")
-    for f in ("client_access", "active", "priority_support"):
+    for f in ("client_access", "active", "priority_support", "one_click_fix"):
         p[f] = bool(p[f])
     return p
 
@@ -100,7 +100,7 @@ def limits(ws):
     if custom:
         plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}
     if is_locked(ws):
-        plan = {**plan, "sites": 0, "sms": 0, "channels": ["email"]}
+        plan = {**plan, "sites": 0, "sms": 0, "channels": ["email"], "one_click_fix": False}
     return plan if sms_allowed(ws) else without_sms(plan)
 
 
