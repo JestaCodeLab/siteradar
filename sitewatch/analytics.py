@@ -12,7 +12,7 @@ import time
 from collections import Counter
 from urllib.parse import urlparse, parse_qs
 
-from . import db
+from . import db, netguard
 
 TRACKER_JS = r"""(function(){
   var s=document.currentScript, site=s.getAttribute('data-site'), ep=s.src.replace(/\/t\.js.*$/,'/collect');
@@ -35,6 +35,41 @@ def is_verified(site_id):
     if db.q1("SELECT 1 FROM hits WHERE site_id=? LIMIT 1", (site_id,)):
         return True
     return bool((db.kv_get(f"tracking:{site_id}") or {}).get("verified_at"))
+
+
+def scan_page(site):
+    """Looks for the tracking snippet on the site's home page. Returns (found, error): `found` is the snippet's site id as written on the page,
+    "" when the page has no SiteRadar snippet, None when the page could not be read."""
+    found = ""
+    try:
+        r = netguard.get(site["url"], timeout=12, stream=True, headers={"User-Agent": "SiteRadar-Verify/1.0"})
+        html = r.raw.read(1_500_000, decode_content=True).decode("utf-8", "replace")
+        r.close()
+        for tag in re.findall(r"<script\b[^>]*>", html, re.I):
+            src = re.search(r"""\bsrc\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
+            if src and re.search(r"/t\.js(\?|$)", src.group(1)):
+                ds = re.search(r"""\bdata-site\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
+                found = ds.group(1) if ds else "?"
+                if found == site["id"]:
+                    break
+    except Exception as e:
+        return None, str(e)
+    return found, None
+
+
+def auto_verify(site, every=6 * 3600):
+    """Quietly checks a site that is not verified yet (at most every few hours), so sites that already have the snippet stop showing "Setup incomplete"."""
+    sid = site["id"]
+    if is_verified(sid):
+        return False
+    prev = db.kv_get(f"tracking:{sid}") or {}
+    now = time.time()
+    if prev.get("checked_at") and now - prev["checked_at"] < every:
+        return False
+    found, _ = scan_page(site)
+    ok = found == sid
+    db.kv_set(f"tracking:{sid}", {"verified_at": now if ok else None, "checked_at": now, "found": found})
+    return ok
 
 
 BOTS = re.compile(r"bot|crawl|spider|slurp|headless|lighthouse|pingdom|uptime|monitor|curl|wget|python-requests", re.I)

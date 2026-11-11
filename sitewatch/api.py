@@ -197,6 +197,7 @@ def blueprint(cfg):
             "visitors30": analytics.summary(s["id"], now - 30 * 86400, now).get("visitors", 0),
             "strip": day_strip(s["id"]),
             "tracking_verified": analytics.is_verified(s["id"]),
+            "platform": stack.saved(s["id"]),
         }
 
     @bp.get("/sites")
@@ -236,6 +237,7 @@ def blueprint(cfg):
         # first check right away so the new site shows a status instead of "unknown"
         threading.Thread(target=monitor.check_site, args=(cfg, site), daemon=True).start()
         threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
+        threading.Thread(target=stack.auto_detect, args=(site,), daemon=True).start()      # what it is built with, so the right connector is offered
         if site.get("audit", True):
             start_audit(site)         # Google PageSpeed and the page audit, so the first results are not a night away
         return jsonify({**site_card(site), "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site["id"]}"></script>'}), 201
@@ -369,21 +371,11 @@ def blueprint(cfg):
         last = db.q1("SELECT MAX(ts) t FROM hits WHERE site_id=?", (site_id,))
         last_hit = last["t"] if last else None
         receiving = bool(last_hit and last_hit > time.time() - 86400)
-        found, error = "", None
-        try:
-            r = netguard.get(s["url"], timeout=12, stream=True, headers={"User-Agent": "SiteRadar-Verify/1.0"})
-            html = r.raw.read(1_500_000, decode_content=True).decode("utf-8", "replace")
-            r.close()
-            for tag in re.findall(r"<script\b[^>]*>", html, re.I):
-                src = re.search(r"""\bsrc\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
-                if src and re.search(r"/t\.js(\?|$)", src.group(1)):
-                    ds = re.search(r"""\bdata-site\s*=\s*["']?([^"'\s>]+)""", tag, re.I)
-                    found = ds.group(1) if ds else "?"
-                    if found == site_id:
-                        break
-        except Exception as e:
-            log.info("Tracking check of %s failed: %s", s["url"], e)
-            found, error = None, "We could not open your website to look for the snippet."
+        found, err = analytics.scan_page(s)
+        error = None
+        if found is None:
+            log.info("Tracking check of %s failed: %s", s["url"], err)
+            error = "We could not open your website to look for the snippet."
         installed = found == site_id
         # Remembered, so the page keeps saying "verified" after a reload instead of offering the check again.
         now = time.time()

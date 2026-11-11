@@ -8,7 +8,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from . import accounts, alerts, analytics, auditor, billing, db, emails, health, monitor, plans, report, sites, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, billing, db, emails, health, monitor, plans, report, sites, stack, sub_report, subscriptions
 
 log = logging.getLogger("sitewatch.scheduler")
 
@@ -57,6 +57,12 @@ class Scheduler(threading.Thread):
                     last[s["id"]] = now
                 list(self.pool.map(lambda s: self._safe(monitor.check_site, self.cfg, s), due))
                 live = self.live_sites()
+
+                if time.time() - getattr(self, "_tracking_scan", 0) > 600:      # sites that already have the snippet get marked verified without anyone pressing the button
+                    self._tracking_scan = time.time()
+                    for s in live:
+                        self.pool.submit(self._safe, analytics.auto_verify, s)
+                        self.pool.submit(self._safe, stack.auto_detect, s)
 
                 if self.due_daily("audit", self.cfg["audit"]["daily_at"]):
                     self.state["audit"] = dt.date.today().isoformat()

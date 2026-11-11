@@ -48,3 +48,21 @@ def run(site):
 
 def saved(site_id):
     return db.kv_get(f"platform:{site_id}")
+
+
+def auto_detect(site, refresh_days=30, retry_hours=6):
+    """Works out what a website is built with, without anyone asking: new sites, sites added before detection existed, and a refresh now and then
+    (a site can be rebuilt on something else). A failed attempt is retried after a few hours, not on every pass."""
+    sid = site["id"]
+    now = time.time()
+    have = saved(sid)
+    if have and now - have.get("checked_at", 0) < refresh_days * 86400:
+        return have
+    tried = db.kv_get(f"platform-try:{sid}") or {}
+    if now - tried.get("at", 0) < retry_hours * 3600:
+        return have
+    db.kv_set(f"platform-try:{sid}", {"at": now})
+    try:
+        return run(site)
+    except Exception:
+        return have
