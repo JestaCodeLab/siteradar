@@ -6,7 +6,7 @@ import os
 
 from flask import Flask, Response, jsonify, request
 
-from . import accounts, admin_api, analytics, api, auth_api, ctx, db, plans, security, sites
+from . import accounts, admin_api, analytics, api, auth_api, connector, ctx, db, plans, push, security, sites
 
 SESSION_DAYS = 30
 
@@ -25,6 +25,8 @@ def create_app(cfg):
                       MAX_CONTENT_LENGTH=6 * 1024 * 1024)
     app.register_blueprint(auth_api.blueprint(cfg))
     app.register_blueprint(admin_api.blueprint(cfg))
+    app.register_blueprint(connector.blueprint(cfg))
+    app.register_blueprint(push.blueprint(cfg))
     app.register_blueprint(api.blueprint(cfg))
 
     @app.before_request
@@ -63,7 +65,7 @@ def create_app(cfg):
         except ValueError:
             return Response("", 400, cors)
         site = sites.get_any(str(payload.get("s", "")))
-        if not site or not site.get("track_analytics") or site.get("paused"):
+        if not site or site.get("paused"):
             return Response("", 404, cors)
         ip = security.client_ip()
         analytics.record_hit(cfg["data_dir"], site, payload, ip, request.headers.get("User-Agent", ""))

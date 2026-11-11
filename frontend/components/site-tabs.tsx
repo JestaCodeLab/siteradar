@@ -1,12 +1,14 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { CheckCircle2, AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
+import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
+import { TrackingInstall } from "./tracking-install";
+import { WordPressPlugin } from "./wordpress-plugin";
 import { PageSpeedCard } from "./vitals";
 import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
@@ -14,7 +16,7 @@ import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Sk
 import {
   fetcher, send, type AnalyticsResponse, type AuditResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
-import { daysUntil, fmtAgo, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
+import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
 
 const delta = (now: number | null | undefined, before: number | null | undefined) =>
   now == null || !before ? null : Math.round((100 * (now - before)) / before);
@@ -30,34 +32,8 @@ function Loading() {
 }
 
 // ---- Overview ---------------------------------------------------------------
-interface TrackingCheck { installed: boolean; found: string | null; receiving: boolean; last_hit: number | null; error: string | null; url: string }
-
-/** What a snippet check means for the person, in plain words: [good news or not, headline, what to do next]. */
-function trackingVerdict(c: TrackingCheck, host: string, id: string): [boolean, string, string] {
-  if (c.installed && c.receiving) return [true, "Installed and receiving data", "Visitors are being recorded. Nothing more to do."];
-  if (c.installed) return [true, "Snippet found on your home page", "Open your website once. The first visit shows up here within a minute."];
-  if (c.receiving) return [true, "Receiving data", `We did not see the snippet on the home page of ${host}, but visits are arriving, so it is installed on other pages or added through a tag manager.`];
-  if (c.error) return [false, "We could not check your website", `${c.error} Make sure ${host} is online, then try again.`];
-  if (c.found && c.found !== "?") return [false, "The snippet has a different website ID", `The page uses data-site="${c.found}" but this website's ID is "${id}". Copy the snippet again and replace the old one.`];
-  return [false, "Snippet not found", `We could not find it on the home page of ${host}. Paste it just before </head>, save and publish, then check again. If you use a cache or a plugin, clear it first.`];
-}
-
 export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const [check, setCheck] = useState<TrackingCheck | null>(null);
-  const [checking, setChecking] = useState(false);
-  const toast = useToast();
   const verified = site.tracking_live || !!site.tracking?.verified_at;
-  async function verify() {
-    setChecking(true);
-    try {
-      const r = await send<TrackingCheck>("POST", `/api/sites/${site.id}/verify-tracking`);
-      setCheck(r); await onChange();
-      if (r.installed || r.receiving) toast.success("Tracking snippet verified.");
-    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not check the snippet. Please try again."); }
-    setChecking(false);
-  }
-  const verdict = check && !verified ? trackingVerdict(check, site.host, site.id) : null;
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
   const waitChecks = !!site.first_run?.checks;
@@ -65,6 +41,13 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
   const wait = <Skeleton className="h-8 w-24" />;
   return (
     <div className="flex flex-col gap-5">
+      {!verified && (
+        <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-warn-soft px-5 py-4 text-[15px] text-warn">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <span><strong>Setup incomplete.</strong> Install the tracking snippet to finish setting up {site.name}. Until then there is no visitor data and the monthly report is on hold.</span>
+          <a href="#tracking" className="font-semibold underline">Go to the snippet</a>
+        </p>
+      )}
       {site.status === "down" && (
         <p role="alert" className="rounded-xl bg-bad-soft px-5 py-4 text-[15px] text-bad">
           <strong>{site.name} is down</strong>{site.down_since ? ` since ${fmtDateTime(site.down_since)}` : ""}. {site.error}
@@ -118,34 +101,8 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
         </Card>
       </div>
 
-      <Card className="flex flex-col gap-3 p-5">
-        <CardTitle aside={site.tracking_live ? <span className="font-medium text-ok">Receiving data</span> : verified ? <span className="font-medium text-ok">Snippet verified</span> : "Not verified yet"}>Tracking snippet</CardTitle>
-        <p className="text-sm text-muted">Paste this just before <code className="font-mono">&lt;/head&gt;</code> on every page of {site.host} to see visitors, sources and page-load times.</p>
-        <pre className="overflow-x-auto rounded-lg bg-soft p-3.5 font-mono text-[13px]">{site.snippet}</pre>
-        <div className="flex flex-wrap gap-2.5">
-          <button className={btn.secondary} onClick={async () => { await navigator.clipboard.writeText(site.snippet); setCopied(true); setTimeout(() => setCopied(false), 2000); }}>
-            {copied ? "Copied" : "Copy snippet"}
-          </button>
-          {!verified && <button className={btn.primary} disabled={checking} onClick={verify}>{checking ? "Checking…" : "Verify installation"}</button>}
-        </div>
-        {verified ? (
-          <div role="status" className="flex items-start gap-3 rounded-lg border border-ok/40 bg-ok-soft p-3.5">
-            <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-ok" aria-hidden="true" />
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span className="text-sm font-semibold">{site.tracking_live ? "Installed and receiving data" : "Snippet verified"}</span>
-              <span className="text-[13px] leading-relaxed text-muted">{site.tracking_live
-                ? `Last visit ${fmtAgo(site.tracking.last_hit)}.`
-                : `Verified ${site.tracking.verified_at ? fmtDateTime(site.tracking.verified_at) : "just now"}. Open your website once and the first visit shows up here within a minute.`}</span>
-            </div>
-            <button onClick={verify} disabled={checking} className="min-h-11 shrink-0 px-1 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">{checking ? "Checking…" : "Check again"}</button>
-          </div>
-        ) : verdict && (
-          <div role="status" className="flex items-start gap-3 rounded-lg border border-warn/40 bg-warn-soft p-3.5">
-            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-warn" aria-hidden="true" />
-            <div className="flex flex-col gap-0.5"><span className="text-sm font-semibold">{verdict[1]}</span><span className="text-[13px] leading-relaxed text-muted">{verdict[2]}</span></div>
-          </div>
-        )}
-      </Card>
+      <WordPressPlugin site={site} onChange={onChange} />
+      <TrackingInstall site={site} onChange={onChange} />
     </div>
   );
 }
@@ -311,7 +268,7 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
       await send("PATCH", `/api/sites/${site.id}`, {
         name: f.get("name"), url: f.get("url"), keyword: f.get("keyword"),
         report_to: splitEmails(f.get("report_to")), alert_to: splitEmails(f.get("alert_to")),
-        track_analytics: f.get("track_analytics") === "on", audit: f.get("audit") === "on",
+        audit: f.get("audit") === "on",
       });
       await Promise.all([mutate(`/api/sites/${site.id}`), mutate("/api/sites")]);
       toast.success("Saved.");
@@ -338,7 +295,6 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
           <Field label="Text the page must contain" htmlFor="keyword" hint="optional"><input id="keyword" name="keyword" defaultValue={site.keyword ?? ""} className={input} /></Field>
           <Field label="Monthly report goes to" htmlFor="report_to" hint="separate emails with commas"><input id="report_to" name="report_to" defaultValue={site.report_to.join(", ")} className={input} /></Field>
           <Field label="Extra people to alert when it goes down" htmlFor="alert_to" hint="optional"><input id="alert_to" name="alert_to" defaultValue={site.alert_to.join(", ")} className={input} /></Field>
-          <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="track_analytics" defaultChecked={site.track_analytics} className="size-5" />Collect visitor analytics</label>
           <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="audit" defaultChecked={site.audit_enabled} className="size-5" />Run the nightly audit</label>
           <div className="flex justify-end"><button type="submit" disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>
         </form>

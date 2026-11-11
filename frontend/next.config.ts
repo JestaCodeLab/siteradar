@@ -45,6 +45,8 @@ const nextConfig: NextConfig = {
       "/onboarding/:path*", "/verify", "/forgot", "/invite/:path*", "/auth/:path*"];
     return [
       { source: "/:path*", headers: securityHeaders },
+      // The service worker must always be fetched fresh, or a new version never reaches installed apps.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }, { key: "Content-Type", value: "application/javascript; charset=utf-8" }] },
       ...paths.map((source) => ({ source, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] })),
     ];
   },

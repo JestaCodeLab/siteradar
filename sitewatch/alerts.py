@@ -6,7 +6,7 @@ from email.message import EmailMessage
 
 import requests
 
-from . import accounts, emails, mailer, netguard, plans, sms
+from . import accounts, emails, mailer, netguard, plans, push, sms
 
 log = logging.getLogger("sitewatch.alerts")
 
@@ -86,5 +86,20 @@ def notify(cfg, site, subject, text, sms_text=None, event=None, mail=None):
             sent |= send_webhook(url, f"*{subject}*\n{text}")
     if sms_text and "sms" in plan["channels"]:
         sent |= bool(sms.send({**ws, "alert_phones": accounts.filter_phones(ws["alert_phones"], event)}, sms_text))
+    sent |= bool(_browser(ws, site, event, subject, text))
     log.warning("ALERT %s | %s", subject, text.replace("\n", " "))
     return sent
+
+
+PUSH_PAGES = {"renewal": "/subscriptions", "report": "/reports"}
+
+
+def _browser(ws, site, event, subject, text):
+    """Browser notification to the team's installed apps and browsers. Never lets a push problem stop the other alerts."""
+    try:
+        url = PUSH_PAGES.get(event) or (f"/websites/{site['id']}" if site.get("id") else "/overview")
+        body = next((line.strip() for line in text.splitlines() if line.strip()), subject)[:180]
+        return push.notify(ws["id"], site, event, subject, body, url)
+    except Exception:
+        log.exception("Browser notification failed")
+        return 0

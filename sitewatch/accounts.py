@@ -269,11 +269,11 @@ ALERT_EVENTS = [
 
 def get_prefs(user):
     saved = json.loads(user.get("alert_prefs") or "{}")
-    return {k: {"email": saved.get(k, {}).get("email", True), "sms": saved.get(k, {}).get("sms", True)} for k, _, _ in ALERT_EVENTS}
+    return {k: {"email": saved.get(k, {}).get("email", True), "sms": saved.get(k, {}).get("sms", True), "push": saved.get(k, {}).get("push", True)} for k, _, _ in ALERT_EVENTS}
 
 
 def set_prefs(user, prefs):
-    clean = {k: {"email": bool((prefs.get(k) or {}).get("email", True)), "sms": bool((prefs.get(k) or {}).get("sms", True))} for k, _, _ in ALERT_EVENTS}
+    clean = {k: {"email": bool((prefs.get(k) or {}).get("email", True)), "sms": bool((prefs.get(k) or {}).get("sms", True)), "push": bool((prefs.get(k) or {}).get("push", True))} for k, _, _ in ALERT_EVENTS}
     db.exec("UPDATE users SET alert_prefs=? WHERE id=?", (json.dumps(clean), user["id"]))
     return clean
 

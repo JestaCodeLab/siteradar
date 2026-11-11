@@ -15,6 +15,7 @@ import { LockBadge, Locked, useFeature } from "@/components/locked";
 import { Hash, Lock, Smartphone } from "lucide-react";
 import { useNoteToast } from "@/components/toast";
 import { ReportSchedule } from "@/components/report-schedule";
+import { PushDevice } from "@/components/pwa";
 
 type Tab = "company" | "profile" | "team" | "billing" | "alerts";
 const countries = ["Ghana", "Nigeria", "Kenya", "South Africa", "United Kingdom", "Other"];
@@ -185,7 +186,7 @@ function Profile() {
 }
 
 // ---- alerts -------------------------------------------------------------------------------------
-interface Prefs { prefs: Record<string, { email: boolean; sms: boolean }>; events: { id: string; label: string; sub: string }[] }
+interface Prefs { prefs: Record<string, { email: boolean; sms: boolean; push: boolean }>; events: { id: string; label: string; sub: string }[] }
 
 function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) {
   const { user, isAdmin, isGhana, ws } = useMe();
@@ -214,14 +215,14 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
     catch (e) { setNote({ ok: false, text: e instanceof ApiError && e.status === 502 ? "No alert could be delivered right now." : "Could not send the test alert." }); }
     setBusy(false);
   }
-  async function toggle(id: string, ch: "email" | "sms", on: boolean) {
+  async function toggle(id: string, ch: "email" | "sms" | "push", on: boolean) {
     if (!pref) return;
     const next = { ...pref.prefs, [id]: { ...pref.prefs[id], [ch]: on } };
     await refreshPrefs({ ...pref, prefs: next }, false);
     await send("PUT", "/api/account/alert-prefs", { prefs: next });
   }
 
-  const cols = isGhana ? "grid-cols-[1fr_70px_70px]" : "grid-cols-[1fr_70px]";
+  const cols = isGhana ? "grid-cols-[1fr_70px_70px_70px]" : "grid-cols-[1fr_70px_70px]";
   const row = "flex flex-wrap items-center gap-3 border-t border-line-soft py-3.5 first:border-0";
   const on = <span className="rounded-full bg-ok-soft px-2.5 py-1 text-xs font-semibold text-ok">On</span>;
 
@@ -246,15 +247,18 @@ function Alerts({ data, refresh }: { data: SettingsData; refresh: () => void }) 
             <LockBadge plan={chatPlan} />{isAdmin && <Link href="/settings?tab=billing" className="flex min-h-11 items-center text-sm font-semibold text-brand">Upgrade</Link>}</div>)}
       </section>
 
+      <PushDevice box={box} />
+
       <section aria-label="What you are alerted about" className={box}>
         <h2 className="text-lg font-semibold">What you are alerted about</h2>
         <p className="mb-3 mt-1 text-sm text-muted">These choices are for you. Each team member sets their own.</p>
         <div className="overflow-x-auto"><div className="min-w-[360px]">
-          <div className={`grid ${cols} items-center gap-3 border-b border-line pb-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted`}><span /><span>Email</span>{isGhana && <span className="inline-flex items-center gap-1">SMS{!sms && <Lock aria-label="Locked on your plan" size={12} />}</span>}</div>
+          <div className={`grid ${cols} items-center gap-3 border-b border-line pb-2.5 text-xs font-semibold uppercase tracking-[0.04em] text-muted`}><span /><span>Email</span><span>App</span>{isGhana && <span className="inline-flex items-center gap-1">SMS{!sms && <Lock aria-label="Locked on your plan" size={12} />}</span>}</div>
           {!pref ? <Skeleton className="mt-3 h-40" /> : pref.events.map((ev) => (
             <div key={ev.id} className={`grid ${cols} items-center gap-3 border-b border-line-soft py-3 text-sm last:border-0`}>
               <span>{ev.label}<span className="block text-[13px] text-muted">{ev.sub}</span></span>
               <input type="checkbox" aria-label={`${ev.label} by email`} checked={pref.prefs[ev.id].email} onChange={(e) => toggle(ev.id, "email", e.target.checked)} className="size-[18px] accent-[#f97316]" />
+              <input type="checkbox" aria-label={`${ev.label} as a notification on your devices`} checked={pref.prefs[ev.id].push} onChange={(e) => toggle(ev.id, "push", e.target.checked)} className="size-[18px] accent-[#f97316]" />
               {isGhana && <input type="checkbox" aria-label={`${ev.label} by SMS`} checked={sms && pref.prefs[ev.id].sms} disabled={!sms} onChange={(e) => toggle(ev.id, "sms", e.target.checked)} className="size-[18px] accent-[#f97316] disabled:opacity-40" />}
             </div>))}
         </div></div>
