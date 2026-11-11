@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SiteRadar
  * Description: Connects this website to your SiteRadar account. Adds the tracking snippet automatically and, in later versions, applies the fixes you approve in SiteRadar.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 5.6
  * Requires PHP: 8.2
  * Author: SiteRadar
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SITERADAR_VERSION', '0.1.0' );
+define( 'SITERADAR_VERSION', '0.1.1' );
 define( 'SITERADAR_FILE', __FILE__ );
 define( 'SITERADAR_DIR', plugin_dir_path( __FILE__ ) );
 

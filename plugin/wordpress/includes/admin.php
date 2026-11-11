@@ -8,8 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function siteradar_admin_menu() {
-	// Its own item in the admin menu with the SiteRadar icon, not a page tucked under Settings.
-	add_menu_page( 'SiteRadar', 'SiteRadar', 'manage_options', 'siteradar', 'siteradar_render_page', plugins_url( 'assets/siteradar-icon.svg', SITERADAR_FILE ), 80 );
+	// Its own item in the admin menu with the SiteRadar icon. The icon goes in as a data URI so WordPress sizes it like its own menu icons on every admin page.
+	$svg  = file_get_contents( SITERADAR_DIR . 'assets/siteradar-icon.svg' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+	$icon = $svg ? 'data:image/svg+xml;base64,' . base64_encode( $svg ) : 'dashicons-chart-area';
+	add_menu_page( 'SiteRadar', 'SiteRadar', 'manage_options', 'siteradar', 'siteradar_render_page', $icon, 80 );
 }
 
 /**
