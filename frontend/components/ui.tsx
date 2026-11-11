@@ -188,3 +188,12 @@ export const Icon = {
   shield: make(Shield),
   pulse: (p: IconProps) => <Activity aria-hidden="true" size={20} strokeWidth={2.2} color="#fff" {...p} />,
 };
+
+const PLATFORMS: Record<string, string> = { wordpress: "WordPress", shopify: "Shopify", nextjs: "Next.js", vite: "Vite / React", vercel: "Vercel", netlify: "Netlify" };
+
+/** What the website is built with, found automatically. Nothing is shown until it has been identified. */
+export function PlatformBadge({ platform }: { platform?: { platform: string } | null }) {
+  const label = platform ? PLATFORMS[platform.platform] : undefined;
+  if (!label) return null;
+  return <span title="Detected automatically" className="inline-flex w-fit items-center rounded-md border border-line bg-soft px-2 py-0.5 text-xs font-semibold text-ink-2">{label}</span>;
+}

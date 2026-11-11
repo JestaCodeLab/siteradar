@@ -8,7 +8,7 @@ import { RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
-import { btn, Crumbs, ErrorState, Skeleton, StatusChip } from "@/components/ui";
+import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 
@@ -74,6 +74,7 @@ function SiteView() {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-[30px] font-semibold leading-tight">{site.name}</h1>
             <StatusChip status={site.status} />
+            <PlatformBadge platform={site.platform} />
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-muted">
             <a href={site.url} target="_blank" rel="noreferrer" className="font-mono text-brand">{site.host} ↗</a>

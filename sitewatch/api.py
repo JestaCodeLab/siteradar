@@ -197,6 +197,7 @@ def blueprint(cfg):
             "visitors30": analytics.summary(s["id"], now - 30 * 86400, now).get("visitors", 0),
             "strip": day_strip(s["id"]),
             "tracking_verified": analytics.is_verified(s["id"]),
+            "platform": stack.saved(s["id"]),
         }
 
     @bp.get("/sites")
