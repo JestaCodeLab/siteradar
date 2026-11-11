@@ -34,7 +34,11 @@ def is_verified(site_id):
     """The tracking snippet is installed: a visit has arrived, or a check of the home page found it. Required for reports with visitor data."""
     if db.q1("SELECT 1 FROM hits WHERE site_id=? LIMIT 1", (site_id,)):
         return True
-    return bool((db.kv_get(f"tracking:{site_id}") or {}).get("verified_at"))
+    if (db.kv_get(f"tracking:{site_id}") or {}).get("verified_at"):
+        return True
+    # the WordPress plugin is connected and set to add the snippet itself
+    c = db.kv_get(f"connector:{site_id}") or {}
+    return bool(c.get("last_seen")) and (c.get("info") or {}).get("snippet") != "off"
 
 
 def scan_page(site):

@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity } from "lucide-react";
+import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -9,6 +9,7 @@ import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
 import { TrackingInstall } from "./tracking-install";
 import { WordPressPlugin } from "./wordpress-plugin";
+import { siteIsSetUp, useSetup } from "./setup-dialog";
 import { PageSpeedCard } from "./vitals";
 import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
@@ -33,7 +34,8 @@ function Loading() {
 
 // ---- Overview ---------------------------------------------------------------
 export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: () => void }) {
-  const verified = site.tracking_live || !!site.tracking?.verified_at;
+  const verified = siteIsSetUp(site);
+  const { open: openSetup, isWp } = useSetup();
   const threshold = 3000;
   const sslTone = site.ssl_days != null && site.ssl_days <= 21 ? "warn" : "muted";
   const waitChecks = !!site.first_run?.checks;
@@ -44,8 +46,8 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
       {!verified && (
         <p role="alert" className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-warn-soft px-5 py-4 text-[15px] text-warn">
           <AlertTriangle size={18} aria-hidden="true" />
-          <span><strong>Setup incomplete.</strong> Install the tracking snippet to finish setting up {site.name}. Until then there is no visitor data and the monthly report is on hold.</span>
-          <a href="#tracking" className="font-semibold underline">Go to the snippet</a>
+          <span><strong>Setup incomplete.</strong> {isWp ? "Connect the SiteRadar plugin" : "Install the tracking snippet"} to finish setting up {site.name}. Until then there is no visitor data and the monthly report is on hold.</span>
+          <button type="button" onClick={openSetup} className="min-h-10 rounded-lg bg-warn px-4 text-sm font-semibold text-white hover:opacity-90">{isWp ? "Connect the plugin" : "Get the snippet"}</button>
         </p>
       )}
       {site.status === "down" && (
@@ -101,14 +103,15 @@ export function OverviewTab({ site, onChange }: { site: SiteDetail; onChange: ()
         </Card>
       </div>
 
-      <WordPressPlugin site={site} onChange={onChange} />
-      <TrackingInstall site={site} onChange={onChange} />
+      <WordPressPlugin site={site} />
+      {!isWp && <TrackingInstall site={site} onChange={onChange} />}
     </div>
   );
 }
 
 // ---- Analytics --------------------------------------------------------------
 export function AnalyticsTab({ id }: { id: string }) {
+  const { open: openSetup, isWp, ready } = useSetup();
   const [days, setDays] = useState(30);
   const { data, error, mutate: retry } = useSWR<AnalyticsResponse>(`/api/sites/${id}/analytics?days=${days}`, fetcher);
   if (error) return <ErrorState message={error.message} retry={() => retry()} />;
@@ -123,7 +126,10 @@ export function AnalyticsTab({ id }: { id: string }) {
         ))}
       </div>
       {empty && (
-        <Card><Empty icon={Users} title="No visits recorded yet">Install the tracking snippet from the Overview tab. Visits appear within a minute.</Empty></Card>
+        <Card><Empty icon={Users} title="No visits recorded yet"
+          action={!ready ? <button type="button" onClick={openSetup} className={btn.primary}>{isWp ? "Connect the plugin" : "Get the tracking snippet"}</button> : undefined}>
+          {ready ? "Visits appear within a minute of the first page view." : isWp ? "Connect the SiteRadar plugin and it starts counting visits by itself." : "Install the tracking snippet on your website. Visits appear within a minute."}
+        </Empty></Card>
       )}
       {!empty && (
         <>
@@ -166,6 +172,7 @@ export function AnalyticsTab({ id }: { id: string }) {
 
 // ---- Audit ------------------------------------------------------------------
 export function AuditTab({ id }: { id: string }) {
+  const { open: openSetup, isWp } = useSetup();
   const { data, error, mutate: retry } = useSWR<AuditResponse>(`/api/sites/${id}/audit`, fetcher, { refreshInterval: (d) => (d?.running ? 5000 : 0) });
   if (error) return <ErrorState message={error.message} retry={() => retry()} />;
   if (!data) return <Loading />;
@@ -187,7 +194,12 @@ export function AuditTab({ id }: { id: string }) {
         ))}
       </section>
       <Card className="px-5 pb-2 pt-5">
-        <CardTitle aside={`Audited ${fmtDateTime(data.audit.ts)} · ${data.audit.pages} pages crawled`}>Findings</CardTitle>
+        <CardTitle aside={
+          <span className="flex flex-wrap items-center gap-3">
+            <span>{`Audited ${fmtDateTime(data.audit.ts)} · ${data.audit.pages} pages crawled`}</span>
+            {isWp && issues.length > 0 && <button type="button" onClick={openSetup} className={btn.primary}><Wrench size={16} aria-hidden="true" />Fix these issues</button>}
+          </span>
+        }>Findings</CardTitle>
         {issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-ok">No issues found. Nice work.</p>}
         {issues.map((i) => (
           <div key={i.rule} className="flex flex-wrap gap-3.5 border-t border-line-soft py-4">

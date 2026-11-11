@@ -10,6 +10,7 @@ import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
+import { SetupProvider } from "@/components/setup-dialog";
 import { fmtAgo } from "@/lib/format";
 
 const TABS = [
@@ -67,7 +68,7 @@ function SiteView() {
   }
 
   return (
-    <>
+    <SetupProvider site={site} onChange={() => mutate()}>
       <Crumbs items={[{ label: "Overview", href: "/overview" }, { label: site.name }]} />
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
@@ -109,7 +110,7 @@ function SiteView() {
       {tab === "subscriptions" && <SiteSubscriptionsTab site={site} />}
       {tab === "settings" && <SettingsTab site={site} />}
       {!TABS.some(([k]) => k === tab) && <Link href={`/websites/${id}`} className={btn.secondary}>Back to overview</Link>}
-    </>
+    </SetupProvider>
   );
 }
 
