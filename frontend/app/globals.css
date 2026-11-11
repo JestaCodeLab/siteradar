@@ -72,65 +72,65 @@ body {
    here; the rules below cover the few places that use a fixed hex colour instead of a token. */
 html.dark {
   color-scheme: dark;
-  --color-bg: #0b1120;
-  --color-surface: #131a26;
-  --color-soft: #182131;
-  --color-line: #263247;
-  --color-line-soft: #1d2738;
-  --color-ink: #e8ecf3;
-  --color-ink-2: #b4bdcc;
-  --color-muted: #8f9bb0;
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-soft: #1a1a1a;
+  --color-line: #2a2a2a;
+  --color-line-soft: #212121;
+  --color-ink: #ededed;
+  --color-ink-2: #bdbdbd;
+  --color-muted: #949494;
   --color-brand: #fb923c;
   --color-brand-hover: #f97316;
   --color-link: #fdba74;
   --color-brand-soft: #3b1d0a;
   --color-brand-ink: #fdba74;
-  --color-nav: #020617;
-  --color-nav-active: #1e293b;
+  --color-nav: #050505;
+  --color-nav-active: #222222;
   --color-ok: #4fd08f;
   --color-ok-soft: #12301f;
   --color-warn: #f5c04a;
   --color-warn-soft: #3a2a08;
   --color-bad: #ff8a7a;
   --color-bad-soft: #3a1511;
-  --color-bar-none: #3a4560;
+  --color-bar-none: #3d3d3d;
 }
 html.dark .bg-white {
-  background-color: #131a26;
+  background-color: #141414;
 }
 html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 html.dark select,
 html.dark textarea {
-  background-color: #0f1521;
-  color: #e8ecf3;
+  background-color: #0f0f0f;
+  color: #ededed;
 }
 html.dark input::placeholder,
 html.dark textarea::placeholder {
-  color: #6f7b90;
+  color: #7a7a7a;
 }
 html.dark input:disabled {
-  background-color: #182131;
+  background-color: #1a1a1a;
 }
 html.dark .bg-\[\#E3F4EC\] {
   background-color: #12301f;
 }
 html.dark .bg-\[\#E5ECFF\] {
-  background-color: #1b2a4d;
+  background-color: #262626;
 }
 html.dark .bg-\[\#E8EBF0\] {
-  background-color: #263247;
+  background-color: #2a2a2a;
 }
 html.dark .bg-\[\#EFEAFF\] {
   background-color: #251f4d;
 }
 html.dark .bg-\[\#F3F4F6\] {
-  background-color: #0b0f17;
+  background-color: #0a0a0a;
 }
 html.dark .bg-\[\#F5F1FF\] {
   background-color: #1f1a3d;
 }
 html.dark .bg-\[\#F8F9FB\] {
-  background-color: #182131;
+  background-color: #1a1a1a;
 }
 html.dark .bg-\[\#FBE7E5\] {
   background-color: #3a1511;
@@ -139,61 +139,61 @@ html.dark .bg-\[\#FFF1D6\] {
   background-color: #3a2a08;
 }
 html.dark .bg-\[\#c9cfd8\] {
-  background-color: #3a4560;
+  background-color: #3d3d3d;
 }
 html.dark .bg-\[\#e8ebf0\] {
-  background-color: #263247;
+  background-color: #2a2a2a;
 }
 html.dark .bg-\[\#f5f1ff\] {
   background-color: #1f1a3d;
 }
 html.dark .bg-\[\#f5f8ff\] {
-  background-color: #16223d;
+  background-color: #1a1a1a;
 }
 html.dark .bg-\[\#fff1d6\] {
   background-color: #3a2a08;
 }
 html.dark .border-\[\#9aa5b8\] {
-  border-color: #55627a;
+  border-color: #5e5e5e;
 }
 html.dark .border-\[\#B3261E\] {
   border-color: #ff8a7a;
 }
 html.dark .border-\[\#C9CFD8\] {
-  border-color: #3a4560;
+  border-color: #3d3d3d;
 }
 html.dark .border-\[\#E2E5EA\] {
-  border-color: #263247;
+  border-color: #2a2a2a;
 }
 html.dark .border-\[\#EDEFF3\] {
-  border-color: #1d2738;
+  border-color: #212121;
 }
 html.dark .border-\[\#c9cfd8\] {
-  border-color: #3a4560;
+  border-color: #3d3d3d;
 }
 html.dark .border-\[\#d9dde4\] {
-  border-color: #33405a;
+  border-color: #363636;
 }
 html.dark .disabled\:bg-\[\#c9cfd8\]:disabled {
-  background-color: #3a4560;
+  background-color: #3d3d3d;
 }
 html.dark .disabled\:bg-\[\#f3f4f6\]:disabled {
-  background-color: #0b0f17;
+  background-color: #0a0a0a;
 }
 html.dark .hover\:bg-\[\#F5F1FF\]:hover {
   background-color: #1f1a3d;
 }
 html.dark .hover\:bg-\[\#F8F9FB\]:hover {
-  background-color: #182131;
+  background-color: #1a1a1a;
 }
 html.dark .hover\:bg-\[\#FBE7E5\]:hover {
   background-color: #3a1511;
 }
 html.dark .hover\:bg-\[\#FBFAFF\]:hover {
-  background-color: #182131;
+  background-color: #1a1a1a;
 }
 html.dark .hover\:bg-\[\#c9cfd8\]:hover {
-  background-color: #3a4560;
+  background-color: #3d3d3d;
 }
 html.dark .ring-\[\#D9CFFF\] {
   --tw-ring-color: #3b2f7a;
@@ -202,13 +202,13 @@ html.dark .text-\[\#0B7A4B\] {
   color: #4fd08f;
 }
 html.dark .text-\[\#12151C\] {
-  color: #e8ecf3;
+  color: #ededed;
 }
 html.dark .text-\[\#1F4FD8\] {
   color: #8fb0ff;
 }
 html.dark .text-\[\#3F4857\] {
-  color: #b4bdcc;
+  color: #bdbdbd;
 }
 html.dark .text-\[\#4A33B0\] {
   color: #b6a6ff;
@@ -217,7 +217,7 @@ html.dark .text-\[\#4a33b0\] {
   color: #b6a6ff;
 }
 html.dark .text-\[\#5B6472\] {
-  color: #8f9bb0;
+  color: #949494;
 }
 html.dark .text-\[\#8A5A00\] {
   color: #f5c04a;
@@ -369,7 +369,7 @@ html.dark .mkt .hover\:text-\[\#7C2D12\]:hover { color: #fed7aa; }
 /* colours used by the feature pages' example cards */
 html.dark .mkt .bg-\[\#FFFFFF\] { background-color: #161618; }
 html.dark .mkt .bg-\[\#FFFBEB\] { background-color: #2a2210; }
-html.dark .mkt .bg-\[\#DBEAFE\] { background-color: #1b2a4d; }
+html.dark .mkt .bg-\[\#DBEAFE\] { background-color: #262626; }
 html.dark .mkt .text-\[\#1E40AF\] { color: #9bb8ff; }
 html.dark .mkt .border-\[\#FDE68A\] { border-color: #4a3d12; }
 html.dark .mkt .bg-\[\#334155\] { background-color: #2c2c2f; }
