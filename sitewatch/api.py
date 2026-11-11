@@ -202,7 +202,11 @@ def blueprint(cfg):
 
     @bp.get("/sites")
     def list_sites():
-        cards = [site_card(s) for s in sites.list_ws(g.ws["id"]) if allowed(s["id"])]
+        mine = [s for s in sites.list_ws(g.ws["id"]) if allowed(s["id"])]
+        cards = [site_card(s) for s in mine]
+        for s, c in zip(mine, cards):      # not identified yet: look in the background, the badge appears on the next refresh
+            if not c.get("platform"):
+                threading.Thread(target=stack.auto_detect, args=(s,), daemon=True).start()
         resp = [c["response_ms"] for c in cards if c["status"] != "down" and c["response_ms"]]
         return jsonify(
             sites=cards,
