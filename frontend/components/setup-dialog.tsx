@@ -6,7 +6,7 @@ import { CheckCircle2, Download, Plug, X } from "lucide-react";
 import { btn } from "./ui";
 import { TrackingInstall } from "./tracking-install";
 import { useToast } from "./toast";
-import { fetcher, send, type SiteDetail } from "@/lib/api";
+import { send, type SiteDetail } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
@@ -87,9 +87,11 @@ function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: (
   async function check() {
     setBusy("check");
     try {
-      const fresh = await fetcher<SiteDetail>(`/api/sites/${site.id}`);
+      const r = await send<{ result: "alive" | "gone" | "unknown"; connected: boolean }>("POST", `/api/sites/${site.id}/connector/check`);
       await onChange();
-      if (fresh.connector.connected) toast.success("The plugin is connected.");
+      if (r.result === "alive") toast.success("The plugin is connected.");
+      else if (r.result === "gone") toast.error("The plugin is not active on your website.", "It was deactivated or deleted. Download it again and install it to reconnect.");
+      else if (r.connected) toast.error("We could not reach the plugin to check.", "Your website may block the check. Showing the last contact we had.");
       else toast.error("The plugin has not connected yet.", "Make sure it is activated in WordPress, wait a few seconds and try again.");
     } catch { toast.error("Could not check the connection. Please try again."); }
     setBusy(null);

@@ -16,7 +16,47 @@ function siteradar_activate() {
 }
 
 function siteradar_deactivate() {
+	siteradar_send_disconnect();
 	wp_clear_scheduled_hook( 'siteradar_heartbeat' );
+}
+
+/**
+ * Tell SiteRadar the plugin is being switched off, so the dashboard stops showing the website as connected.
+ */
+function siteradar_send_disconnect() {
+	if ( ! siteradar_is_configured() ) {
+		return;
+	}
+	wp_remote_post(
+		trailingslashit( get_option( 'siteradar_api' ) ) . 'api/connector/disconnect',
+		array(
+			'timeout' => 5,
+			'headers' => array( 'Authorization' => 'Bearer ' . get_option( 'siteradar_site_id' ) . '.' . get_option( 'siteradar_key' ) ),
+		)
+	);
+}
+
+/**
+ * A public ping, so SiteRadar can look from outside whether the plugin is really on this website. It reveals nothing but the website id that is already in the public tracking snippet.
+ */
+function siteradar_register_rest() {
+	register_rest_route(
+		'siteradar/v1',
+		'/ping',
+		array(
+			'methods'             => 'GET',
+			'callback'            => 'siteradar_rest_ping',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+function siteradar_rest_ping() {
+	return array(
+		'ok'      => true,
+		'site_id' => (string) get_option( 'siteradar_site_id' ),
+		'version' => SITERADAR_VERSION,
+	);
 }
 
 /**

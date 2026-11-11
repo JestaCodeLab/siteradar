@@ -13,7 +13,7 @@ import zipfile
 
 from flask import Blueprint, jsonify, request
 
-from . import db, security, sites
+from . import db, netguard, security, sites
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "plugin", "wordpress")
 PLUGIN_VERSION_FILE = os.path.join(PLUGIN_DIR, "siteradar.php")
@@ -36,6 +36,52 @@ def status(site_id):
     if not c:
         return {"issued": False, "connected": False, "last_seen": None, "info": {}}
     return {"issued": True, "connected": bool(c.get("last_seen")), "last_seen": c.get("last_seen"), "info": c.get("info") or {}}
+
+
+def probe(site):
+    """Asks the website itself whether the plugin is there. The plugin answers a public ping at /wp-json/siteradar/v1/ping.
+
+    -> "alive" (the plugin answered for this website), "gone" (WordPress answered and has no such route, so the plugin is not active)
+    or "unknown" (the website could not be read, or blocks the check). Only "gone" is trusted as proof that the plugin was removed."""
+    base = str(site["url"]).rstrip("/")
+    for url in (f"{base}/wp-json/siteradar/v1/ping", f"{base}/?rest_route=/siteradar/v1/ping"):
+        try:
+            r = netguard.get(url, timeout=10, stream=True, headers={"User-Agent": "SiteRadar-Connector/1.0", "Accept": "application/json"})
+            raw = r.raw.read(100_000, decode_content=True)
+            r.close()
+            data = json.loads(raw.decode("utf-8", "replace"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        if r.status_code == 200 and data.get("ok") and data.get("site_id") == site["id"]:
+            return "alive"
+        if data.get("code") == "rest_no_route":
+            return "gone"
+    return "unknown"
+
+
+def check(site):
+    """A live look at whether the plugin is still on the website. Updates what the dashboard shows."""
+    result = probe(site)
+    c = db.kv_get(f"connector:{site['id']}")
+    if c:
+        if result == "alive":
+            c["last_seen"] = time.time()
+        elif result == "gone":
+            c["last_seen"], c["info"] = None, {}
+        db.kv_set(f"connector:{site['id']}", c)
+    return {"result": result, **status(site["id"])}
+
+
+def auto_check(site, every=6 * 3600):
+    """Looks now and then at websites shown as connected, so a plugin that was deleted stops showing as connected without anyone pressing the button."""
+    c = db.kv_get(f"connector:{site['id']}")
+    if not c or not c.get("last_seen") or time.time() - c.get("probed", 0) < every:
+        return
+    c["probed"] = time.time()
+    db.kv_set(f"connector:{site['id']}", c)
+    check(site)
 
 
 def plugin_zip(cfg, site):
@@ -86,5 +132,16 @@ def blueprint(cfg):
         c.update(last_seen=time.time(), info=info)
         db.kv_set(f"connector:{site['id']}", c)
         return jsonify(ok=True, snippet=True)
+
+    @bp.post("/disconnect")
+    def disconnect():
+        """The plugin was deactivated: the website is no longer connected."""
+        site = authed()
+        if not site:
+            return jsonify(error="Unknown connection."), 401
+        c = db.kv_get(f"connector:{site['id']}")
+        c.update(last_seen=None, info={})
+        db.kv_set(f"connector:{site['id']}", c)
+        return jsonify(ok=True)
 
     return bp
