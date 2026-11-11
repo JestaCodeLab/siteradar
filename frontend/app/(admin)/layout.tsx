@@ -8,7 +8,7 @@ import useSWR from "swr";
 import { PageLoader } from "@/components/page-loader";
 import { AdminTopbar } from "@/components/admin/topbar";
 import { Logo } from "@/components/logo";
-import { POWERED_BY } from "@/lib/brand";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 import { fetcher } from "@/lib/api";
 import { useMe } from "@/lib/me";
 
@@ -70,9 +70,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex min-h-screen flex-col lg:pl-[264px]">
         <AdminTopbar user={user} env={summary?.env ?? "Production"} onMenu={() => setMenu(true)} />
         <main className="min-w-0 flex-1 p-4 lg:p-6"><div className="mx-auto flex max-w-[1400px] flex-col gap-6">{children}</div></main>
-        <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-[#E2E5EA] bg-white px-4 py-4 text-[13px] text-[#5B6472] lg:px-6">
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-[#E2E5EA] bg-white px-4 py-4 text-[13px] text-[#5B6472] lg:px-6">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-[#3F4857] hover:text-[#0F172A]">{POWERED_BY.name}</a></span>
+          {SUPPORT_EMAIL && <span>Support: <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-[#3F4857] hover:text-[#0F172A]">{SUPPORT_EMAIL}</a></span>}
         </footer>
       </div>
     </div>

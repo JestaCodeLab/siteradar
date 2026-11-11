@@ -101,7 +101,7 @@ export function BillingPanel() {
 
           {!locked && !data.comped && (
             <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
-              {[["Billing", ws.cycle === "yearly" ? "Yearly" : "Monthly"], [ws.cancels ? "Plan ends" : "Next renewal", fmtDateTs(ws.plan_renews)], ["Payment", data.card ?? data.last_method ?? "Not set"]].map(([k, v]) => (
+              {[["Billing", ws.cycle === "yearly" ? "Yearly" : "Monthly"], [ws.cancels ? "Plan ends" : "Next renewal", fmtDateTs(ws.plan_renews)], ["Payment", data.card ?? "No card saved"]].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5 bg-surface px-4 py-3"><dt className="text-xs text-muted">{k}</dt><dd className="truncate text-[15px] font-semibold">{v}</dd></div>))}
             </dl>
           )}
@@ -171,13 +171,15 @@ export function BillingPanel() {
       <div className="flex flex-wrap items-stretch gap-5">
         <section aria-label="Payment method" className={`${box} flex min-w-0 flex-[1_1_420px] flex-col gap-3`}>
           <h2 className={h2}>Payment method</h2>
-          {!locked && (data.card || data.last_method) ? (
+          {!locked && data.card ? (
             <div className="flex items-center gap-3 rounded-xl border border-line p-3.5">
               <span className="flex h-8 min-w-12 items-center justify-center rounded-md bg-[#fff1d6] px-2 text-xs font-bold text-warn">Card</span>
-              <span className="flex flex-col"><span className="text-sm font-semibold">{data.card ?? data.last_method}</span>
-                <span className="text-[13px] text-muted">{data.card ? "Renews automatically each period" : "We email you a payment link 3 days before renewal"}</span></span>
+              <span className="flex flex-col"><span className="text-sm font-semibold">{data.card}</span>
+                <span className="text-[13px] text-muted">Renews automatically each period</span></span>
             </div>
-          ) : <p className="text-sm leading-relaxed text-muted">No payment method yet. You add one when you choose a plan.</p>}
+          ) : <p className="text-sm leading-relaxed text-muted">{!locked && data.last_method && data.last_method !== "Card"
+            ? `Your last payment was by ${data.last_method}. We now accept cards only, so add a card to keep your plan renewing automatically.`
+            : "No card saved yet. You add one when you choose a plan."}</p>}
           {isOwner && (
             <>
               <button disabled={busy !== null} onClick={payNow} className="flex min-h-14 items-center gap-3 rounded-xl border border-[#c9cfd8] px-3.5 text-left hover:bg-soft disabled:opacity-60">

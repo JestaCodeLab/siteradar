@@ -5,6 +5,7 @@ A workspace with no saved card gets an email with a payment link before the plan
 is `past_due` for a week and then `lapsed`, which locks it read-only; nothing is deleted.
 Set BILLING_TEST_MODE=1 to switch plans without any payment while developing.
 """
+import base64
 import hashlib
 import hmac
 import json
@@ -365,7 +366,10 @@ def invoice_html(ws, reference):
     if not pay:
         return None, None
     owner = accounts.user_by_id(ws["owner_id"]) if ws["owner_id"] else None
+    # The invoice is from SiteRadar, so it carries SiteRadar's logo, never the customer's. Embedded so it needs no public URL.
+    with open(os.path.join(os.path.dirname(__file__), "templates", "siteradar-logo.svg"), "rb") as f:
+        logo = "data:image/svg+xml;base64," + base64.b64encode(f.read()).decode()
     html_text = env.get_template("invoice.html").render(
-        number=invoice_number(pay), company=ws["name"], email=owner["email"] if owner else "", logo=ws["logo_url"], reference=reference,
+        number=invoice_number(pay), company=ws["name"], email=owner["email"] if owner else "", logo=logo, reference=reference,
         date=time.strftime("%d %B %Y", time.localtime(pay["paid"] or pay["created"])), description=describe(pay), amount=f"{pay['amount']:,.2f}", method=pay["method"])
     return html_text, invoice_number(pay)
