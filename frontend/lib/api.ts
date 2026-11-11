@@ -37,7 +37,7 @@ export interface SiteCard {
   status: SiteStatus; error: string | null; down_since: number | null; last_check: number | null;
   response_ms: number | null; ssl_days: number | null; uptime30: number | null; avg_ms30: number | null;
   audit_score: number | null; visitors30: number; strip: StripDay[]; domain_days: number | null;
-  domain_expires: string | null; ssl_expires: string | null;
+  domain_expires: string | null; ssl_expires: string | null; tracking_verified: boolean;
 }
 
 export interface SitesResponse {
@@ -47,7 +47,7 @@ export interface SitesResponse {
     ssl_expiring: { name: string; days: number; expires: string | null }[]; domains_expiring: { name: string; days: number; expires: string | null }[]; errors: Record<string, string | null>;
     slow_threshold_ms: number; ssl_warning_days: number; check_interval_minutes: number; latest_check: number | null;
   };
-  setup: { snippet: boolean; team: boolean };
+  setup: { snippet: boolean; unverified: string[]; team: boolean };
 }
 
 export interface Issue {
@@ -68,6 +68,8 @@ export interface SiteDetail extends SiteCard {
   uptime_stats: { uptime: number | null; avg_ms: number | null; p95_ms: number | null; downtime_minutes: number; incident_count: number };
   response_series: { day: string; ms: number }[];
   incidents: { started: number; ended: number | null; cause: string | null }[];
+  platform: { platform: string; signals: string[]; seo_plugin: string | null; checked_at: number } | null;
+  connector: { issued: boolean; connected: boolean; last_seen: number | null; allowed: boolean; info: { plugin_version?: string; wp_version?: string; php_version?: string; seo_plugin?: string } };
   top_issues: Issue[]; tracking_live: boolean; tracking: { verified_at: number | null; checked_at: number | null; last_hit: number | null }; pageviews30: number; snippet: string; audit_running: boolean;
 }
 

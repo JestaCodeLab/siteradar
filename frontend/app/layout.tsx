@@ -21,6 +21,7 @@ export const metadata: Metadata = {
     apple: "/favicon/apple-touch-icon-180.png",
   },
   manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "SiteRadar", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = { themeColor: "#F97316" };

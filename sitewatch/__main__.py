@@ -36,7 +36,15 @@ def main(argv=None):
     r.add_argument("--email", action="store_true", help="email to the site's report_to list")
     sub.add_parser("snippet")
     sub.add_parser("test-alert")
+    sub.add_parser("vapid")            # make the key pair for browser notifications
     args = p.parse_args(argv)
+
+    if args.cmd == "vapid":
+        from . import push
+        public, private = push.generate_keys()
+        print("Add these to the environment of the API (and the worker), and the public one to the website too:\n")
+        print(f"VAPID_PUBLIC_KEY={public}\nVAPID_PRIVATE_KEY={private}\nVAPID_SUBJECT=mailto:support@yourdomain.com")
+        return
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     cfg = load(args.config)

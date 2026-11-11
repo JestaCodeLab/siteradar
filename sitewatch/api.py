@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, connector, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -196,6 +196,7 @@ def blueprint(cfg):
             "audit_score": au["scores"]["Overall"] if au else None,
             "visitors30": analytics.summary(s["id"], now - 30 * 86400, now).get("visitors", 0),
             "strip": day_strip(s["id"]),
+            "tracking_verified": analytics.is_verified(s["id"]),
         }
 
     @bp.get("/sites")
@@ -221,7 +222,8 @@ def blueprint(cfg):
                 "latest_check": max([c["last_check"] for c in cards if c["last_check"]], default=None),
             },
             setup={
-                "snippet": bool(cards) and bool(db.q1("SELECT 1 FROM hits WHERE site_id = ANY(?) LIMIT 1", ([c["id"] for c in cards],))),
+                "snippet": bool(cards) and all(c["tracking_verified"] for c in cards),
+                "unverified": [c["id"] for c in cards if not c["tracking_verified"]],
                 "team": plans.usage(g.ws["id"])["seats"] > 1,
             })
 
@@ -236,7 +238,7 @@ def blueprint(cfg):
         threading.Thread(target=health.run_all, args=(cfg, site), daemon=True).start()
         if site.get("audit", True):
             start_audit(site)         # Google PageSpeed and the page audit, so the first results are not a night away
-        return jsonify(site_card(site)), 201
+        return jsonify({**site_card(site), "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site["id"]}"></script>'}), 201
 
     def fresh(site_id, now):
         """True for the first 15 minutes after a website's first check, while its first audit can still be on its way."""
@@ -268,6 +270,8 @@ def blueprint(cfg):
                          "last_hit": (db.q1("SELECT MAX(ts) t FROM hits WHERE site_id=?", (site_id,)) or {}).get("t")},
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',
+            "platform": stack.saved(site_id),
+            "connector": {**connector.status(site_id), "allowed": bool(plans.limits(g.ws).get("one_click_fix"))},
             "audit_running": site_id in running_audits,
             # still waiting on the first results of a website that was only just added
             "first_run": {"checks": not db.q1("SELECT 1 FROM checks WHERE site_id=? LIMIT 1", (site_id,)),
@@ -384,7 +388,38 @@ def blueprint(cfg):
         # Remembered, so the page keeps saying "verified" after a reload instead of offering the check again.
         now = time.time()
         db.kv_set(f"tracking:{site_id}", {"verified_at": (now if installed or receiving else None), "checked_at": now, "found": found})
+        if installed or receiving:
+            # a monthly report that was held back for this missing snippet goes out now
+            today = dt.date.today()
+            py, pm = report.previous_month(today.year, today.month)
+            if db.last_alert(site_id, f"tracking-reminder:{today:%Y-%m}") and not db.last_alert(site_id, f"report:{py}-{pm:02d}"):
+                threading.Thread(target=report.generate, args=(cfg, s, None, None, True, True), daemon=True).start()
         return jsonify(installed=installed, found=found, receiving=receiving, last_hit=last_hit, error=error, url=s["url"])
+
+    @bp.post("/sites/<site_id>/detect-platform")
+    def detect_platform(site_id):
+        """What is this website built with? Saved, so the dashboard can offer the right connector."""
+        s = site_or_404(site_id)
+        if security.limited("detect-platform", 10, 6, key=site_id):
+            return jsonify(error="Checked a few times already. Wait a few minutes and try again.", code="rate"), 429
+        try:
+            return jsonify(stack.run(s))
+        except Exception as e:
+            log.info("Platform detection of %s failed: %s", s["url"], e)
+            return jsonify(error="We could not open your website to look at what it is built with."), 502
+
+    @bp.post("/sites/<site_id>/wordpress-plugin")
+    @need("admin")
+    def wordpress_plugin(site_id):
+        """The plugin as a zip with this website's connection key inside. Each download makes a new key, so older copies stop working."""
+        s = site_or_404(site_id)
+        if not plans.limits(g.ws).get("one_click_fix"):
+            return jsonify(error="One-click fixes are part of the Starter, Growth and Scale plans. Upgrade to download the plugin.", code="limit"), 402
+        found = stack.saved(site_id)
+        if not found or found.get("platform") != "wordpress":
+            return jsonify(error="This website was not detected as WordPress."), 409
+        data = connector.plugin_zip(cfg, s)
+        return Response(data, mimetype="application/zip", headers={"Content-Disposition": 'attachment; filename="siteradar.zip"', "Cache-Control": "no-store"})
 
     @bp.post("/sites/<site_id>/check")
     def check_now(site_id):

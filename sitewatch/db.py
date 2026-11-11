@@ -259,6 +259,18 @@ UPDATE plans SET sites=1, members=1, client_access=0, tagline='For a freelancer 
     (15, """
 UPDATE plans SET price_month_usd=12.99 WHERE id='freelance';
 """),
+    (16, """
+ALTER TABLE plans ADD COLUMN one_click_fix INTEGER NOT NULL DEFAULT 0;
+UPDATE plans SET one_click_fix=1 WHERE id IN ('starter', 'growth', 'scale');
+"""),
+    (17, """
+CREATE TABLE push_subscriptions (
+    id BIGSERIAL PRIMARY KEY, user_id INTEGER NOT NULL, workspace_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL, auth TEXT NOT NULL, agent TEXT, created DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX idx_push_ws ON push_subscriptions(workspace_id);
+CREATE INDEX idx_push_user ON push_subscriptions(user_id);
+"""),
 ]
 
 

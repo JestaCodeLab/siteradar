@@ -6,9 +6,8 @@ h1{font-size:28px;margin:0 0 4px}.muted{color:#5B6472}.row{display:flex;justify-
 table{width:100%;border-collapse:collapse;margin-top:32px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#5B6472;padding:10px 0;border-bottom:1px solid #E2E5EA}
 td{padding:14px 0;border-bottom:1px solid #EDEFF3}.num{text-align:right;font-family:"Geist Mono",ui-monospace,Menlo,monospace}.tag{display:inline-block;padding:3px 10px;border-radius:99px;background:#E3F4EC;color:#0B7A4B;font-weight:600;font-size:12px}
 </style></head><body>
-<div class="row"><div>{% if logo %}<img src="{{ logo }}" alt="" style="max-height:48px;max-width:200px;margin-bottom:12px;display:block">{% endif %}
-<h1>Invoice</h1><div class="muted">{{ number }}</div></div>
-<div style="text-align:right"><b>SiteRadar</b><div class="muted">Jesta Digital Solutions</div></div></div>
+<div class="row"><div><h1>Invoice</h1><div class="muted">{{ number }}</div></div>
+<div style="text-align:right">{% if logo %}<img src="{{ logo }}" alt="SiteRadar" style="height:44px;width:auto;display:block;margin:0 0 10px auto">{% endif %}<b>SiteRadar</b><div class="muted">Jesta Digital Solutions</div></div></div>
 <div class="row" style="margin-top:32px"><div><div class="muted">Billed to</div><b>{{ company }}</b><div class="muted">{{ email }}</div></div>
 <div style="text-align:right"><div class="muted">Date</div><b>{{ date }}</b><div style="margin-top:8px"><span class="tag">Paid</span></div></div></div>
 <table><tr><th>Description</th><th class="num">Amount</th></tr>

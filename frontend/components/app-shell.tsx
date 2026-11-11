@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { send } from "@/lib/api";
-import { POWERED_BY } from "@/lib/brand";
+import { SUPPORT_EMAIL } from "@/lib/brand";
 import { useMe } from "@/lib/me";
 import { PageLoader } from "./page-loader";
+import { PwaBanner } from "./pwa";
 import { Sidebar } from "./sidebar";
 import { SupportFrame } from "./support-session";
 import { Topbar } from "./topbar";
@@ -35,6 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen flex-col lg:pl-64">
         {me.announcement && <p role="status" className="bg-[#EFEAFF] px-4 py-2.5 text-sm text-[#4A33B0] lg:px-6">{me.announcement}</p>}
         <Topbar onMenu={() => setMenu(true)} />
+        <PwaBanner />
         {ws.plan_status === "past_due" && (
           <p role="alert" className="bg-warn-soft px-4 py-2.5 text-sm text-warn lg:px-6">Your last payment did not go through. <Link href="/settings?tab=billing" className="font-semibold underline">Update billing</Link> to keep your {ws.plan.name} plan.</p>
         )}
@@ -55,9 +57,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </ul>
           </section>
         )}
-        <footer className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line bg-surface px-4 py-4 text-[13px] text-muted lg:px-6">
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t border-line bg-surface px-4 py-4 text-[13px] text-muted lg:px-6">
           <span>© {new Date().getFullYear()} SiteRadar. All rights reserved.</span>
-          <span>Powered by <a href={POWERED_BY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-ink-2 hover:text-ink">{POWERED_BY.name}</a></span>
+          {SUPPORT_EMAIL && <span>Support: <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium text-ink-2 hover:text-ink">{SUPPORT_EMAIL}</a></span>}
         </footer>
       </div>
     </div>

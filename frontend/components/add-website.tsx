@@ -8,8 +8,11 @@ import { Globe, X } from "lucide-react";
 import { btn, input } from "./ui";
 import { useToast } from "./toast";
 import { ApiError, send, type SiteCard } from "@/lib/api";
+
+type NewSite = SiteCard & { snippet: string };
 import { splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
+import { TrackingInstall } from "./tracking-install";
 
 const NEXT: Record<string, string> = { freelance: "Starter", starter: "Growth", growth: "Scale" };
 const AddWebsiteContext = createContext<{ open: () => void } | null>(null);
@@ -40,25 +43,27 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState<{ text: string; limit: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<NewSite | null>(null);      // step 2: install the tracking snippet
+  const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
+  const verified = verifiedAt !== null;
   const used = ws?.usage.sites ?? 0, limit = ws?.plan.sites ?? 1;
   const atLimit = !!ws && used >= limit;
   const locked = atLimit || !canWrite;
   const next = NEXT[ws?.plan_id ?? ""];
 
-  useEffect(() => { dialog.current?.showModal(); }, []);
+  useEffect(() => { if (dialog.current && !dialog.current.open) dialog.current.showModal(); }, [created]);
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
     setBusy(true); setError(null);
     try {
-      const site = await send<SiteCard>("POST", "/api/sites", {
+      const site = await send<NewSite>("POST", "/api/sites", {
         name: f.get("name"), url: f.get("url"), keyword: f.get("keyword"), report_to: splitEmails(f.get("report_to")),
       });
       await Promise.all([mutate("/api/sites"), refreshMe()]);
       toast.success("Website added.", "SiteRadar has started checking it.");
-      onClose();
-      router.push(`/websites/${site.id}`);
+      setCreated(site); setBusy(false);
     } catch (err) {
       setError({ text: err instanceof Error ? err.message : "Could not add the website.", limit: err instanceof ApiError && err.code === "limit" });
       setBusy(false);
@@ -66,6 +71,31 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
   }
 
   const label = "text-sm font-medium";
+  const finish = () => { onClose(); router.push(`/websites/${created!.id}`); };
+  if (created) {
+    return (
+      <dialog ref={dialog} aria-labelledby="aw-title" onClose={() => { if (!verified) router.push(`/websites/${created.id}`); onClose(); }}
+        className="m-auto w-[min(540px,calc(100vw-32px))] rounded-2xl border border-line bg-surface p-0 text-ink shadow-[0_24px_80px_rgba(15,23,42,0.28)] backdrop:bg-[#0F172A]/60">
+        <div className="flex max-h-[calc(100vh-32px)] flex-col">
+          <div className="p-6 pb-3">
+            <h2 id="aw-title" className="text-xl font-bold">Step 2 of 2: install the tracking snippet</h2>
+            <p className="mt-0.5 text-[15px] text-muted">{created.name} is being checked. The snippet is required: without it there are no visitor numbers and the monthly report is held.</p>
+          </div>
+          <div className="overflow-y-auto px-6 pb-2">
+            <TrackingInstall bare site={{ id: created.id, host: created.host, snippet: created.snippet, tracking_live: false, tracking: { verified_at: verifiedAt, last_hit: null } }}
+              onChange={() => mutate("/api/sites")} onVerified={() => setVerifiedAt(Date.now() / 1000)} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 p-6 pt-4">
+            <span className="text-[13px] text-muted">{verified ? "All set." : "Setup stays marked incomplete until this is verified."}</span>
+            <div className="flex gap-2.5">
+              {!verified && <button type="button" onClick={finish} className={btn.secondary}>Do this later</button>}
+              <button type="button" onClick={finish} disabled={!verified} className={btn.primary}>Done</button>
+            </div>
+          </div>
+        </div>
+      </dialog>
+    );
+  }
   return (
     <dialog
       ref={dialog} aria-labelledby="aw-title" onClose={onClose}
