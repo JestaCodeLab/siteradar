@@ -404,6 +404,14 @@ def blueprint(cfg):
             log.info("Platform detection of %s failed: %s", s["url"], e)
             return jsonify(error="We could not open your website to look at what it is built with."), 502
 
+    @bp.post("/sites/<site_id>/connector/check")
+    def connector_check(site_id):
+        """Is the plugin still on the website? Asks the website, so a plugin that was deleted is noticed."""
+        s = site_or_404(site_id)
+        if security.limited("connector-check", 10, 5, key=site_id):
+            return jsonify(error="Checked a few times already. Wait a minute and try again.", code="rate"), 429
+        return jsonify(connector.check(s))
+
     @bp.post("/sites/<site_id>/wordpress-plugin")
     @need("admin")
     def wordpress_plugin(site_id):
