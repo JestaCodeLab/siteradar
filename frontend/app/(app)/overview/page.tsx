@@ -16,12 +16,13 @@ export default function DashboardPage() {
   const { data, error, mutate, isLoading } = useSWR<SitesResponse>("/api/sites", fetcher, { refreshInterval: 60000 });
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   const s = data?.summary;
+  const unverified = data?.setup?.unverified ?? [];
 
   const steps = ws && data ? [
     { title: "Verify your email", sub: "Done", href: "/settings?tab=profile", done: true },
     { title: "Choose a plan", sub: `${ws.plan.name} plan is active`, href: "/settings?tab=billing", done: true },
     { title: "Add your first website", sub: data.sites.length ? `${data.sites.length} website${data.sites.length === 1 ? "" : "s"} added` : "Paste its address and we start checking.", href: "/websites/new", done: data.sites.length > 0 },
-    { title: "Install the tracking snippet", sub: data.setup.unverified.length ? `Required. Missing on ${data.setup.unverified.length} website${data.setup.unverified.length === 1 ? "" : "s"}; reports wait for it.` : "Required for visitor data and monthly reports.", href: data.setup.unverified[0] ? `/websites/${data.setup.unverified[0]}#tracking` : data.sites[0] ? `/websites/${data.sites[0].id}` : "/websites/new", done: data.setup.snippet },
+    { title: "Install the tracking snippet", sub: unverified.length ? `Required. Missing on ${unverified.length} website${unverified.length === 1 ? "" : "s"}; reports wait for it.` : "Required for visitor data and monthly reports.", href: unverified[0] ? `/websites/${unverified[0]}#tracking` : data.sites[0] ? `/websites/${data.sites[0].id}` : "/websites/new", done: !!data.setup?.snippet },
   ] : [];
   const done = steps.filter((x) => x.done).length;
 
