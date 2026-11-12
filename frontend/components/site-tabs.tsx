@@ -171,57 +171,92 @@ export function AnalyticsTab({ id }: { id: string }) {
   );
 }
 
-// ---- Audit ------------------------------------------------------------------
-/** The fix button under a finding: apply, see that it is queued or applied, and undo. */
-function FixAction({ siteId, rule, fx, onChange, openSetup }: { siteId: string; rule: string; fx: FixesResponse; onChange: () => void; openSetup: () => void }) {
+function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: string; issue: Issue; fx: FixesResponse | undefined; onChange: () => void; openSetup: () => void; host: string }) {
   const { isAdmin } = useMe();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
-  const item = fx.items[rule];
-  if (!item) return null;
+  const [asking, setAsking] = useState(false);
+  const item = fx?.items[issue.rule];
+
+  useEffect(() => {
+    if (!asking) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) setAsking(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [asking, busy]);
 
   async function change(on: boolean) {
-    if (on && item.confirm && !confirm(`${item.what}\n\nApply this fix?`)) return;
     setBusy(true);
     try {
-      await send("POST", `/api/sites/${siteId}/fixes/${rule}`, { on });
+      await send("POST", `/api/sites/${siteId}/fixes/${issue.rule}`, { on });
       toast.success(on ? "Fix switched on." : "Fix removed.", on ? "The plugin applies it within a few seconds." : "The plugin takes it off your website.");
+      setAsking(false);
       onChange();
     } catch (e) { toast.error(e instanceof Error ? e.message : "Could not change the fix."); }
     setBusy(false);
   }
 
-  if (item.state === "applied") {
-    return (
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+  const undo = (label: string) => isAdmin && <button type="button" onClick={() => change(false)} disabled={busy} className="min-h-9 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">{label}</button>;
+  let control: ReactNode = null;
+  if (fx && item) {
+    if (item.state === "applied") control = (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 lg:justify-end">
         <span className="rounded-full bg-ok-soft px-2.5 py-1 text-[13px] font-semibold text-ok">Fix applied</span>
-        <span className="text-[13px] text-muted">It disappears from this list after the next audit.</span>
-        {isAdmin && <button type="button" onClick={() => change(false)} disabled={busy} className="min-h-9 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">Undo</button>}
-      </div>
-    );
-  }
-  if (item.state === "queued") {
-    return (
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {undo("Undo")}
+      </div>);
+    else if (item.state === "queued") control = (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 lg:justify-end">
         <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[13px] font-semibold text-warn">Applying…</span>
-        <span className="text-[13px] text-muted">Waiting for the plugin on your website to confirm.</span>
-        {isAdmin && <button type="button" onClick={() => change(false)} disabled={busy} className="min-h-9 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">Cancel</button>}
-      </div>
-    );
+        {undo("Cancel")}
+      </div>);
+    else if (!fx.allowed) control = <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with one click</Link>;
+    else if (!fx.connected) control = <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>;
+    else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>;
+    else control = <button type="button" onClick={() => setAsking(true)} className={`${btn.primary} whitespace-nowrap`}><Wrench size={15} aria-hidden="true" />Fix this issue</button>;
   }
+  const note = item?.state === "applied" ? "It disappears from this list after the next audit." : item?.state === "queued" ? "Waiting for the plugin on your website to confirm." : null;
+
   return (
-    <div className="mt-1.5 flex flex-col gap-1.5">
-      <span className="text-[13px] leading-relaxed text-muted">{item.what}</span>
-      <div className="flex flex-wrap items-center gap-2.5">
-        {!fx.allowed ? <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with one click</Link>
-          : !fx.connected ? <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>
-          : !isAdmin ? <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>
-          : <button type="button" onClick={() => change(true)} disabled={busy} className={btn.primary}><Wrench size={15} aria-hidden="true" />{busy ? "Applying…" : item.label}</button>}
+    <div className="flex flex-wrap gap-3.5 border-t border-line-soft py-4 lg:flex-nowrap">
+      <div className="w-[74px] shrink-0"><SeverityChip severity={issue.severity} /></div>
+      <div className="flex min-w-[260px] flex-1 flex-col gap-1 lg:min-w-0">
+        <span className="text-[15px] font-semibold">{issue.title} <span className="font-normal text-muted">· {issue.count} {issue.count === 1 ? "page" : "pages"}</span></span>
+        <span className="text-sm leading-relaxed text-ink-2">How to fix: {issue.fix}</span>
+        {note && <span className="text-[13px] text-muted">{note}</span>}
+        {/* phones: the control sits under the text; wide screens: it moves to the right edge */}
+        {control && <div className="mt-1.5 lg:hidden">{item?.state === "available" && <span className="mb-1.5 block text-[13px] leading-relaxed text-muted">{item.what}</span>}{control}</div>}
       </div>
+      {control && <div className="hidden shrink-0 lg:flex lg:self-start lg:justify-end">{control}</div>}
+
+      {asking && item && (
+        <div role="dialog" aria-modal="true" aria-labelledby={`fix-${issue.rule}`} className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/60 p-4">
+          <div className="flex max-h-[92vh] w-[min(560px,100%)] flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-surface p-6 text-ink shadow-[0_24px_80px_rgba(15,23,42,0.28)]">
+            <div className="flex items-start gap-3.5">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"><Wrench aria-hidden="true" size={22} /></span>
+              <div className="min-w-0 flex-1">
+                <h2 id={`fix-${issue.rule}`} className="text-xl font-bold">Fix this issue on <span className="text-brand">{host}</span></h2>
+                <p className="mt-0.5 text-[15px] text-muted">Review what will change, then proceed.</p>
+              </div>
+              <button type="button" onClick={() => setAsking(false)} disabled={busy} aria-label="Close" className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft"><X aria-hidden="true" size={18} /></button>
+            </div>
+            <div className="flex flex-col gap-3.5 text-sm leading-relaxed">
+              <div><h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted">The problem</h3>
+                <p className="mt-1 text-ink-2"><b>{issue.title}</b>, found on {issue.count} {issue.count === 1 ? "page" : "pages"}.</p></div>
+              <div><h3 className="text-[13px] font-semibold uppercase tracking-wide text-muted">What the fix does</h3>
+                <p className="mt-1 text-ink-2">{item.what}</p></div>
+              {item.confirm && <p className="rounded-lg bg-warn-soft px-3.5 py-2.5 text-warn">Read this before you proceed: this one is hard to reverse for visitors. Browsers remember it for a long time.</p>}
+              <p className="text-muted">The SiteRadar plugin on your website applies it within a few seconds. You can undo it here at any time, and it is recorded in your activity log. The finding leaves the list after the next audit, so run one afterwards to confirm.</p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2.5">
+              <button type="button" onClick={() => setAsking(false)} disabled={busy} className={btn.secondary}>Cancel</button>
+              <button type="button" onClick={() => change(true)} disabled={busy} className={btn.primary}>{busy ? "Applying…" : "Proceed and fix"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
 export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDetail; onRun: () => void; busy: boolean }) {
   const { open: openSetup, isWp } = useSetup();
   const { data: fx, mutate: refetchFx } = useSWR<FixesResponse>(isWp ? `/api/sites/${id}/fixes` : null, fetcher,
@@ -270,16 +305,7 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
           </span>
         }>Findings</CardTitle>
         {issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-ok">No issues found. Nice work.</p>}
-        {issues.map((i) => (
-          <div key={i.rule} className="flex flex-wrap gap-3.5 border-t border-line-soft py-4">
-            <div className="w-[74px] shrink-0"><SeverityChip severity={i.severity} /></div>
-            <div className="flex min-w-[260px] flex-1 flex-col gap-1">
-              <span className="text-[15px] font-semibold">{i.title} <span className="font-normal text-muted">· {i.count} {i.count === 1 ? "page" : "pages"}</span></span>
-              <span className="text-sm leading-relaxed text-ink-2">How to fix: {i.fix}</span>
-              {fx && <FixAction siteId={id} rule={i.rule} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} />}
-            </div>
-          </div>
-        ))}
+        {issues.map((i) => <IssueRow key={i.rule} siteId={id} issue={i} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} host={site.host} />)}
       </Card>
       <RecentChanges id={id} />
     </div>
