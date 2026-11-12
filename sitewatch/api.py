@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, billing, connector, db, events, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, ai, alerts, analytics, auditor, billing, connector, db, edits, events, fixes, gsc, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -61,7 +61,7 @@ def blueprint(cfg):
     ACTIVITY_PAGE = 50
     ACTIVITY_FILTERS = {
         "incidents": ("down", "recovered"), "alerts": ("ssl", "slow", "renewal", "domain", "dns"), "audits": ("audit", "audit_run"),
-        "billing": ("subscription", "invoice"), "changes": ("fix", "audit_run", "plugin"),
+        "billing": ("subscription", "invoice"), "changes": ("fix", "audit_run", "plugin", "ai"),
     }
 
     @bp.get("/activity")
@@ -115,8 +115,8 @@ def blueprint(cfg):
         if not only and want("subscription"):
             for s_ in db.q("SELECT name, created, site_id FROM subscriptions WHERE workspace_id=? AND created<? ORDER BY created DESC LIMIT ?", (ws_id, before, n)):
                 add(s_["created"], "subscription", "info", f"Subscription added: {s_['name']}", "", s_["site_id"])
-        if want("fix", "audit_run", "plugin"):
-            for e in events.fetch(ids, sorted(kinds & {"fix", "audit_run", "plugin"}) if kinds else ["fix", "audit_run", "plugin"], before, n):
+        if want("fix", "audit_run", "plugin", "ai"):
+            for e in events.fetch(ids, sorted(kinds & {"fix", "audit_run", "plugin", "ai"}) if kinds else ["fix", "audit_run", "plugin", "ai"], before, n):
                 add(e["ts"], e["kind"], e["level"], e["title"], (f"By {e['who']}. " if e["who"] else "") + e["detail"], e["site_id"])
         events_.sort(key=lambda e: -e["ts"])
         page = events_[:size]
@@ -469,6 +469,108 @@ def blueprint(cfg):
         threading.Thread(target=connector.nudge, args=(s,), daemon=True).start()
         items, log = fixes.listing(site_id)
         return jsonify(item=items[rule], log=log)
+
+    # ---- AI text fixes: write a draft, review it, the plugin applies it --------------------------------
+    def ai_gate(s):
+        """Drafting and applying need a paid plan with fixes and a connected plugin. Returns an error response or None."""
+        if not plans.limits(g.ws).get("one_click_fix"):
+            return jsonify(error="AI fixes need an active paid plan.", code="limit"), 402
+        if not connector.status(s["id"])["connected"]:
+            return jsonify(error="Connect the SiteRadar plugin first. It is what applies the change to your website.", code="plugin"), 409
+        return None
+
+    @bp.get("/sites/<site_id>/ai/<rule>")
+    def ai_items(site_id, rule):
+        """The pages a finding affects and any AI change already made for them."""
+        site_or_404(site_id)
+        if rule not in edits.FIELDS:
+            abort(404)
+        return jsonify(**edits.targets(site_id, rule), credits=plans.ai_status(g.ws))
+
+    @bp.post("/sites/<site_id>/ai/<rule>/draft")
+    @need("admin")
+    def ai_draft(site_id, rule):
+        s = site_or_404(site_id)
+        if rule not in edits.FIELDS:
+            abort(404)
+        bad = ai_gate(s)
+        if bad:
+            return bad
+        if security.limited("ai-draft", 1, 20, key=str(g.ws["id"])):
+            return jsonify(error="Slow down a little. Try again in a minute.", code="rate"), 429
+        url = (body().get("url") or "").strip()
+        try:
+            item, left = edits.write_draft(g.ws, s, rule, url, g.user.get("email") or "")
+        except ai.AIError as e:
+            return jsonify(error=str(e), code=e.code or "ai"), 402 if e.code == "credits" else 422
+        return jsonify(item=item, credits_left=left)
+
+    @bp.patch("/sites/<site_id>/ai/items/<item_id>")
+    @need("admin")
+    def ai_edit(site_id, item_id):
+        site_or_404(site_id)
+        d = body()
+        return jsonify(item=edits.edit(site_id, item_id, d.get("text"), d.get("alts")))
+
+    @bp.post("/sites/<site_id>/ai/items/<item_id>/<action>")
+    @need("admin")
+    def ai_act(site_id, item_id, action):
+        """approve (the plugin applies it), skip, or undo."""
+        s = site_or_404(site_id)
+        status = {"approve": "approved", "skip": "skipped", "undo": "reverting"}.get(action)
+        if not status:
+            abort(404)
+        if status != "skipped":
+            bad = ai_gate(s)
+            if bad:
+                return bad
+        item = edits.set_status(site_id, item_id, status, g.user.get("email") or "")
+        if status != "skipped":
+            threading.Thread(target=connector.nudge, args=(s,), daemon=True).start()
+        return jsonify(item=item)
+
+    # ---- Search Console: how the pages do in Google search ----------------------------------------------
+    @bp.get("/sites/<site_id>/search")
+    def search_status(site_id):
+        site_or_404(site_id)
+        saved = db.kv_get(f"gsc:{site_id}")
+        out = {"configured": gsc.configured(), "connected": bool(saved), "property": (saved or {}).get("property"), "error": (saved or {}).get("error"),
+               "min_impressions": gsc.MIN_IMPRESSIONS}
+        data = db.kv_get(f"gsc-data:{site_id}")
+        if data:
+            summary, opps = gsc.analyse(data)
+            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps, series=data.get("series"), queries=data.get("queries"))
+        return jsonify(out)
+
+    @bp.post("/sites/<site_id>/search/connect")
+    @need("admin")
+    def search_connect(site_id):
+        s = site_or_404(site_id)
+        if not gsc.configured():
+            return jsonify(error="Google is not set up on this server yet."), 503
+        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], str(body().get("tab") or "search")))
+
+    @bp.post("/sites/<site_id>/search/refresh")
+    @need("admin")
+    def search_refresh(site_id):
+        s = site_or_404(site_id)
+        if security.limited("gsc-refresh", 10, 5, key=site_id):
+            return jsonify(error="Refreshed a few times already. Try again in a few minutes.", code="rate"), 429
+        try:
+            data = gsc.refresh(s)
+        except Exception:
+            log.exception("Search Console refresh failed for %s", site_id)
+            return jsonify(error="Google did not answer. Try again in a moment."), 502
+        if data is None:
+            return jsonify(error="Search Console access is missing. Connect it again.", code="reconnect"), 409
+        return search_status(site_id)
+
+    @bp.post("/sites/<site_id>/search/disconnect")
+    @need("admin")
+    def search_disconnect(site_id):
+        site_or_404(site_id)
+        gsc.disconnect(site_id)
+        return jsonify(ok=True)
 
     @bp.post("/sites/<site_id>/wordpress-plugin")
     @need("admin")

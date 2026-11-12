@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, CreditCard, Headphones, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Building2, CreditCard, Headphones, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import useSWR from "swr";
 import { fetcher, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "./theme";
 import { Icon } from "./ui";
 import { useLogoutConfirm } from "./confirm-logout";
 import { SupportPill } from "./support-session";
+import { useAiCredits } from "./ai-topup";
 
 function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
   useEffect(() => {
@@ -211,6 +212,20 @@ function PlanPill() {
   );
 }
 
+/** What is left of the AI credits, next to the plan. Opens Billing, where more can be bought. */
+function AiCreditsPill() {
+  const { isAdmin } = useMe();
+  const { data } = useAiCredits();
+  if (!data || !data.allowed) return null;
+  const none = data.left < 1;
+  const cls = `inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold ${none ? "bg-warn-soft text-warn" : "bg-soft text-ink-2"}`;
+  const body = <><Sparkles size={14} aria-hidden="true" className={none ? "text-warn" : "text-brand"} /><span>{data.left.toLocaleString()}<span className="max-sm:hidden"> AI credits</span></span></>;
+  const title = `AI credits for fixing WordPress websites: ${data.used.toLocaleString()} of ${data.quota.toLocaleString()} used this month${data.bonus ? `, plus ${data.bonus.toLocaleString()} bought` : ""}.`;
+  return isAdmin
+    ? <Link href="/settings?tab=billing" title={title} aria-label={title} className={cls}>{body}</Link>
+    : <span title={title} aria-label={title} className={cls}>{body}</span>;
+}
+
 // ---- bar ----------------------------------------------------------------------
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const { me } = useMe();
@@ -228,7 +243,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
     <>
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-2 border-b border-line bg-surface px-3 lg:px-6">
         <button onClick={onMenu} aria-label="Open menu" className={`${iconBtn} lg:hidden`}><Icon.menu /></button>
-        <div className="flex min-w-0 flex-1 items-center gap-2"><span className="hidden sm:block"><SupportPill /></span><PlanPill /></div>
+        <div className="flex min-w-0 flex-1 items-center gap-2"><span className="hidden sm:block"><SupportPill /></span><PlanPill /><AiCreditsPill /></div>
         <div className="flex items-center gap-1">
           <ThemeToggle />
           <button onClick={() => setSearching(true)} aria-label="Search (Ctrl K)" title="Search (Ctrl K)" className={`${iconBtn} max-sm:hidden`}><Icon.search /></button>

@@ -1,11 +1,13 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X, History, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X, History, CheckCircle2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { fixGuide } from "@/lib/fix-guides";
+import { SearchCard } from "./search-tab";
+import { AI_RULES, AiFixModal } from "./ai-fix-modal";
 import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
 import { TrackingInstall } from "./tracking-install";
@@ -127,6 +129,7 @@ export function AnalyticsTab({ id }: { id: string }) {
           <button key={d} aria-pressed={days === d} onClick={() => setDays(d)} className={`min-h-10 rounded-[7px] px-5 text-sm ${days === d ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>{d} days</button>
         ))}
       </div>
+      <SearchCard id={id} days={days} />
       {empty && (
         <Card><Empty icon={Users} title="No visits recorded yet"
           action={!ready ? <button type="button" onClick={openSetup} className={btn.primary}>{isWp ? "Connect the plugin" : "Get the tracking snippet"}</button> : undefined}>
@@ -190,6 +193,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
   const [asking, setAsking] = useState(false);
   const [open, setOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const item = fx?.items[issue.rule];
   const guide = isWp ? null : fixGuide(issue.rule, platform);
   const pages = issue.examples ?? [];
@@ -229,6 +233,13 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
     else if (!fx.connected) control = <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>;
     else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>;
     else control = <button type="button" onClick={() => setAsking(true)} className={`${btn.primary} whitespace-nowrap`}><Wrench size={15} aria-hidden="true" />Fix this issue</button>;
+  }
+  // text findings (descriptions, titles, alt text) are fixed with AI drafts that the owner reviews
+  if (isWp && fx && !item && AI_RULES.includes(issue.rule)) {
+    if (!fx.allowed) control = <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with AI</Link>;
+    else if (!fx.connected) control = <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>;
+    else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to fix this.</span>;
+    else control = <button type="button" onClick={() => setAiOpen(true)} className={`${btn.primary} whitespace-nowrap`}><Sparkles size={15} aria-hidden="true" />Fix with AI</button>;
   }
   // websites that cannot be fixed with one click (not WordPress) get a panel that explains the fix instead
   if (!isWp) control = <button type="button" onClick={() => setGuideOpen((o) => !o)} aria-expanded={guideOpen} className={`${btn.secondary} whitespace-nowrap`}>{guideOpen ? "Hide fix" : "Show fix"}<ChevronDown size={16} aria-hidden="true" className={`transition-transform ${guideOpen ? "rotate-180" : ""}`} /></button>;
@@ -272,6 +283,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
       </div>
       {control && <div className="hidden shrink-0 lg:flex lg:self-start lg:justify-end">{control}</div>}
 
+      {aiOpen && <AiFixModal siteId={siteId} issue={issue} host={host} onClose={() => setAiOpen(false)} />}
       {asking && item && (
         <div role="dialog" aria-modal="true" aria-labelledby={`fix-${issue.rule}`} className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/60 p-4">
           <div className="flex max-h-[92vh] w-[min(560px,100%)] flex-col gap-4 overflow-y-auto rounded-2xl border border-line bg-surface p-6 text-ink shadow-[0_24px_80px_rgba(15,23,42,0.28)]">

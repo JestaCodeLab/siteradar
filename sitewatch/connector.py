@@ -13,7 +13,7 @@ import zipfile
 
 from flask import Blueprint, jsonify, request
 
-from . import db, fixes, netguard, security, sites
+from . import db, edits, fixes, netguard, security, sites
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "plugin", "wordpress")
 PLUGIN_VERSION_FILE = os.path.join(PLUGIN_DIR, "siteradar.php")
@@ -148,7 +148,9 @@ def blueprint(cfg):
         db.kv_set(f"connector:{site['id']}", c)
         if isinstance(d.get("fixes"), list):          # the fixes the plugin has really switched on
             fixes.report(site["id"], d["fixes"])
-        return jsonify(ok=True, snippet=True, fixes=fixes.enabled(site["id"]))
+        if isinstance(d.get("edit_results"), list):   # what the plugin did with the text changes it was given
+            edits.report(site["id"], d["edit_results"])
+        return jsonify(ok=True, snippet=True, fixes=fixes.enabled(site["id"]), edits=edits.pending(site["id"]))
 
     @bp.post("/disconnect")
     def disconnect():

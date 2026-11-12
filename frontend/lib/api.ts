@@ -224,3 +224,18 @@ export interface AiAdmin {
   by_kind: { kind: string; drafts: number; usd: number }[]; top: { workspace: string; id: number; drafts: number; usd: number }[];
   bundles: { credits: number; price_ghs: number; price_usd: number }[]; plans: { id: string; name: string; ai_credits: number; price_month_usd: number }[];
 }
+
+export interface AiEdit {
+  id: string; rule: string; field: "desc" | "title" | "alt"; url: string; current: string; error?: string;
+  status: "draft" | "approved" | "applied" | "failed" | "reverting" | "reverted" | "skipped"; text?: string; alts?: { src: string; alt: string }[];
+}
+export interface AiTargets { field: "desc" | "title" | "alt"; label: string; count: number; pages: { url: string; detail: string; item: AiEdit | null }[]; credits: { quota: number; used: number; bonus: number; left: number } }
+
+export interface SearchOpportunity { page: string; clicks: number; impressions: number; ctr: number; position: number; expected_ctr: number; missed_clicks: number; queries: { query: string; clicks: number; impressions: number }[] }
+export interface SearchStatus {
+  configured: boolean; connected: boolean; property: string | null; error: "no_property" | "revoked" | "list_failed" | null; min_impressions: number;
+  series?: SearchPoint[] | null; queries?: { query: string; clicks: number; impressions: number }[] | null;
+  fetched?: number; start?: string; end?: string; summary?: { clicks: number; impressions: number; ctr: number; position: number | null; pages: number }; opportunities?: SearchOpportunity[];
+}
+
+export interface SearchPoint { d: string; clicks: number; impressions: number; ctr: number; position: number | null }
