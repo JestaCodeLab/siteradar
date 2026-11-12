@@ -210,3 +210,6 @@ export interface BillingData {
   card: string | null; last_method: string | null; comped: boolean; storage: { used_mb: number; limit_mb: number };
   test_mode: boolean; grace_days: number;
 }
+
+export interface FixItem { label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
+export interface FixesResponse { allowed: boolean; connected: boolean; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }

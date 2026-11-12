@@ -121,6 +121,21 @@ function siteradar_render_page() {
 			<?php endif; ?>
 		</section>
 
+		<?php $siteradar_fixes = siteradar_active_fixes(); ?>
+		<section class="siteradar-card" aria-labelledby="siteradar-fixes">
+			<h2 id="siteradar-fixes">Fixes from SiteRadar</h2>
+			<?php if ( $siteradar_fixes ) : ?>
+				<p>These fixes were switched on in your SiteRadar account. Switch them off there and they are removed from this website.</p>
+				<ul class="siteradar-steps">
+					<?php foreach ( $siteradar_fixes as $siteradar_fix ) : ?>
+						<li><?php echo esc_html( siteradar_fix_catalog()[ $siteradar_fix ] ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p>No fixes are switched on. When you fix a finding from the Audit tab in SiteRadar, it shows up here.</p>
+			<?php endif; ?>
+		</section>
+
 		<section class="siteradar-card" aria-labelledby="siteradar-track">
 			<h2 id="siteradar-track">Tracking</h2>
 			<p>The tracking snippet counts visitors, sources and page-load times for your SiteRadar reports.</p>

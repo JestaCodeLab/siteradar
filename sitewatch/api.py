@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, connector, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, connector, db, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -411,6 +411,30 @@ def blueprint(cfg):
         if security.limited("connector-check", 10, 5, key=site_id):
             return jsonify(error="Checked a few times already. Wait a minute and try again.", code="rate"), 429
         return jsonify(connector.check(s))
+
+    @bp.get("/sites/<site_id>/fixes")
+    def site_fixes(site_id):
+        """The fixes SiteRadar can apply through the connected plugin, and where each one stands."""
+        site_or_404(site_id)
+        items, log = fixes.listing(site_id)
+        st = connector.status(site_id)
+        return jsonify(allowed=bool(plans.limits(g.ws).get("one_click_fix")), connected=st["connected"], items=items, log=log)
+
+    @bp.post("/sites/<site_id>/fixes/<rule>")
+    @need("admin")
+    def set_fix(site_id, rule):
+        """Apply a fix ({"on": true}) or undo it ({"on": false}). It is switched on here; the plugin applies it and confirms."""
+        s = site_or_404(site_id)
+        if not plans.limits(g.ws).get("one_click_fix"):
+            return jsonify(error="One-click fixes are part of the Starter, Growth and Scale plans.", code="limit"), 402
+        on = bool((body() or {}).get("on", True))
+        if on and not connector.status(site_id)["connected"]:
+            return jsonify(error="Connect the SiteRadar plugin first.", code="not_connected"), 409
+        if not fixes.set_enabled(site_id, rule, on, g.user.get("email") or ""):
+            return jsonify(error="There is no automatic fix for this finding."), 404
+        threading.Thread(target=connector.nudge, args=(s,), daemon=True).start()
+        items, log = fixes.listing(site_id)
+        return jsonify(item=items[rule], log=log)
 
     @bp.post("/sites/<site_id>/wordpress-plugin")
     @need("admin")

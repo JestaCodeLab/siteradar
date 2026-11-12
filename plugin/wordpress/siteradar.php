@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SiteRadar
  * Description: Connects this website to your SiteRadar account. Adds the tracking snippet automatically and, in later versions, applies the fixes you approve in SiteRadar.
- * Version: 0.1.3
+ * Version: 0.2.0
  * Requires at least: 5.6
  * Requires PHP: 8.2
  * Author: SiteRadar
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SITERADAR_VERSION', '0.1.3' );
+define( 'SITERADAR_VERSION', '0.2.0' );
 define( 'SITERADAR_FILE', __FILE__ );
 define( 'SITERADAR_DIR', plugin_dir_path( __FILE__ ) );
 
@@ -31,6 +31,7 @@ if ( PHP_VERSION_ID < 80200 ) {
 
 require_once SITERADAR_DIR . 'includes/connection.php';
 require_once SITERADAR_DIR . 'includes/snippet.php';
+require_once SITERADAR_DIR . 'includes/fixes.php';
 require_once SITERADAR_DIR . 'includes/admin.php';
 
 register_activation_hook( __FILE__, 'siteradar_activate' );
@@ -38,6 +39,8 @@ register_deactivation_hook( __FILE__, 'siteradar_deactivate' );
 
 add_action( 'plugins_loaded', 'siteradar_import_connection' );
 add_action( 'wp_head', 'siteradar_print_snippet', 1 );
+add_action( 'wp_head', 'siteradar_print_viewport', 1 );
+add_action( 'send_headers', 'siteradar_send_fix_headers' );
 add_action( 'siteradar_heartbeat', 'siteradar_send_heartbeat' );
 add_action( 'admin_init', 'siteradar_maybe_heartbeat' );
 add_action( 'rest_api_init', 'siteradar_register_rest' );

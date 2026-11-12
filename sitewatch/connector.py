@@ -13,7 +13,7 @@ import zipfile
 
 from flask import Blueprint, jsonify, request
 
-from . import db, netguard, security, sites
+from . import db, fixes, netguard, security, sites
 
 PLUGIN_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "plugin", "wordpress")
 PLUGIN_VERSION_FILE = os.path.join(PLUGIN_DIR, "siteradar.php")
@@ -70,8 +70,23 @@ def check(site):
             c["last_seen"] = time.time()
         elif result == "gone":
             c["last_seen"], c["info"] = None, {}
+            fixes.report(site["id"], [])
         db.kv_set(f"connector:{site['id']}", c)
     return {"result": result, **status(site["id"])}
+
+
+def nudge(site):
+    """Tell the plugin to check in now, so a fix is applied within seconds instead of at the next hourly check. The request carries nothing:
+    the plugin fetches what to do from SiteRadar with its own key. Best effort; the hourly check-in is the fallback."""
+    base = str(site["url"]).rstrip("/")
+    for url in (f"{base}/wp-json/siteradar/v1/nudge", f"{base}/?rest_route=/siteradar/v1/nudge"):
+        try:
+            r = netguard.post(url, timeout=20, headers={"User-Agent": "SiteRadar-Connector/1.0"})
+            if r.status_code == 200:
+                return True
+        except Exception:
+            continue
+    return False
 
 
 def auto_check(site, every=6 * 3600):
@@ -131,7 +146,9 @@ def blueprint(cfg):
         c = db.kv_get(f"connector:{site['id']}")
         c.update(last_seen=time.time(), info=info)
         db.kv_set(f"connector:{site['id']}", c)
-        return jsonify(ok=True, snippet=True)
+        if isinstance(d.get("fixes"), list):          # the fixes the plugin has really switched on
+            fixes.report(site["id"], d["fixes"])
+        return jsonify(ok=True, snippet=True, fixes=fixes.enabled(site["id"]))
 
     @bp.post("/disconnect")
     def disconnect():
@@ -142,6 +159,7 @@ def blueprint(cfg):
         c = db.kv_get(f"connector:{site['id']}")
         c.update(last_seen=None, info={})
         db.kv_set(f"connector:{site['id']}", c)
+        fixes.report(site["id"], [])          # the plugin is off, so none of its fixes are active any more
         return jsonify(ok=True)
 
     return bp
