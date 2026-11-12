@@ -96,6 +96,8 @@ def limits(ws):
     """Plan for a workspace row. A workspace without a paid plan (never subscribed, or lapsed) is locked: it keeps its data but can
     run no websites. A super admin's custom limits win over the plan's."""
     plan = get(ws["plan_id"]) or get("freelance")
+    if ws.get("ai_eligible") == 0:         # workspaces that existed when AI credits launched get none from their plan; a custom limit below can still grant some
+        plan = {**plan, "ai_credits": 0}
     custom = ws.get("limits_override") or {}
     if custom:
         plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}

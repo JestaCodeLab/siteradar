@@ -295,6 +295,10 @@ UPDATE plans SET ai_credits=500 WHERE id='starter';
 UPDATE plans SET ai_credits=3000 WHERE id='growth';
 UPDATE plans SET ai_credits=10000 WHERE id='scale';
 """),
+    (21, """
+ALTER TABLE workspaces ADD COLUMN ai_eligible INTEGER NOT NULL DEFAULT 1;
+UPDATE workspaces SET ai_eligible=0;
+"""),
 ]
 
 
