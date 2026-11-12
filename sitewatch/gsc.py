@@ -38,10 +38,10 @@ def _saved(site_id):
     return db.kv_get(f"gsc:{site_id}")
 
 
-def auth_url(site, ws_id, user_id):
+def auth_url(site, ws_id, user_id, tab="search"):
     """Where to send the owner to approve read-only access. The state is single use and ties the answer to this website and person."""
     state = secrets.token_urlsafe(24)
-    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "created": time.time()})
+    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "tab": tab if tab in ("search", "analytics") else "search", "created": time.time()})
     q = {"client_id": os.environ["GOOGLE_CLIENT_ID"], "redirect_uri": redirect_uri(), "response_type": "code", "scope": SCOPE,
          "state": state, "access_type": "offline", "prompt": "consent", "include_granted_scopes": "false"}
     return google_auth.AUTH_URL + "?" + urlencode(q)

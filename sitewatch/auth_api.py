@@ -163,7 +163,7 @@ def blueprint(cfg):
         st = gsc.take_state(request.args.get("state", "")) if request.args.get("state") else None
         if not st:
             return redirect(app_url() + "/overview")
-        back = f"{app_url()}/websites/{st['site_id']}?tab=search"
+        back = f"{app_url()}/websites/{st['site_id']}?tab={st.get('tab', 'search')}"
         code, site = request.args.get("code"), sites.get_any(st["site_id"])
         if request.args.get("error") or not code or not site:
             return redirect(back + "&gsc=denied")

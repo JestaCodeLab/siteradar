@@ -548,7 +548,7 @@ def blueprint(cfg):
         s = site_or_404(site_id)
         if not gsc.configured():
             return jsonify(error="Google is not set up on this server yet."), 503
-        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"]))
+        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], str(body().get("tab") or "search")))
 
     @bp.post("/sites/<site_id>/search/refresh")
     @need("admin")

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { Search } from "lucide-react";
@@ -20,29 +21,84 @@ const NOTICE: Record<string, [boolean, string, string?]> = {
   error: [false, "Could not finish connecting to Google.", "Please try again."],
 };
 
-/** How the website's pages do in Google search, from the owner's own Search Console (read-only), and which pages should get more clicks. */
-export function SearchTab({ id }: { id: string }) {
-  const { isAdmin } = useMe();
+/** Shows the result of coming back from Google, once, then clears it from the address. */
+function useGscNotice(id: string, tab: string, done: () => void) {
   const toast = useToast();
   const router = useRouter();
   const flag = useSearchParams().get("gsc");
-  const { data, error, mutate } = useSWR<SearchStatus>(`/api/sites/${id}/search`, fetcher);
-  const [busy, setBusy] = useState<string | null>(null);
-
   useEffect(() => {
     if (!flag || !NOTICE[flag]) return;
     const [ok, title, text] = NOTICE[flag];
     if (ok) toast.success(title); else toast.error(title, text);
-    router.replace(`/websites/${id}?tab=search`, { scroll: false });
-    mutate();
+    router.replace(`/websites/${id}?tab=${tab}`, { scroll: false });
+    done();
   }, [flag]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+async function startConnect(id: string, tab: string) {
+  const r = await send<{ url: string }>("POST", `/api/sites/${id}/search/connect`, { tab });
+  window.location.href = r.url;
+}
+
+/** The Google search summary for the Analytics tab: numbers and the top pages to improve when connected, or an invitation to connect when not. */
+export function SearchCard({ id }: { id: string }) {
+  const { isAdmin } = useMe();
+  const toast = useToast();
+  const { data, mutate } = useSWR<SearchStatus>(`/api/sites/${id}/search`, fetcher);
+  const [busy, setBusy] = useState(false);
+  useGscNotice(id, "analytics", () => { mutate(); });
+  if (!data || !data.configured) return null;
+
+  const connected = data.connected && data.error !== "revoked";
+  if (!connected) {
+    return (
+      <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
+        <div className="flex min-w-[260px] flex-1 flex-col gap-1">
+          <h2 className="text-lg font-semibold">See how this website does in Google</h2>
+          <p className="text-sm leading-relaxed text-ink-2">{data.error === "revoked" ? "Google access was removed or has expired. Connect again to keep the data coming." : "Connect Google Search Console to see clicks, where your pages rank, and which pages should get more clicks. Read-only, and you can disconnect any time."}</p>
+        </div>
+        {isAdmin ? <button type="button" disabled={busy} onClick={async () => { setBusy(true); try { await startConnect(id, "analytics"); return; } catch (e) { toast.error(e instanceof Error ? e.message : "Could not start the connection."); } setBusy(false); }} className={btn.primary}>{busy ? "Opening Google…" : "Connect Google Search Console"}</button>
+          : <span className="text-sm text-muted">Ask an account admin to connect it.</span>}
+      </Card>
+    );
+  }
+
+  const s = data.summary, top = (data.opportunities ?? []).slice(0, 3);
+  return (
+    <Card className="flex flex-col gap-4 p-5">
+      <CardTitle aside={<Link href={`/websites/${id}?tab=search`} className="font-semibold text-brand">See details</Link>}>Google search, last 28 days</CardTitle>
+      {!s ? <p className="text-sm text-muted">{data.error === "no_property" ? "This website is not in your Search Console yet. Open the Search tab for what to do." : "Connected. The first data arrives shortly. Open the Search tab and press Refresh."}</p> : (
+        <>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+            {([["Clicks", s.clicks.toLocaleString()], ["Times shown", s.impressions.toLocaleString()], ["Click rate", pct(s.ctr)], ["Average position", s.position ? String(s.position) : "—"]] as const).map(([k, v]) => (
+              <div key={k} className="flex flex-col gap-0.5"><span className="text-[13px] text-muted">{k}</span><span className="text-[22px] font-semibold leading-tight">{v}</span></div>))}
+          </div>
+          {top.length > 0 && (
+            <div className="flex flex-col gap-1.5 border-t border-line-soft pt-3">
+              <span className="text-[13px] font-semibold text-muted">Pages that should get more clicks</span>
+              {top.map((o) => <span key={o.page} className="flex flex-wrap items-center justify-between gap-2 text-sm"><span className="min-w-0 truncate font-mono">{path(o.page)}</span><span className="shrink-0 text-[13px] text-ink-2">about {o.missed_clicks.toLocaleString()} more clicks a month</span></span>)}
+            </div>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
+
+/** How the website's pages do in Google search, from the owner's own Search Console (read-only), and which pages should get more clicks. */
+export function SearchTab({ id }: { id: string }) {
+  const { isAdmin } = useMe();
+  const toast = useToast();
+  const { data, error, mutate } = useSWR<SearchStatus>(`/api/sites/${id}/search`, fetcher);
+  const [busy, setBusy] = useState<string | null>(null);
+  useGscNotice(id, "search", () => { mutate(); });
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-72" />;
 
   async function connect() {
     setBusy("connect");
-    try { const r = await send<{ url: string }>("POST", `/api/sites/${id}/search/connect`); window.location.href = r.url; return; }
+    try { await startConnect(id, "search"); return; }
     catch (e) { toast.error(e instanceof Error ? e.message : "Could not start the connection."); }
     setBusy(null);
   }
