@@ -507,6 +507,15 @@ def blueprint(cfg):
         except RuntimeError as e:
             return jsonify(error=str(e)), 502
 
+    @bp.post("/billing/ai-topup")
+    @workspace_required
+    @need("owner")
+    def billing_ai():
+        try:
+            return jsonify(billing.checkout_ai(cfg, g.ws, g.user, body().get("credits")))
+        except RuntimeError as e:
+            return jsonify(error=str(e)), 502
+
     @bp.get("/billing/invoices/<reference>.pdf")
     @workspace_required
     @need("admin")

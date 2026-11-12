@@ -69,7 +69,7 @@ export default function PlanStep() {
             <span className="text-lg font-semibold">{p.name}</span>
             <span className="text-[28px] font-semibold leading-none">{yearly ? money(p.price_year, p.currency) : priceLine(p, false)}<span className="text-sm font-normal text-muted"> / {yearly ? "year" : "month"}</span></span>
             {yearly && <span className="-mt-2 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
-            <ul className="flex flex-col gap-1.5 text-[13px] text-ink-2">{planFeatures(p).slice(0, 5).map((f) => <li key={f} className="flex gap-2"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f}</li>)}</ul>
+            <ul className="flex flex-col gap-1.5 text-[13px] text-ink-2">{planFeatures(p).slice(0, 6).map((f) => <li key={f.text} className="flex gap-2"><Icon.check className="mt-0.5 shrink-0 text-ok" />{f.tip ? `${f.text} for WordPress fixes` : f.text}</li>)}</ul>
           </button>
         ))}
       </div>

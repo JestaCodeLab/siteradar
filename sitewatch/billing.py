@@ -144,6 +144,9 @@ def confirm(cfg, reference):
     if pay["kind"] == "sms":
         db.exec("UPDATE workspaces SET sms_bonus=sms_bonus+? WHERE id=?", (int(pay["plan_id"][3:]), ws["id"]))
         return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
+    if pay["kind"] == "ai":
+        db.exec("UPDATE workspaces SET ai_bonus=ai_bonus+? WHERE id=?", (int(pay["plan_id"][2:]), ws["id"]))
+        return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
     switch_plan(cfg, ws, pay["plan_id"], pay["cycle"], base + PERIOD[pay["cycle"]])
     db.exec("UPDATE workspaces SET onboarded=1 WHERE id=?", (ws["id"],))      # paying for a plan also completes onboarding
     discounts.on_paid(db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],)))
@@ -344,6 +347,31 @@ def checkout_sms(cfg, ws, user, qty):
     return _start(cfg, ws, user, ref, float(bundle["price"]), {"workspace_id": ws["id"], "sms": bundle["qty"]})
 
 
+# ---- AI draft credits ----------------------------------------------------------------
+
+DEFAULT_AI_BUNDLES = [{"credits": 250, "price_ghs": 40, "price_usd": 3}, {"credits": 1000, "price_ghs": 110, "price_usd": 9},
+                      {"credits": 3000, "price_ghs": 300, "price_usd": 24}, {"credits": 10000, "price_ghs": 850, "price_usd": 70}]
+
+
+def ai_bundles():
+    """Credit packages, priced in both currencies. A super admin sets them (AI credits); the defaults are placeholders until then."""
+    return (db.kv_get("platform") or {}).get("ai_bundles") or DEFAULT_AI_BUNDLES
+
+
+def checkout_ai(cfg, ws, user, credits):
+    bundle = next((b for b in ai_bundles() if b["credits"] == int(credits or 0)), None)
+    if not bundle:
+        raise ValueError("That package is not available.")
+    if not plans.limits(ws).get("one_click_fix"):
+        raise plans.LimitError("AI drafts need an active paid plan.")
+    cur = ws["currency"]
+    amount = float(bundle["price_usd"] if cur == "USD" else bundle["price_ghs"])
+    ref = "sw_" + secrets.token_hex(10)
+    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
+           (ws["id"], ref, f"ai{bundle['credits']}", "once", amount, cur, "pending", "ai", time.time()))
+    return _start(cfg, ws, user, ref, amount, {"workspace_id": ws["id"], "ai": bundle["credits"]}, cur)
+
+
 def invoice_number(pay):
     return f"INV-{pay['id']:04d}"
 
@@ -351,6 +379,8 @@ def invoice_number(pay):
 def describe(pay):
     if pay["kind"] == "sms":
         return f"{pay['plan_id'][3:]} SMS alert bundle"
+    if pay["kind"] == "ai":
+        return f"{int(pay['plan_id'][2:]):,} AI draft credits"
     plan = plans.get(pay["plan_id"]) or {"name": pay["plan_id"]}
     return f"{plan['name']} plan, {pay['cycle']}"
 

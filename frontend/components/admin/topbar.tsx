@@ -28,7 +28,7 @@ const panel = "absolute right-0 top-12 z-50 rounded-xl border border-[#E2E5EA] b
 const PAGES = [
   { label: "Overview", hint: "How the business is doing", href: "/admin" }, { label: "Customers", hint: "Every workspace", href: "/admin/customers" },
   { label: "Plans and pricing", hint: "Prices, limits and features", href: "/admin/plans" }, { label: "Payments", hint: "Every charge", href: "/admin/payments" },
-  { label: "Platform health", hint: "Services, errors and banner", href: "/admin/health" }, { label: "Audit and messages", hint: "Admin actions and contact form", href: "/admin/audit" },
+  { label: "AI credits", hint: "Token budget, usage and credit packages", href: "/admin/ai" }, { label: "Platform health", hint: "Services, errors and banner", href: "/admin/health" }, { label: "Audit and messages", hint: "Admin actions and contact form", href: "/admin/audit" },
 ];
 
 function SearchDialog({ onClose }: { onClose: () => void }) {

@@ -8,7 +8,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, session
 
-from . import accounts, billing, db, discounts, mailer, plans, sites, sms, storage
+from . import accounts, ai, billing, db, discounts, mailer, plans, sites, sms, storage
 from .ctx import SUPPORT_MINUTES, super_required
 
 PLAN_COLORS = {"freelance": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
@@ -264,7 +264,7 @@ def blueprint(cfg):
                     "support.mode": f"{who} changed the support session: {a['detail']}", "note": f"{who} added an internal note",
                     "customer.update": f"{who} updated the account: {a['detail']}", "payment.link": f"{who} sent a payment link to the owner",
                     "payment.retry": f"{who} retried the payment ({a['detail']})", "payment.refund": f"{who} refunded GHS {a['detail']}",
-                    "plan.cancel": a["detail"], "plan.lapsed": a["detail"]}.get(a["action"], f"{who}: {a['action']} {a['detail']}")
+                    "ai.credits": f"{who} changed AI credits: {a['detail']}", "plan.cancel": a["detail"], "plan.lapsed": a["detail"]}.get(a["action"], f"{who}: {a['action']} {a['detail']}")
             events.append({"ts": a["ts"], "text": text, "tone": "bad" if a["action"] == "plan.lapsed" else "purple" if a["action"] != "plan.cancel" else "muted"})
         for p in db.q("SELECT * FROM payments WHERE workspace_id=? AND status IN ('success','failed','abandoned','refunded') ORDER BY created DESC LIMIT 10", (ws["id"],)):
             ok = p["status"] in ("success", "refunded")
@@ -321,6 +321,8 @@ def blueprint(cfg):
                     if failed_recent and w["plan_status"] in ("past_due", "lapsed") else None),
             notes=[{"ts": n["ts"], "admin": n["first_name"] or "Admin", "text": n["detail"]} for n in db.q(
                 "SELECT a.ts, a.detail, u.first_name FROM admin_audit a LEFT JOIN users u ON u.id=a.admin_id WHERE a.workspace_id=? AND a.action='note' ORDER BY a.ts DESC LIMIT 20", (ws_id,))],
+            ai={**plans.ai_status(w), "history": [{"ts": a["ts"], "admin": a["first_name"] or "Admin", "text": a["detail"]} for a in db.q(
+                "SELECT a.ts, a.detail, u.first_name FROM admin_audit a LEFT JOIN users u ON u.id=a.admin_id WHERE a.workspace_id=? AND a.action='ai.credits' ORDER BY a.ts DESC LIMIT 8", (ws_id,))]},
             audit=trail(w), grace_days=billing.GRACE_DAYS, plans=[{"id": p["id"], "name": p["name"]} for p in cat.values()])
 
     @bp.patch("/customers/<int:ws_id>")
@@ -368,6 +370,28 @@ def blueprint(cfg):
         audit("customer.delete", ws_id, f"Deleted {name}: {removed['websites']} websites, {removed['subscriptions']} subscriptions, {removed['invoices']} invoices, "
                                          f"{removed['files']} files, {removed['people']} people. Reason: {reason}")
         return jsonify(ok=True, removed=removed)
+
+    @bp.post("/customers/<int:ws_id>/ai-credits")
+    def adjust_ai_credits(ws_id):
+        """Add credits to a customer's balance, or take some away. Only the credits they were given or bought can be taken back, never the monthly allowance
+        (change that with the plan's custom limits). A reason is required and is kept in the trail."""
+        w = ws_or_404(ws_id)
+        d = body()
+        n = int(float(d.get("amount") or 0))
+        reason = (d.get("reason") or "").strip()
+        if d.get("action") not in ("add", "remove") or n < 1:
+            raise ValueError("Choose add or remove and a number of credits above zero.")
+        if not reason:
+            raise ValueError("Give a reason, so the trail shows why.")
+        have = w.get("ai_bonus") or 0
+        if d["action"] == "add":
+            db.exec("UPDATE workspaces SET ai_bonus=ai_bonus+? WHERE id=?", (n, ws_id))
+        else:
+            if n > have:
+                raise ValueError(f"This customer only has {have:,} bought or given credits to take back. The monthly allowance comes from their plan.")
+            db.exec("UPDATE workspaces SET ai_bonus=ai_bonus-? WHERE id=?", (n, ws_id))
+        audit("ai.credits", ws_id, f"{'added' if d['action'] == 'add' else 'removed'} {n:,} credits ({reason[:200]}); balance {have + n if d['action'] == 'add' else have - n:,}")
+        return customer(ws_id)
 
     @bp.post("/customers/<int:ws_id>/notes")
     def add_note(ws_id):
@@ -455,7 +479,7 @@ def blueprint(cfg):
                     v = float(p[f])
                     if v < 0: raise ValueError("Prices can't be negative.")
                     sets.append(f"{f}=?"); args.append(v)
-            for f in ("sites", "members", "interval_minutes", "sms", "history_months", "audit_pages", "storage_mb"):
+            for f in ("sites", "members", "interval_minutes", "sms", "history_months", "audit_pages", "storage_mb", "ai_credits"):
                 if f in p:
                     v = int(float(p[f]))
                     if v < 0 or (f in ("sites", "members", "interval_minutes") and v < 1):
@@ -477,6 +501,66 @@ def blueprint(cfg):
             db.kv_set("platform", cur)
         audit("plans.save", None, json.dumps(d)[:900])
         return jsonify(plans_payload())
+
+    # ---- AI credits -------------------------------------------------------------------------------
+    DEFAULT_AI_BUDGET = 100            # US dollars a month the platform is willing to spend on AI
+
+    def ai_payload():
+        t = time.localtime()
+        start = time.mktime((t.tm_year, t.tm_mon, 1, 0, 0, 0, 0, 0, -1))
+        tot = lambda where, args: db.q1(f"SELECT COALESCE(SUM(input_tokens),0) i, COALESCE(SUM(output_tokens),0) o, COALESCE(SUM(credits),0) c, COUNT(*) n FROM ai_usage {where}", args)
+        month, ever = tot("WHERE ts>=?", (start,)), tot("", ())
+        platform = db.kv_get("platform") or {}
+        budget = float(platform.get("ai_budget_usd", DEFAULT_AI_BUDGET))
+        spent = ai.cost_usd(month["i"], month["o"])
+        used_tokens = month["i"] + month["o"]
+        per_token = spent / used_tokens if used_tokens else ai.cost_usd(3, 1) / 4         # this month's real blend, or 3 parts input to 1 part output until there is data
+        left_usd = max(budget - spent, 0)
+        bought = unused = 0
+        for w in db.q("SELECT * FROM workspaces WHERE name != '[deleted]'"):
+            st = plans.ai_status(w)
+            bought += st["bonus"]
+            unused += max(st["quota"] - st["used"], 0)
+        money = {r["currency"]: r["n"] for r in db.q("SELECT currency, COALESCE(SUM(amount),0) n FROM payments WHERE kind='ai' AND status='success' AND COALESCE(paid, created)>=? GROUP BY currency", (start,))}
+        return {
+            "model": ai.MODEL, "configured": ai.configured(), "price_in": ai.PRICE_IN, "price_out": ai.PRICE_OUT,
+            "budget_usd": budget, "spent_usd": round(spent, 4), "left_usd": round(left_usd, 4),
+            "tokens_left": int(left_usd / per_token) if per_token else 0, "tokens_used": used_tokens,
+            "month": {"input": month["i"], "output": month["o"], "drafts": month["c"]},
+            "all_time": {"input": ever["i"], "output": ever["o"], "drafts": ever["c"], "usd": round(ai.cost_usd(ever["i"], ever["o"]), 4)},
+            "avg_cost_per_draft": round(spent / month["c"], 6) if month["c"] else None,
+            "credits_bought_outstanding": bought, "credits_included_unused": unused, "bundle_revenue": money,
+            "by_kind": [{"kind": r["kind"], "drafts": r["c"], "usd": round(ai.cost_usd(r["i"], r["o"]), 4)} for r in db.q(
+                "SELECT kind, SUM(credits) c, SUM(input_tokens) i, SUM(output_tokens) o FROM ai_usage WHERE ts>=? GROUP BY kind", (start,))],
+            "top": [{"workspace": r["name"], "id": r["workspace_id"], "drafts": r["c"], "usd": round(ai.cost_usd(r["i"], r["o"]), 4)} for r in db.q(
+                """SELECT u.workspace_id, w.name, SUM(u.credits) c, SUM(u.input_tokens) i, SUM(u.output_tokens) o FROM ai_usage u
+                   JOIN workspaces w ON w.id=u.workspace_id WHERE u.ts>=? GROUP BY u.workspace_id, w.name ORDER BY SUM(u.input_tokens)+SUM(u.output_tokens) DESC LIMIT 8""", (start,))],
+            "bundles": billing.ai_bundles(),
+            "plans": [{"id": p["id"], "name": p["name"], "ai_credits": p["ai_credits"], "price_month_usd": p["price_month_usd"]} for p in plans.all_plans(False)],
+        }
+
+    @bp.get("/ai")
+    def ai_get():
+        return jsonify(ai_payload())
+
+    @bp.put("/ai")
+    def ai_save():
+        d = body()
+        cur = db.kv_get("platform") or {}
+        if "budget_usd" in d:
+            v = float(d["budget_usd"])
+            if v < 0:
+                raise ValueError("The budget can't be negative.")
+            cur["ai_budget_usd"] = v
+        if "bundles" in d:
+            out = [{"credits": int(b["credits"]), "price_ghs": float(b["price_ghs"]), "price_usd": float(b["price_usd"])} for b in d["bundles"]
+                   if int(b["credits"]) > 0 and float(b["price_ghs"]) >= 0 and float(b["price_usd"]) >= 0]
+            if not out:
+                raise ValueError("Keep at least one package.")
+            cur["ai_bundles"] = sorted(out, key=lambda b: b["credits"])
+        db.kv_set("platform", cur)
+        audit("ai.save", None, json.dumps(d)[:900])
+        return jsonify(ai_payload())
 
     # ---- payments ---------------------------------------------------------------------------------
     LABEL = {"success": "Paid", "failed": "Failed", "abandoned": "Failed", "pending": "Pending", "refunded": "Refunded"}

@@ -8,7 +8,7 @@ import { AdminCard, AdminHeader, Checkbox, aBtn, aInput } from "@/components/adm
 import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type PlanInfo } from "@/lib/api";
 
-type Plan = PlanInfo & { customers: number; audit_pages: number; storage_mb: number; priority_support: boolean };
+type Plan = PlanInfo & { customers: number; audit_pages: number; storage_mb: number; priority_support: boolean; ai_credits: number };
 interface Resp { plans: Plan[]; yearly_discount: number; methods: string[]; currency: string; sms_bundles: { qty: number; price: number }[] }
 
 const fmtStorage = (mb: number) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
@@ -26,9 +26,10 @@ const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (
   { key: "history_months", label: "History", show: (p) => fmtMonths(p.history_months), read: num },
   { key: "audit_pages", label: "Audit pages", show: (p) => String(p.audit_pages), read: num },
   { key: "storage_mb", label: "Storage", show: (p) => fmtStorage(p.storage_mb), read: parseStorage },
+  { key: "ai_credits", label: "AI drafts", show: (p) => String(p.ai_credits ?? 0), read: num },
 ];
 const USD_COL: (typeof COLS)[number] = { key: "price_month_usd", label: "USD / month", show: (p) => String(p.price_month_usd ?? 0), read: num };
-const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(7, minmax(76px,1fr)) 56px";
+const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(8, minmax(76px,1fr)) 56px";
 const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: boolean) => Partial<Plan>; fixed?: boolean }[] = [
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
   { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
@@ -66,7 +67,7 @@ export default function AdminPlans() {
       await send("PUT", "/api/admin/plans", {
         settings: { yearly_discount: disc, sms_bundles: cur.bundles },
         plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
-          history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, channels: p.channels,
+          history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, ai_credits: p.ai_credits, channels: p.channels,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
       });
       await mutate(); setDraft(null); setTyping({}); setMsg({ ok: true, text: "Saved. New prices apply to new subscriptions and renewals." });

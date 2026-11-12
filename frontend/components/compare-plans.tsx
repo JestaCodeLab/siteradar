@@ -4,13 +4,15 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import type { PlanInfo } from "@/lib/api";
 import { money } from "@/lib/me";
+import { AI_TIP } from "@/lib/plans";
+import { InfoTip } from "./info-tip";
 
 const AUDIT_PAGES: Record<string, string> = { freelance: "15", starter: "25", growth: "50", scale: "100" };
 const SUPPORT: Record<string, string> = { freelance: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 const CTA: Record<string, string> = { freelance: "Choose Freelance", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
 
 type Cell = { text: string; mono?: boolean; strong?: boolean } | { yes: boolean; note?: string };
-type Group = { title: string; rows: { label: string; cell: (p: PlanInfo) => Cell }[] };
+type Group = { title: string; rows: { label: string; tip?: string; cell: (p: PlanInfo) => Cell }[] };
 
 const GROUPS: Group[] = [
   { title: "Usage", rows: [
@@ -21,6 +23,9 @@ const GROUPS: Group[] = [
   ] },
   { title: "Monitoring", rows: [
     { label: "Check frequency", cell: (p) => ({ text: `Every ${p.interval_minutes} minute${p.interval_minutes === 1 ? "" : "s"}`, strong: p.interval_minutes === 1 }) },
+  ] },
+  { title: "AI fixes", rows: [
+    { label: "AI credits a month", tip: AI_TIP, cell: (p) => (p.ai_credits ? { text: p.ai_credits.toLocaleString(), mono: true } : { yes: false }) },
   ] },
   { title: "Alerts", rows: [
     { label: "Email alerts", cell: () => ({ yes: true }) },
@@ -80,7 +85,7 @@ export function ComparePlans({ plans, yearly }: { plans: PlanInfo[]; yearly: boo
               <tr><th colSpan={plans.length + 1} scope="colgroup" className="px-7 pb-3 pt-6 text-left text-xs font-bold uppercase tracking-[0.1em] text-[#C2410C]">{g.title}</th></tr>
               {g.rows.map((r) => (
                 <tr key={r.label} className="border-t border-[#EFE4D8]">
-                  <th scope="row" className="px-7 py-[18px] text-left font-medium">{r.label}</th>
+                  <th scope="row" className="px-7 py-[18px] text-left font-medium"><span className="inline-flex items-center gap-1.5">{r.label}{r.tip && <InfoTip label={r.label} text={r.tip} />}</span></th>
                   {plans.map((p) => <td key={p.id} className={`px-[22px] py-[18px] ${tint(p)}`}><Value c={r.cell(p)} /></td>)}
                 </tr>
               ))}
