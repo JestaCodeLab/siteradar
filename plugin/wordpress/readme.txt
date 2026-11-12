@@ -2,10 +2,10 @@
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 
-Connects this website to your SiteRadar account. Adds the tracking snippet automatically. Fixes you approve in SiteRadar will be applied by this plugin in later versions.
+Connects this website to your SiteRadar account. Adds the tracking snippet automatically. Applies the fixes you approve in SiteRadar.
 
 == Description ==
 Download this plugin from your SiteRadar account (it carries the connection details for your website), upload it under Plugins > Add New > Upload Plugin, and activate it.
@@ -27,3 +27,7 @@ Requires PHP 8.2 or newer.
 
 = 0.2.0 =
 * One-click fixes switched on in SiteRadar: security headers, hiding the PHP version and the mobile viewport tag.
+
+= 0.3.0 =
+* More one-click fixes: social sharing tags, structured data, canonical address, robots.txt, sitemap, lazy-loading images and secure links.
+* The SiteRadar menu now has Settings and Fixes pages.

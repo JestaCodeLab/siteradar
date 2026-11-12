@@ -10,6 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 function siteradar_admin_menu() {
 	// Its own item in the admin menu. The icon is set in siteradar_menu_icon_css(): WordPress repaints icons it is given as data URIs, which turns the orange square white.
 	add_menu_page( 'SiteRadar', 'SiteRadar', 'manage_options', 'siteradar', 'siteradar_render_page', 'none', 80 );
+	// Two pages under it. The first uses the same slug as the menu itself, so it replaces the automatic duplicate "SiteRadar" entry.
+	add_submenu_page( 'siteradar', 'SiteRadar settings', 'Settings', 'manage_options', 'siteradar', 'siteradar_render_page' );
+	add_submenu_page( 'siteradar', 'SiteRadar fixes', 'Fixes', 'manage_options', 'siteradar-fixes', 'siteradar_render_fixes' );
 }
 
 /**
@@ -24,7 +27,7 @@ function siteradar_menu_icon_css() {
  * The stylesheet is loaded on this page only, so it can never change how the rest of the admin looks.
  */
 function siteradar_admin_assets( $hook ) {
-	if ( 'toplevel_page_siteradar' !== $hook ) {
+	if ( false === strpos( (string) $hook, 'siteradar' ) ) {
 		return;
 	}
 	wp_enqueue_style( 'siteradar-admin', plugins_url( 'assets/siteradar-admin.css', SITERADAR_FILE ), array(), SITERADAR_VERSION );
@@ -121,21 +124,6 @@ function siteradar_render_page() {
 			<?php endif; ?>
 		</section>
 
-		<?php $siteradar_fixes = siteradar_active_fixes(); ?>
-		<section class="siteradar-card" aria-labelledby="siteradar-fixes">
-			<h2 id="siteradar-fixes">Fixes from SiteRadar</h2>
-			<?php if ( $siteradar_fixes ) : ?>
-				<p>These fixes were switched on in your SiteRadar account. Switch them off there and they are removed from this website.</p>
-				<ul class="siteradar-steps">
-					<?php foreach ( $siteradar_fixes as $siteradar_fix ) : ?>
-						<li><?php echo esc_html( siteradar_fix_catalog()[ $siteradar_fix ] ); ?></li>
-					<?php endforeach; ?>
-				</ul>
-			<?php else : ?>
-				<p>No fixes are switched on. When you fix a finding from the Audit tab in SiteRadar, it shows up here.</p>
-			<?php endif; ?>
-		</section>
-
 		<section class="siteradar-card" aria-labelledby="siteradar-track">
 			<h2 id="siteradar-track">Tracking</h2>
 			<p>The tracking snippet counts visitors, sources and page-load times for your SiteRadar reports.</p>
@@ -155,6 +143,65 @@ function siteradar_render_page() {
 				</div>
 			</form>
 		</section>
+	</div>
+	<?php
+}
+
+/**
+ * The Fixes page: every fix SiteRadar can apply to this website and whether it is switched on in the SiteRadar account.
+ */
+function siteradar_render_fixes() {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+	$logo    = plugins_url( 'assets/siteradar-logo.svg', SITERADAR_FILE );
+	$catalog = siteradar_fix_catalog();
+	$active  = siteradar_active_fixes();
+	$idle    = array_values( array_diff( array_keys( $catalog ), $active ) );
+	?>
+	<div class="wrap siteradar-wrap">
+		<div class="siteradar-head">
+			<img src="<?php echo esc_url( $logo ); ?>" alt="SiteRadar">
+			<span class="siteradar-version">Plugin version <?php echo esc_html( SITERADAR_VERSION ); ?></span>
+		</div>
+		<h1 class="screen-reader-text">SiteRadar fixes</h1>
+		<hr class="wp-header-end">
+
+		<section class="siteradar-card" aria-labelledby="siteradar-active">
+			<div class="siteradar-title">
+				<h2 id="siteradar-active">Fixes applied to this website</h2>
+				<span class="siteradar-chip <?php echo $active ? 'is-ok' : 'is-warn'; ?>"><?php echo esc_html( count( $active ) ); ?> active</span>
+			</div>
+			<?php if ( $active ) : ?>
+				<p>These fixes were switched on in your SiteRadar account and are active on this website now. To remove one, undo it from the Audit tab in SiteRadar.</p>
+				<ul class="siteradar-fixlist">
+					<?php foreach ( $active as $siteradar_name ) : ?>
+						<li>
+							<span class="siteradar-fixtext"><strong><?php echo esc_html( $catalog[ $siteradar_name ][0] ); ?></strong><span><?php echo esc_html( $catalog[ $siteradar_name ][1] ); ?></span></span>
+							<span class="siteradar-chip is-ok">Active</span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+				<p class="siteradar-muted">If you use a caching plugin, clear its cache so visitors get the change at once.</p>
+			<?php else : ?>
+				<p>No fixes are switched on yet. Open this website in SiteRadar, go to the Audit tab and press <strong>Fix this issue</strong> on a finding. It will show up here within a few seconds.</p>
+			<?php endif; ?>
+		</section>
+
+		<?php if ( $idle ) : ?>
+			<section class="siteradar-card" aria-labelledby="siteradar-idle">
+				<h2 id="siteradar-idle">Other fixes SiteRadar can apply</h2>
+				<p>These are not switched on. They appear as <strong>Fix this issue</strong> buttons in SiteRadar when an audit finds the matching problem.</p>
+				<ul class="siteradar-fixlist is-idle">
+					<?php foreach ( $idle as $siteradar_name ) : ?>
+						<li>
+							<span class="siteradar-fixtext"><strong><?php echo esc_html( $catalog[ $siteradar_name ][0] ); ?></strong><span><?php echo esc_html( $catalog[ $siteradar_name ][1] ); ?></span></span>
+							<span class="siteradar-chip is-warn">Not on</span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			</section>
+		<?php endif; ?>
 	</div>
 	<?php
 }

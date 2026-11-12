@@ -327,3 +327,44 @@
 		padding: 18px;
 	}
 }
+
+.siteradar-fixlist {
+	list-style: none;
+	margin: 14px 0 6px;
+	padding: 0;
+}
+
+.siteradar-fixlist li {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 14px 0;
+	border-top: 1px solid var(--sr-line);
+}
+
+.siteradar-fixlist .siteradar-fixtext {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.siteradar-fixlist .siteradar-fixtext strong {
+	font-size: 15px;
+	color: var(--sr-ink);
+}
+
+.siteradar-fixlist .siteradar-fixtext span {
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--sr-ink-2);
+}
+
+.siteradar-fixlist .siteradar-chip {
+	flex-shrink: 0;
+}
+
+.siteradar-fixlist.is-idle li {
+	opacity: 0.85;
+}
