@@ -97,8 +97,9 @@ export function SearchCard({ id, days = 28 }: { id: string; days?: number }) {
     <Card className="flex flex-col gap-4 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-lg font-semibold">Google search, last {data.series?.length ? days : 28} days</h2>
+          <h2 className="text-lg font-semibold">Search performance</h2>
           <span className="text-[13px] text-muted">
+            Google, last {data.series?.length ? days : 28} days ·{" "}
             {data.property ? <>Reading <b className="font-mono font-medium text-ink-2">{data.property.replace("sc-domain:", "")}</b></> : "Connected"}
             {data.fetched ? ` · updated ${fmtAgo(data.fetched)}` : ""}
             {isAdmin && data.property && <> · <button type="button" onClick={refresh} disabled={busy !== null} className="font-semibold text-brand hover:underline disabled:opacity-60">{busy === "refresh" ? "Updating…" : "Refresh"}</button></>}
