@@ -213,5 +213,5 @@ export interface BillingData {
   test_mode: boolean; grace_days: number;
 }
 
-export interface FixItem { label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
+export interface FixItem { title: string; severity: "high" | "medium" | "low"; issue_fix: string; label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
 export interface FixesResponse { allowed: boolean; connected: boolean; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }

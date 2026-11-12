@@ -79,10 +79,12 @@ def set_enabled(site_id, rule, on, who=""):
 
 def listing(site_id):
     """Every available fix with where it stands: available, queued (switched on, the plugin has not confirmed yet) or applied."""
+    from .auditor import RULES        # the finding's own wording and severity, so a fixed issue can still be listed after the audit stops reporting it
     s = _load(site_id)
     items = {}
     for rule, (key, label, what, confirm) in CATALOG.items():
         state = "applied" if key in s["applied"] and key in s["enabled"] else "queued" if key in s["enabled"] else "available"
-        items[rule] = {"label": label, "what": what, "confirm": confirm, "state": state,
+        _cat, sev, title, how = RULES.get(rule, ("", "low", rule, ""))
+        items[rule] = {"title": title, "severity": sev, "issue_fix": how, "label": label, "what": what, "confirm": confirm, "state": state,
                        "since": s["applied"].get(key) if state == "applied" else s["enabled"].get(key)}
     return items, s["log"][:10]
