@@ -460,7 +460,7 @@ def blueprint(cfg):
         """Apply a fix ({"on": true}) or undo it ({"on": false}). It is switched on here; the plugin applies it and confirms."""
         s = site_or_404(site_id)
         if not plans.limits(g.ws).get("one_click_fix"):
-            return jsonify(error="One-click fixes are part of the Starter, Growth and Scale plans.", code="limit"), 402
+            return jsonify(error="One-click fixes need an active paid plan.", code="limit"), 402
         on = bool((body() or {}).get("on", True))
         if on and not connector.status(site_id)["connected"]:
             return jsonify(error="Connect the SiteRadar plugin first.", code="not_connected"), 409
@@ -476,7 +476,7 @@ def blueprint(cfg):
         """The plugin as a zip with this website's connection key inside. Each download makes a new key, so older copies stop working."""
         s = site_or_404(site_id)
         if not plans.limits(g.ws).get("one_click_fix"):
-            return jsonify(error="One-click fixes are part of the Starter, Growth and Scale plans. Upgrade to download the plugin.", code="limit"), 402
+            return jsonify(error="One-click fixes need an active paid plan. Choose a plan to download the plugin.", code="limit"), 402
         found = stack.saved(site_id)
         if not found or found.get("platform") != "wordpress":
             return jsonify(error="This website was not detected as WordPress."), 409

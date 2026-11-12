@@ -8,23 +8,25 @@ import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow } from "@/lib/mkt-styles";
 import type { PlanInfo } from "@/lib/api";
 import { money } from "@/lib/me";
-import { usePlans } from "@/lib/plans";
+import { AI_TIP, aiLine, usePlans } from "@/lib/plans";
+import { InfoTip } from "@/components/info-tip";
 
 const TAGLINE: Record<string, string> = { freelance: "For a freelancer with a single website", starter: "For a small business or a small agency", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
 const CTA: Record<string, string> = { freelance: "Choose Freelance", starter: "Choose Starter", growth: "Choose Growth", scale: "Choose Scale" };
 const AUDIT_PAGES: Record<string, string> = { freelance: "15", starter: "25", growth: "50", scale: "100" };
 const SUPPORT: Record<string, string> = { freelance: "Help centre", starter: "Email", growth: "Priority email", scale: "WhatsApp" };
 
-function features(p: PlanInfo): string[] {
-  const out = [
-    `${p.sites} website${p.sites === 1 ? "" : "s"}`, `${p.members} team member${p.members === 1 ? "" : "s"}`,
-    `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}`,
-    p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only",
+function features(p: PlanInfo): { text: string; tip?: string }[] {
+  const out: { text: string; tip?: string }[] = [
+    { text: `${p.sites} website${p.sites === 1 ? "" : "s"}` }, { text: `${p.members} team member${p.members === 1 ? "" : "s"}` },
+    { text: `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}` },
+    { text: p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only" },
   ];
-  out.push("Domain, SSL, DNS and sitemap monitoring", "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled",
-    "Monthly report with your logo", "Subscriptions and invoices tracker");
-  if (p.client_access) out.push("Read-only viewer access for clients");
-  out.push(`${p.history_months} month${p.history_months === 1 ? "" : "s"} of history`, `${SUPPORT[p.id] ?? "Email"} support`);
+  if (p.ai_credits) out.push({ text: aiLine(p), tip: AI_TIP });
+  out.push({ text: "Domain, SSL, DNS and sitemap monitoring" }, { text: "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled" },
+    { text: "Monthly report with your logo" }, { text: "Subscriptions and invoices tracker" });
+  if (p.client_access) out.push({ text: "Read-only viewer access for clients" });
+  out.push({ text: `${p.history_months} month${p.history_months === 1 ? "" : "s"} of history` }, { text: `${SUPPORT[p.id] ?? "Email"} support` });
   return out;
 }
 
@@ -77,7 +79,7 @@ export default function Pricing() {
                 <div className="whitespace-nowrap"><span className={`font-mono font-semibold tracking-[-0.03em] text-[30px] lg:text-[26px] min-[1280px]:text-[34px]`}>{money(yearly ? p.price_year : p.price_month, p.currency)}</span><span className="text-sm text-[#475569]"> / {yearly ? "year" : "month"}</span>
                   {yearly && <div className="mt-1 text-[13px] text-[#475569]">{money(p.price_year_month, p.currency)} a month, billed yearly</div>}</div>
                 <Link href={`/signup?plan=${p.id}&cycle=${yearly ? "yearly" : "monthly"}`} className={`rounded-xl py-3.5 text-center font-bold ${pop ? "bg-[#F97316] text-white hover:bg-[#EA580C]" : "border-[1.5px] border-[#0F172A] text-[#0F172A] hover:bg-[#0F172A] hover:text-white"}`}>{CTA[p.id] ?? `Choose ${p.name}`}</Link>
-                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b} className="flex gap-2.5"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#DCFCE7] md:size-auto md:bg-transparent"><Check size={14} strokeWidth={2.8} className="text-[#15803D] md:size-[18px] md:text-[#F97316]" aria-hidden="true" /></span>{b}</li>)}
+                <ul className="flex flex-col gap-2.5 text-[15px] text-[#334155]">{features(p).map((b) => <li key={b.text} className="flex gap-2.5"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#DCFCE7] md:size-auto md:bg-transparent"><Check size={14} strokeWidth={2.8} className="text-[#15803D] md:size-[18px] md:text-[#F97316]" aria-hidden="true" /></span><span className="inline-flex flex-wrap items-center gap-1.5">{b.text}{b.tip && <InfoTip label="AI credits" text={b.tip} />}</span></li>)}
                   {missing(p).map((b) => <li key={b} className="flex gap-2.5 text-[#64748B] md:hidden"><span className="mt-0.5 flex size-5 flex-none items-center justify-center rounded-full bg-[#F1F5F9]"><X size={12} strokeWidth={2.6} className="text-[#94A3B8]" aria-hidden="true" /></span><span className="flex-1">{b}</span><span className="text-xs font-semibold">Not available</span></li>)}</ul>
               </div>
             );

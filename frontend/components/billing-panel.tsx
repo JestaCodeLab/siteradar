@@ -14,6 +14,8 @@ import { ghs, money, useMe } from "@/lib/me";
 import { DiscountBox } from "./discount-field";
 import { checkout, payFor } from "@/lib/paystack";
 import { AiTopUpModal, useAiCredits } from "./ai-topup";
+import { InfoTip } from "./info-tip";
+import { AI_TIP, aiLine } from "@/lib/plans";
 import { priceLine } from "@/lib/plans";
 
 const box = "rounded-[14px] border border-line bg-surface p-[22px]";
@@ -33,6 +35,11 @@ const planLine = (p: PlanInfo) => {
   parts.push(p.interval_minutes === 1 ? "checks every minute" : `checks every ${p.interval_minutes} minutes`);
   return parts.join(", ") + ".";
 };
+
+/** The plan's summary line, with the AI credit allowance and a note on what it is for. */
+function PlanLine({ p }: { p: PlanInfo }) {
+  return <>{planLine(p)}{p.ai_credits ? <span className="mt-1 flex items-center gap-1">{aiLine(p)}<InfoTip label="AI credits" text={AI_TIP} /></span> : null}</>;
+}
 
 export function BillingPanel() {
   const { isOwner, isGhana, mutate: refreshMe } = useMe();
@@ -166,7 +173,7 @@ export function BillingPanel() {
                 <div className="flex items-center justify-between"><span className="text-base font-semibold">{p.name}</span>{isCur && <span className="rounded-full bg-brand-soft px-2.5 py-[3px] text-xs font-semibold text-brand-ink">Current</span>}</div>
                 <div className="flex items-baseline gap-1.5"><span className="text-[26px] font-semibold leading-none">{isYearly ? money(p.price_year, p.currency) : priceLine(p, false)}</span><span className="text-sm text-muted">{isYearly ? "/ year" : "/ month"}</span></div>
                 {isYearly && <span className="-mt-1.5 text-[13px] text-muted">{priceLine(p, true)} a month, billed yearly</span>}
-                <span className="flex-1 text-[13px] leading-snug text-muted">{planLine(p)}</span>
+                <span className="flex-1 text-[13px] leading-snug text-muted"><PlanLine p={p} /></span>
                 {here ? <span className="flex min-h-11 items-center justify-center text-sm font-semibold text-muted">Your plan</span>
                   : <button disabled={!isOwner || busy !== null} onClick={() => choose(p.id)} className={`inline-flex min-h-11 items-center justify-center rounded-lg px-3 text-sm font-semibold disabled:opacity-60 ${locked || idx > curIdx ? "bg-brand text-white hover:bg-brand-hover" : "border border-[#c9cfd8] bg-surface hover:bg-soft"}`}>
                     {busy === p.id + (isYearly ? "yearly" : "monthly") ? "Please wait…" : locked ? `Choose ${p.name}` : idx > curIdx ? `Upgrade to ${p.name}` : `Switch to ${p.name}`}</button>}

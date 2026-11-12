@@ -128,7 +128,7 @@ function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: (
                   <li>Come back here and press <b>Check connection</b>. It adds the tracking snippet by itself, so you do not paste anything.</li>
                 </ol>
                 {!conn.allowed && (
-                  <p className="rounded-lg bg-warn-soft px-3.5 py-2.5 text-sm text-warn">The plugin and one-click fixes are part of the Starter, Growth and Scale plans. <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link></p>
+                  <p className="rounded-lg bg-warn-soft px-3.5 py-2.5 text-sm text-warn">The plugin and one-click fixes need an active paid plan. <Link href="/settings?tab=billing" className="font-semibold underline">See plans</Link></p>
                 )}
                 {!isAdmin && <p className="rounded-lg bg-soft px-3.5 py-2.5 text-sm text-ink-2">Only an account admin can download the plugin. Ask one of them to open this page.</p>}
               </>

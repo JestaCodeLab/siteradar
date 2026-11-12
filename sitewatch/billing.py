@@ -363,7 +363,7 @@ def checkout_ai(cfg, ws, user, credits):
     if not bundle:
         raise ValueError("That package is not available.")
     if not plans.limits(ws).get("one_click_fix"):
-        raise plans.LimitError("AI drafts are part of the Starter, Growth and Scale plans.")
+        raise plans.LimitError("AI drafts need an active paid plan.")
     cur = ws["currency"]
     amount = float(bundle["price_usd"] if cur == "USD" else bundle["price_ghs"])
     ref = "sw_" + secrets.token_hex(10)

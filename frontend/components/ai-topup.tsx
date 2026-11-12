@@ -57,7 +57,7 @@ export function AiTopUpModal({ credits, onClose, onBought }: { credits: AiCredit
             <h2 id="aitop-title" className="text-xl font-bold">{credits.allowed ? "You have used all your AI credits" : "AI drafts are on paid plans"}</h2>
             <p className="mt-0.5 text-[15px] text-muted">{credits.allowed
               ? `Your plan includes ${credits.quota.toLocaleString()} a month and they renew on the 1st. Add credits to keep fixing issues now. Credits you buy never expire.`
-              : "AI-written titles, descriptions and alt text are part of the Starter, Growth and Scale plans."}</p>
+              : "AI-written titles, descriptions and alt text need an active paid plan."}</p>
           </div>
           <button type="button" onClick={onClose} disabled={busy !== null} aria-label="Close" className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft"><X aria-hidden="true" size={18} /></button>
         </div>

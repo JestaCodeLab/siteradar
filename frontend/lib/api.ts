@@ -175,7 +175,7 @@ export interface PlanInfo {
   currency: string; price_month_usd?: number;
   id: string; name: string; tagline: string; price_month: number; price_year: number; price_year_month: number;
   sites: number; members: number; interval_minutes: number; sms: number; history_months: number;
-  channels: ("email" | "chat" | "sms")[]; client_access: boolean; active: boolean;
+  channels: ("email" | "chat" | "sms")[]; client_access: boolean; active: boolean; ai_credits?: number;
 }
 export interface Catalogue { plans: PlanInfo[]; yearly_discount: number; currency: string }
 

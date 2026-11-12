@@ -299,6 +299,9 @@ UPDATE plans SET ai_credits=10000 WHERE id='scale';
 ALTER TABLE workspaces ADD COLUMN ai_eligible INTEGER NOT NULL DEFAULT 1;
 UPDATE workspaces SET ai_eligible=0;
 """),
+    (22, """
+UPDATE plans SET one_click_fix=1, ai_credits=200, price_month_usd=14.99, price_month=175 WHERE id='freelance';
+"""),
 ]
 
 
