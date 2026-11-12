@@ -10,6 +10,7 @@ import { useToast } from "./toast";
 import { fetcher, send, type SearchStatus } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
+import { SearchOverview } from "./search-chart";
 
 const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
 const path = (u: string) => { try { const x = new URL(u); return x.pathname === "/" ? "/" : x.pathname.replace(/\/$/, ""); } catch { return u; } };
@@ -41,7 +42,7 @@ async function startConnect(id: string, tab: string) {
 }
 
 /** The Google search summary for the Analytics tab: numbers and the top pages to improve when connected, or an invitation to connect when not. */
-export function SearchCard({ id }: { id: string }) {
+export function SearchCard({ id, days = 28 }: { id: string; days?: number }) {
   const { isAdmin } = useMe();
   const toast = useToast();
   const { data, mutate } = useSWR<SearchStatus>(`/api/sites/${id}/search`, fetcher);
@@ -66,13 +67,13 @@ export function SearchCard({ id }: { id: string }) {
   const s = data.summary, top = (data.opportunities ?? []).slice(0, 3);
   return (
     <Card className="flex flex-col gap-4 p-5">
-      <CardTitle aside={<Link href={`/websites/${id}?tab=search`} className="font-semibold text-brand">See details</Link>}>Google search, last 28 days</CardTitle>
+      <CardTitle aside={<Link href={`/websites/${id}?tab=search`} className="font-semibold text-brand">See details</Link>}>Google search, last {data.series?.length ? days : 28} days</CardTitle>
       {!s ? <p className="text-sm text-muted">{data.error === "no_property" ? "This website is not in your Search Console yet. Open the Search tab for what to do." : "Connected. The first data arrives shortly. Open the Search tab and press Refresh."}</p> : (
         <>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+          {data.series?.length ? <SearchOverview series={data.series} days={days} /> : <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
             {([["Clicks", s.clicks.toLocaleString()], ["Times shown", s.impressions.toLocaleString()], ["Click rate", pct(s.ctr)], ["Average position", s.position ? String(s.position) : "—"]] as const).map(([k, v]) => (
               <div key={k} className="flex flex-col gap-0.5"><span className="text-[13px] text-muted">{k}</span><span className="text-[22px] font-semibold leading-tight">{v}</span></div>))}
-          </div>
+          </div>}
           {top.length > 0 && (
             <div className="flex flex-col gap-1.5 border-t border-line-soft pt-3">
               <span className="text-[13px] font-semibold text-muted">Pages that should get more clicks</span>
@@ -91,6 +92,7 @@ export function SearchTab({ id }: { id: string }) {
   const toast = useToast();
   const { data, error, mutate } = useSWR<SearchStatus>(`/api/sites/${id}/search`, fetcher);
   const [busy, setBusy] = useState<string | null>(null);
+  const [days, setDays] = useState(30);
   useGscNotice(id, "search", () => { mutate(); });
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
@@ -150,12 +152,36 @@ export function SearchTab({ id }: { id: string }) {
         <Card><Empty icon={Search} title="No data yet">Press Refresh to read the last 28 days from Google.</Empty></Card>
       ) : (
         <>
-          <section className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
-            <Tile label="Clicks from Google" value={s.clicks.toLocaleString()} note={`${data.start} to ${data.end}`} tone="muted" />
-            <Tile label="Times shown in search" value={s.impressions.toLocaleString()} note={`${s.pages} pages`} tone="muted" />
-            <Tile label="Click rate" value={pct(s.ctr)} note="Clicks divided by times shown" tone="muted" />
-            <Tile label="Average position" value={s.position ? String(s.position) : "—"} note="Lower is higher up the page" tone="muted" />
-          </section>
+          {data.series?.length ? (
+            <Card className="flex flex-col gap-4 p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Google search over time</h2>
+                <div role="group" aria-label="Period" className="inline-flex gap-1 rounded-[10px] bg-[#e8ebf0] p-1">
+                  {[7, 30, 90].map((d) => <button key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)} className={`min-h-10 rounded-[7px] px-4 text-sm ${days === d ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>{d} days</button>)}
+                </div>
+              </div>
+              <SearchOverview series={data.series} days={days} />
+            </Card>
+          ) : (
+            <section className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}>
+              <Tile label="Clicks from Google" value={s.clicks.toLocaleString()} note={`${data.start} to ${data.end}`} tone="muted" />
+              <Tile label="Times shown in search" value={s.impressions.toLocaleString()} note={`${s.pages} pages`} tone="muted" />
+              <Tile label="Click rate" value={pct(s.ctr)} note="Clicks divided by times shown" tone="muted" />
+              <Tile label="Average position" value={s.position ? String(s.position) : "—"} note="Lower is higher up the page" tone="muted" />
+            </section>
+          )}
+
+          {data.queries && data.queries.length > 0 && (
+            <Card className="px-5 pb-2 pt-5">
+              <CardTitle aside="Last 28 days">What people search to find you</CardTitle>
+              {data.queries.slice(0, 10).map((q) => (
+                <div key={q.query} className="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft py-3">
+                  <span className="min-w-0 break-words text-sm font-medium">{q.query}</span>
+                  <span className="shrink-0 font-mono text-[13px] text-ink-2">{q.clicks.toLocaleString()} clicks · {q.impressions.toLocaleString()} shown</span>
+                </div>
+              ))}
+            </Card>
+          )}
 
           <Card className="px-5 pb-2 pt-5">
             <CardTitle aside={`Pages on page one with at least ${data.min_impressions} views`}>Pages that should get more clicks</CardTitle>

@@ -129,7 +129,7 @@ export function AnalyticsTab({ id }: { id: string }) {
           <button key={d} aria-pressed={days === d} onClick={() => setDays(d)} className={`min-h-10 rounded-[7px] px-5 text-sm ${days === d ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>{d} days</button>
         ))}
       </div>
-      <SearchCard id={id} />
+      <SearchCard id={id} days={days} />
       {empty && (
         <Card><Empty icon={Users} title="No visits recorded yet"
           action={!ready ? <button type="button" onClick={openSetup} className={btn.primary}>{isWp ? "Connect the plugin" : "Get the tracking snippet"}</button> : undefined}>

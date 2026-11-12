@@ -139,6 +139,21 @@ def refresh(site):
     base = {"startDate": start.isoformat(), "endDate": end.isoformat(), "type": "web"}
     pages = _query(saved["property"], token, {**base, "dimensions": ["page"], "rowLimit": 500})
     qrows = _query(saved["property"], token, {**base, "dimensions": ["page", "query"], "rowLimit": 5000})
+    # one point per day for the last 90 days, with the days Google leaves out filled in as zeros
+    start90 = end - dt.timedelta(days=89)
+    got = {r["keys"][0]: r for r in _query(saved["property"], token, {"startDate": start90.isoformat(), "endDate": end.isoformat(), "type": "web", "dimensions": ["date"], "rowLimit": 100})}
+    series = []
+    for i in range(90):
+        d = (start90 + dt.timedelta(days=i)).isoformat()
+        r = got.get(d)
+        series.append({"d": d, "clicks": int(r["clicks"]), "impressions": int(r["impressions"]), "ctr": r["ctr"], "position": round(r["position"], 1)} if r
+                      else {"d": d, "clicks": 0, "impressions": 0, "ctr": 0, "position": None})
+    by_query = defaultdict(lambda: [0, 0])
+    for r in qrows:
+        q = by_query[r["keys"][1]]
+        q[0] += int(r["clicks"])
+        q[1] += int(r["impressions"])
+    queries = [{"query": k, "clicks": v[0], "impressions": v[1]} for k, v in sorted(by_query.items(), key=lambda kv: -kv[1][1])[:15]]
     terms = defaultdict(list)
     for r in qrows:
         terms[r["keys"][0]].append({"query": r["keys"][1], "clicks": int(r["clicks"]), "impressions": int(r["impressions"])})
@@ -147,7 +162,7 @@ def refresh(site):
         url = r["keys"][0]
         top = sorted(terms.get(url, []), key=lambda q: -q["impressions"])[:5]
         out.append({"page": url, "clicks": int(r["clicks"]), "impressions": int(r["impressions"]), "ctr": r["ctr"], "position": round(r["position"], 1), "queries": top})
-    data = {"fetched": time.time(), "start": start.isoformat(), "end": end.isoformat(), "pages": out}
+    data = {"fetched": time.time(), "start": start.isoformat(), "end": end.isoformat(), "pages": out, "series": series, "queries": queries}
     db.kv_set(f"gsc-data:{site['id']}", data)
     return data
 

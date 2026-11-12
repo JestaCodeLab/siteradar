@@ -539,7 +539,7 @@ def blueprint(cfg):
         data = db.kv_get(f"gsc-data:{site_id}")
         if data:
             summary, opps = gsc.analyse(data)
-            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps)
+            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps, series=data.get("series"), queries=data.get("queries"))
         return jsonify(out)
 
     @bp.post("/sites/<site_id>/search/connect")
