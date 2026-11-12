@@ -222,7 +222,7 @@ function FixAction({ siteId, rule, fx, onChange, openSetup }: { siteId: string; 
   );
 }
 
-export function AuditTab({ id }: { id: string }) {
+export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDetail; onRun: () => void; busy: boolean }) {
   const { open: openSetup, isWp } = useSetup();
   const { data: fx, mutate: refetchFx } = useSWR<FixesResponse>(isWp ? `/api/sites/${id}/fixes` : null, fetcher,
     { refreshInterval: (d) => (d && Object.values(d.items).some((i) => i.state === "queued") ? 4000 : 0) });
@@ -236,6 +236,22 @@ export function AuditTab({ id }: { id: string }) {
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
   return (
     <div className="flex flex-col gap-5">
+      {fx && (() => {
+        const fresh = Object.values(fx.items).filter((i) => i.state === "applied" && i.since != null && i.since > data.audit!.ts).length;
+        if (!fresh) return null;
+        const left = site.audit_runs_left;
+        return (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4">
+            <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">{fresh} {fresh === 1 ? "fix was" : "fixes were"} applied after this audit</span>
+              <span className="text-sm leading-relaxed text-ink-2">The findings below are from {fmtDateTime(data.audit.ts)}, so they still list what you fixed. Run a new audit to confirm they are gone. It also runs by itself tonight.</span>
+            </div>
+            <button type="button" onClick={onRun} disabled={busy || site.audit_running || left === 0} className={btn.primary}>
+              {site.audit_running ? "Audit running…" : left === 0 ? "No audits left today" : `Run audit now${left !== undefined ? ` (${left} left today)` : ""}`}
+            </button>
+          </div>
+        );
+      })()}
       <PageSpeedCard ps={data.audit.pagespeed} auditRan />
       <section className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
         {["Overall", ...data.categories].map((k) => (

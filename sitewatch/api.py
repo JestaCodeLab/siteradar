@@ -279,6 +279,7 @@ def blueprint(cfg):
             "platform": stack.saved(site_id),
             "connector": {**connector.status(site_id), "allowed": bool(plans.limits(g.ws).get("one_click_fix"))},
             "audit_running": site_id in running_audits,
+            "audit_runs_left": audit_runs_left(site_id),
             # still waiting on the first results of a website that was only just added
             "first_run": {"checks": not db.q1("SELECT 1 FROM checks WHERE site_id=? LIMIT 1", (site_id,)),
                           "audit": bool(s.get("audit", True)) and au is None and (site_id in running_audits or fresh(site_id, now))},
@@ -468,10 +469,25 @@ def blueprint(cfg):
                 running_audits.discard(s["id"])
         threading.Thread(target=job, daemon=True).start()
 
+    AUDITS_PER_DAY = 2
+
+    def audit_runs_left(site_id):
+        """Manual audits left today (UTC day). The nightly audit and the first audit of a new website do not count."""
+        q = db.kv_get(f"audit-quota:{site_id}") or {}
+        used = q.get("n", 0) if q.get("day") == time.strftime("%Y-%m-%d", time.gmtime()) else 0
+        return max(0, AUDITS_PER_DAY - used)
+
     @bp.post("/sites/<site_id>/audit")
     def audit_now(site_id):
-        start_audit(site_or_404(site_id))
-        return jsonify(started=True), 202
+        s = site_or_404(site_id)
+        if site_id in running_audits:
+            return jsonify(started=True, runs_left=audit_runs_left(site_id)), 202
+        left = audit_runs_left(site_id)
+        if left <= 0:
+            return jsonify(error=f"You have used today's {AUDITS_PER_DAY} manual audits for this website. The nightly audit still runs, and you can run another tomorrow.", code="quota", runs_left=0), 429
+        db.kv_set(f"audit-quota:{site_id}", {"day": time.strftime("%Y-%m-%d", time.gmtime()), "n": AUDITS_PER_DAY - left + 1})
+        start_audit(s)
+        return jsonify(started=True, runs_left=left - 1), 202
 
     def report_response(key, fmt, download_name, in_progress, make):
         """A finished month's report is made once and then served from file storage; the current month is rebuilt every time."""

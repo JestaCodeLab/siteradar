@@ -85,7 +85,7 @@ function SiteView() {
         <div className="flex flex-wrap gap-2.5">
           <button onClick={refresh} disabled={refreshing} aria-label="Refresh this page" title="Refresh" className={`${btn.secondary} !px-3.5`}><RefreshCw size={18} className={refreshing ? "animate-spin" : ""} aria-hidden="true" /></button>
           <button onClick={checkNow} disabled={busy !== null} className={btn.secondary}>{busy === "check" ? "Checking…" : "Check now"}</button>
-          <button onClick={runAudit} disabled={busy !== null || site.audit_running} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}</button>
+          <button onClick={runAudit} disabled={busy !== null || site.audit_running || site.audit_runs_left === 0} title={site.audit_runs_left === 0 ? "You have used today's 2 manual audits. Try again tomorrow." : undefined} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}{!site.audit_running && site.audit_runs_left !== undefined && <span className="ml-1.5 text-xs font-medium text-muted">({site.audit_runs_left} left today)</span>}</button>
           <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} aria-label="Latest report (PDF)" className={btn.primary}>
             <Download size={15} aria-hidden="true" className="mr-1.5 sm:hidden" /><span className="sm:hidden">Report</span><span className="hidden sm:inline">Latest report (PDF)</span>
           </a>
@@ -104,7 +104,7 @@ function SiteView() {
 
       {tab === "overview" && <OverviewTab site={site} onChange={() => mutate()} />}
       {tab === "analytics" && <AnalyticsTab id={id} />}
-      {tab === "audit" && <AuditTab id={id} />}
+      {tab === "audit" && <AuditTab id={id} site={site} onRun={runAudit} busy={busy !== null} />}
       {tab === "domain" && <DomainTab site={site} />}
       {tab === "dns" && <DnsTab id={id} />}
       {tab === "sitemap" && <SitemapTab id={id} />}
