@@ -179,6 +179,8 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
   const [aiOpen, setAiOpen] = useState(false);
   const item = fx?.items[issue.rule];
   const guide = isWp ? null : fixGuide(issue.rule, platform);
+  // "Show fix" only when it says more than the advice already on the row: example code, or different wording
+  const hasMore = !!guide && (guide.snippets.length > 0 || (!!guide.note && guide.note.trim() !== issue.fix.trim()));
   const pages = issue.examples ?? [];
 
   useEffect(() => {
@@ -225,7 +227,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
     else control = <button type="button" onClick={() => setAiOpen(true)} className={`${btn.primary} whitespace-nowrap`}><Sparkles size={15} aria-hidden="true" />Fix with AI</button>;
   }
   // websites that cannot be fixed with one click (not WordPress) get a panel that explains the fix instead
-  if (!isWp) control = <button type="button" onClick={() => setGuideOpen((o) => !o)} aria-expanded={guideOpen} className={`${btn.secondary} whitespace-nowrap`}>{guideOpen ? "Hide fix" : "Show fix"}<ChevronDown size={16} aria-hidden="true" className={`transition-transform ${guideOpen ? "rotate-180" : ""}`} /></button>;
+  if (!isWp) control = !hasMore ? null : <button type="button" onClick={() => setGuideOpen((o) => !o)} aria-expanded={guideOpen} className={`${btn.secondary} whitespace-nowrap`}>{guideOpen ? "Hide fix" : "Show fix"}<ChevronDown size={16} aria-hidden="true" className={`transition-transform ${guideOpen ? "rotate-180" : ""}`} /></button>;
   const note = item?.state === "applied" ? "It disappears from this list after the next audit." : item?.state === "queued" ? "Waiting for the plugin on your website to confirm." : null;
 
   return (
@@ -252,13 +254,12 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
           </div>
         )}
         {note && <span className="text-[13px] text-muted">{note}</span>}
-        {!isWp && guideOpen && (
+        {!isWp && hasMore && guideOpen && (
           <div className="mt-1.5 flex flex-col gap-3 rounded-lg border border-line-soft bg-soft p-3.5">
             <span className="text-[13px] font-semibold text-muted">How to fix it</span>
             <p className="text-sm leading-relaxed text-ink-2">{guide?.note ?? issue.fix}</p>
             {guide?.example && guide.snippets.length > 0 && <p className="text-[13px] leading-relaxed text-muted">SiteRadar cannot see your code, so treat this as an example. Change the file names and values to match your project.</p>}
             {guide?.snippets.map((sn) => <CodeBlock key={sn.label} label={sn.label} code={sn.code} />)}
-            {!guide && <p className="text-[13px] text-muted">This one depends on how your website is built, so there is no ready-made code. Pass the advice above to whoever maintains it.</p>}
           </div>
         )}
         {/* phones: the control sits under the text; wide screens: it moves to the right edge */}
