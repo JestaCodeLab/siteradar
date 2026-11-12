@@ -7,7 +7,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, mailer, plans, storage
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage
 from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
@@ -156,6 +156,25 @@ def blueprint(cfg):
     @bp.get("/auth/providers")
     def providers():
         return jsonify(google=google_auth.configured())
+
+    @bp.get("/gsc/callback")
+    def gsc_callback():
+        """Google sends the owner back here after they approve (or refuse) read-only Search Console access for one website."""
+        st = gsc.take_state(request.args.get("state", "")) if request.args.get("state") else None
+        if not st:
+            return redirect(app_url() + "/overview")
+        back = f"{app_url()}/websites/{st['site_id']}?tab=search"
+        code, site = request.args.get("code"), sites.get_any(st["site_id"])
+        if request.args.get("error") or not code or not site:
+            return redirect(back + "&gsc=denied")
+        try:
+            prop, _why = gsc.connect(site, code)
+            if prop:
+                gsc.refresh(site)
+        except Exception:
+            log.exception("Search Console connection failed for %s", st["site_id"])
+            return redirect(back + "&gsc=error")
+        return redirect(back + ("&gsc=ok" if prop else "&gsc=noproperty"))
 
     @bp.get("/auth/google/start")
     def google_start():

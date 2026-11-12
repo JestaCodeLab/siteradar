@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, ai, alerts, analytics, auditor, billing, connector, db, edits, events, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, ai, alerts, analytics, auditor, billing, connector, db, edits, events, fixes, gsc, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -528,6 +528,49 @@ def blueprint(cfg):
         if status != "skipped":
             threading.Thread(target=connector.nudge, args=(s,), daemon=True).start()
         return jsonify(item=item)
+
+    # ---- Search Console: how the pages do in Google search ----------------------------------------------
+    @bp.get("/sites/<site_id>/search")
+    def search_status(site_id):
+        site_or_404(site_id)
+        saved = db.kv_get(f"gsc:{site_id}")
+        out = {"configured": gsc.configured(), "connected": bool(saved), "property": (saved or {}).get("property"), "error": (saved or {}).get("error"),
+               "min_impressions": gsc.MIN_IMPRESSIONS}
+        data = db.kv_get(f"gsc-data:{site_id}")
+        if data:
+            summary, opps = gsc.analyse(data)
+            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps)
+        return jsonify(out)
+
+    @bp.post("/sites/<site_id>/search/connect")
+    @need("admin")
+    def search_connect(site_id):
+        s = site_or_404(site_id)
+        if not gsc.configured():
+            return jsonify(error="Google is not set up on this server yet."), 503
+        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"]))
+
+    @bp.post("/sites/<site_id>/search/refresh")
+    @need("admin")
+    def search_refresh(site_id):
+        s = site_or_404(site_id)
+        if security.limited("gsc-refresh", 10, 5, key=site_id):
+            return jsonify(error="Refreshed a few times already. Try again in a few minutes.", code="rate"), 429
+        try:
+            data = gsc.refresh(s)
+        except Exception:
+            log.exception("Search Console refresh failed for %s", site_id)
+            return jsonify(error="Google did not answer. Try again in a moment."), 502
+        if data is None:
+            return jsonify(error="Search Console access is missing. Connect it again.", code="reconnect"), 409
+        return search_status(site_id)
+
+    @bp.post("/sites/<site_id>/search/disconnect")
+    @need("admin")
+    def search_disconnect(site_id):
+        site_or_404(site_id)
+        gsc.disconnect(site_id)
+        return jsonify(ok=True)
 
     @bp.post("/sites/<site_id>/wordpress-plugin")
     @need("admin")
