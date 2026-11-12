@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X, History } from "lucide-react";
+import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X, History, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -278,7 +278,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
 }
 export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDetail; onRun: () => void; busy: boolean }) {
   const { open: openSetup, isWp } = useSetup();
-  const [view, setView] = useState<"findings" | "changes">("findings");
+  const [view, setView] = useState<"findings" | "fixed" | "changes">("findings");
   const { data: fx, mutate: refetchFx } = useSWR<FixesResponse>(isWp ? `/api/sites/${id}/fixes` : null, fetcher,
     { refreshInterval: (d) => (d && Object.values(d.items).some((i) => i.state === "queued") ? 4000 : 0) });
   const { data, error, mutate: retry } = useSWR<AuditResponse>(`/api/sites/${id}/audit`, fetcher, { refreshInterval: (d) => (d?.running ? 5000 : 0) });
@@ -288,6 +288,8 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
     return <Card><Empty icon={ClipboardCheck} title={data.running ? "Audit is running…" : "No audit yet"}>{data.running ? "Results appear in about a minute." : "Audits run every night at 03:00. Press Run audit above to run one now."}</Empty></Card>;
   }
   const { scores, issues } = data.audit;
+  // applied fixes whose finding the latest audit no longer reports
+  const fixed = fx ? Object.entries(fx.items).filter(([rule, it]) => it.state === "applied" && !issues.some((i) => i.rule === rule)) : [];
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
   return (
     <div className="flex flex-col gap-5">
@@ -317,15 +319,31 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
           </div>
         ))}
       </section>
-      <div role="group" aria-label="Audit sections" className="inline-flex gap-1 self-end rounded-[10px] bg-[#e8ebf0] p-1">
-        {([["findings", "Findings", ClipboardCheck], ["changes", "Recent changes", History]] as const).map(([key, label, Glyph]) => (
+      <div role="group" aria-label="Audit sections" className="inline-flex max-w-full gap-1 self-end overflow-x-auto rounded-[10px] bg-[#e8ebf0] p-1">
+        {([["findings", "Findings", ClipboardCheck], ...(fixed.length || isWp ? [["fixed", `Fixed${fixed.length ? ` (${fixed.length})` : ""}`, CheckCircle2]] : []), ["changes", "Recent changes", History]] as [typeof view, string, typeof History][]).map(([key, label, Glyph]) => (
           <button key={key} type="button" aria-pressed={view === key} onClick={() => setView(key)}
-            className={`inline-flex min-h-10 items-center gap-2 rounded-[7px] px-4 text-sm ${view === key ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>
+            className={`inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[7px] px-4 text-sm ${view === key ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>
             <Glyph size={16} aria-hidden="true" />{label}
           </button>
         ))}
       </div>
-      {view === "changes" ? <RecentChanges id={id} /> : (
+      {view === "changes" ? <RecentChanges id={id} /> : view === "fixed" ? (
+        <Card className="px-5 pb-2 pt-5">
+          <CardTitle aside="Fixes confirmed by the plugin that the latest audit no longer reports">Fixed issues</CardTitle>
+          {fixed.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-muted">Nothing here yet. After you apply a fix and run a new audit, the issue moves here from Findings.</p>}
+          {fixed.map(([rule, it]) => (
+            <div key={rule} className="flex flex-wrap gap-3.5 border-t border-line-soft py-4 lg:flex-nowrap">
+              <div className="w-[74px] shrink-0"><SeverityChip severity={it.severity} /></div>
+              <div className="flex min-w-[260px] flex-1 flex-col gap-1 lg:min-w-0">
+                <span className="text-[15px] font-semibold">{it.title}</span>
+                <span className="text-sm leading-relaxed text-ink-2">Fixed by: {it.what}</span>
+                {it.since && <span className="text-[13px] text-muted">Applied {fmtDateTime(it.since)}</span>}
+              </div>
+              <div className="shrink-0 lg:self-start"><span className="rounded-full bg-ok px-3 py-1 text-[13px] font-semibold text-white">Fixed</span></div>
+            </div>
+          ))}
+        </Card>
+      ) : (
       <Card className="px-5 pb-2 pt-5">
         <CardTitle aside={
           <span className="flex flex-wrap items-center gap-3">
