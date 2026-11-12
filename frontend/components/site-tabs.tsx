@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -176,7 +176,9 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [open, setOpen] = useState(false);
   const item = fx?.items[issue.rule];
+  const pages = issue.examples ?? [];
 
   useEffect(() => {
     if (!asking) return;
@@ -219,9 +221,26 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
   return (
     <div className="flex flex-wrap gap-3.5 border-t border-line-soft py-4 lg:flex-nowrap">
       <div className="w-[74px] shrink-0"><SeverityChip severity={issue.severity} /></div>
-      <div className="flex min-w-[260px] flex-1 flex-col gap-1 lg:min-w-0">
-        <span className="text-[15px] font-semibold">{issue.title} <span className="font-normal text-muted">· {issue.count} {issue.count === 1 ? "page" : "pages"}</span></span>
+      <div className={`flex min-w-[260px] flex-1 flex-col gap-1 lg:min-w-0 ${pages.length ? "cursor-pointer" : ""}`}
+        onClick={(e) => { if (pages.length && !(e.target as HTMLElement).closest("a, button")) setOpen((o) => !o); }}>
+        <span className="flex items-start gap-1.5 text-[15px] font-semibold">
+          <span className="min-w-0 flex-1">{issue.title} <span className="font-normal text-muted">· {issue.count} {issue.count === 1 ? "page" : "pages"}</span></span>
+          {pages.length > 0 && <button type="button" aria-expanded={open} aria-label={open ? "Hide the affected pages" : "Show the affected pages"} onClick={() => setOpen((o) => !o)} className="-mt-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft"><ChevronDown size={18} aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`} /></button>}
+        </span>
         <span className="text-sm leading-relaxed text-ink-2">How to fix: {issue.fix}</span>
+        {open && (
+          <div className="mt-1.5 rounded-lg border border-line-soft bg-soft p-3.5">
+            <span className="text-[13px] font-semibold text-muted">{issue.count === 1 ? "Affected page" : `Affected pages${issue.count > pages.length ? ` (showing ${pages.length} of ${issue.count})` : ""}`}</span>
+            <ul className="mt-1.5 flex flex-col gap-2">
+              {pages.map((x) => (
+                <li key={x.url + x.detail} className="flex min-w-0 flex-col gap-0.5 text-sm">
+                  <a href={x.url} target="_blank" rel="noreferrer" className="break-all font-mono text-[13px] text-brand hover:underline">{x.url} ↗</a>
+                  {x.detail && <span className="text-[13px] text-muted">{x.detail}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {note && <span className="text-[13px] text-muted">{note}</span>}
         {/* phones: the control sits under the text; wide screens: it moves to the right edge */}
         {control && <div className="mt-1.5 lg:hidden">{item?.state === "available" && <span className="mb-1.5 block text-[13px] leading-relaxed text-muted">{item.what}</span>}{control}</div>}

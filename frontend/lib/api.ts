@@ -52,6 +52,8 @@ export interface SitesResponse {
 
 export interface Issue {
   rule: string; category: string; severity: "high" | "medium" | "low"; title: string; fix: string; count: number;
+  /** Some of the pages or links affected (up to 25; older audits keep 8). */
+  examples?: { url: string; detail: string }[];
 }
 
 export interface PageSpeedResult {
