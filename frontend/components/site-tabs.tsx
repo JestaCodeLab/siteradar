@@ -15,8 +15,9 @@ import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
-  fetcher, send, type AnalyticsResponse, type AuditResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
+  fetcher, send, type ActivityEvent, type AnalyticsResponse, type AuditResponse, type FixesResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
+import { useMe } from "@/lib/me";
 import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
 
 const delta = (now: number | null | undefined, before: number | null | undefined) =>
@@ -171,8 +172,60 @@ export function AnalyticsTab({ id }: { id: string }) {
 }
 
 // ---- Audit ------------------------------------------------------------------
-export function AuditTab({ id }: { id: string }) {
+/** The fix button under a finding: apply, see that it is queued or applied, and undo. */
+function FixAction({ siteId, rule, fx, onChange, openSetup }: { siteId: string; rule: string; fx: FixesResponse; onChange: () => void; openSetup: () => void }) {
+  const { isAdmin } = useMe();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const item = fx.items[rule];
+  if (!item) return null;
+
+  async function change(on: boolean) {
+    if (on && item.confirm && !confirm(`${item.what}\n\nApply this fix?`)) return;
+    setBusy(true);
+    try {
+      await send("POST", `/api/sites/${siteId}/fixes/${rule}`, { on });
+      toast.success(on ? "Fix switched on." : "Fix removed.", on ? "The plugin applies it within a few seconds." : "The plugin takes it off your website.");
+      onChange();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Could not change the fix."); }
+    setBusy(false);
+  }
+
+  if (item.state === "applied") {
+    return (
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="rounded-full bg-ok-soft px-2.5 py-1 text-[13px] font-semibold text-ok">Fix applied</span>
+        <span className="text-[13px] text-muted">It disappears from this list after the next audit.</span>
+        {isAdmin && <button type="button" onClick={() => change(false)} disabled={busy} className="min-h-9 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">Undo</button>}
+      </div>
+    );
+  }
+  if (item.state === "queued") {
+    return (
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[13px] font-semibold text-warn">Applying…</span>
+        <span className="text-[13px] text-muted">Waiting for the plugin on your website to confirm.</span>
+        {isAdmin && <button type="button" onClick={() => change(false)} disabled={busy} className="min-h-9 text-[13px] font-semibold text-brand hover:underline disabled:opacity-60">Cancel</button>}
+      </div>
+    );
+  }
+  return (
+    <div className="mt-1.5 flex flex-col gap-1.5">
+      <span className="text-[13px] leading-relaxed text-muted">{item.what}</span>
+      <div className="flex flex-wrap items-center gap-2.5">
+        {!fx.allowed ? <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with one click</Link>
+          : !fx.connected ? <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>
+          : !isAdmin ? <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>
+          : <button type="button" onClick={() => change(true)} disabled={busy} className={btn.primary}><Wrench size={15} aria-hidden="true" />{busy ? "Applying…" : item.label}</button>}
+      </div>
+    </div>
+  );
+}
+
+export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDetail; onRun: () => void; busy: boolean }) {
   const { open: openSetup, isWp } = useSetup();
+  const { data: fx, mutate: refetchFx } = useSWR<FixesResponse>(isWp ? `/api/sites/${id}/fixes` : null, fetcher,
+    { refreshInterval: (d) => (d && Object.values(d.items).some((i) => i.state === "queued") ? 4000 : 0) });
   const { data, error, mutate: retry } = useSWR<AuditResponse>(`/api/sites/${id}/audit`, fetcher, { refreshInterval: (d) => (d?.running ? 5000 : 0) });
   if (error) return <ErrorState message={error.message} retry={() => retry()} />;
   if (!data) return <Loading />;
@@ -183,6 +236,22 @@ export function AuditTab({ id }: { id: string }) {
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
   return (
     <div className="flex flex-col gap-5">
+      {fx && (() => {
+        const fresh = Object.values(fx.items).filter((i) => i.state === "applied" && i.since != null && i.since > data.audit!.ts).length;
+        if (!fresh) return null;
+        const left = site.audit_runs_left;
+        return (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand-soft px-5 py-4">
+            <div className="flex min-w-[240px] flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold">{fresh} {fresh === 1 ? "fix was" : "fixes were"} applied after this audit</span>
+              <span className="text-sm leading-relaxed text-ink-2">The findings below are from {fmtDateTime(data.audit.ts)}, so they still list what you fixed. Run a new audit to confirm they are gone. It also runs by itself tonight.</span>
+            </div>
+            <button type="button" onClick={onRun} disabled={busy || site.audit_running || left === 0} className={btn.primary}>
+              {site.audit_running ? "Audit running…" : left === 0 ? "No audits left today" : `Run audit now${left !== undefined ? ` (${left} left today)` : ""}`}
+            </button>
+          </div>
+        );
+      })()}
       <PageSpeedCard ps={data.audit.pagespeed} auditRan />
       <section className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-4">
         {["Overall", ...data.categories].map((k) => (
@@ -197,7 +266,7 @@ export function AuditTab({ id }: { id: string }) {
         <CardTitle aside={
           <span className="flex flex-wrap items-center gap-3">
             <span>{`Audited ${fmtDateTime(data.audit.ts)} · ${data.audit.pages} pages crawled`}</span>
-            {isWp && issues.length > 0 && <button type="button" onClick={openSetup} className={btn.primary}><Wrench size={16} aria-hidden="true" />Fix these issues</button>}
+            {isWp && issues.length > 0 && fx && !fx.connected && <button type="button" onClick={openSetup} className={btn.primary}><Wrench size={16} aria-hidden="true" />Connect the plugin to fix issues</button>}
           </span>
         }>Findings</CardTitle>
         {issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-ok">No issues found. Nice work.</p>}
@@ -207,11 +276,33 @@ export function AuditTab({ id }: { id: string }) {
             <div className="flex min-w-[260px] flex-1 flex-col gap-1">
               <span className="text-[15px] font-semibold">{i.title} <span className="font-normal text-muted">· {i.count} {i.count === 1 ? "page" : "pages"}</span></span>
               <span className="text-sm leading-relaxed text-ink-2">How to fix: {i.fix}</span>
+              {fx && <FixAction siteId={id} rule={i.rule} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} />}
             </div>
           </div>
         ))}
       </Card>
+      <RecentChanges id={id} />
     </div>
+  );
+}
+
+/** The latest fixes, manual audits and plugin actions on this website. The full list is on the Activity logs page. */
+function RecentChanges({ id }: { id: string }) {
+  const { data } = useSWR<{ events: ActivityEvent[] }>(`/api/activity?type=changes&site=${id}&limit=10`, fetcher, { refreshInterval: 30000 });
+  if (!data || data.events.length === 0) return null;
+  return (
+    <Card className="px-5 pb-2 pt-5">
+      <CardTitle aside={<Link href="/activity" className="font-semibold text-brand">See all</Link>}>Recent changes</CardTitle>
+      {data.events.map((e) => (
+        <div key={e.kind + e.ts + e.title} className="flex flex-wrap items-start justify-between gap-3 border-t border-line-soft py-3">
+          <span className="flex min-w-[240px] flex-1 flex-col gap-0.5">
+            <span className="text-[15px] font-medium">{e.title}</span>
+            {e.detail && <span className="text-sm text-muted">{e.detail}</span>}
+          </span>
+          <time className="shrink-0 font-mono text-[13px] text-muted">{fmtDateTime(e.ts)}</time>
+        </div>
+      ))}
+    </Card>
   );
 }
 

@@ -70,7 +70,7 @@ export interface SiteDetail extends SiteCard {
   incidents: { started: number; ended: number | null; cause: string | null }[];
   platform: { platform: string; signals: string[]; seo_plugin: string | null; checked_at: number } | null;
   connector: { issued: boolean; connected: boolean; last_seen: number | null; allowed: boolean; info: { plugin_version?: string; wp_version?: string; php_version?: string; seo_plugin?: string; snippet?: string } };
-  top_issues: Issue[]; tracking_live: boolean; tracking: { verified_at: number | null; checked_at: number | null; last_hit: number | null }; pageviews30: number; snippet: string; audit_running: boolean;
+  top_issues: Issue[]; tracking_live: boolean; tracking: { verified_at: number | null; checked_at: number | null; last_hit: number | null }; pageviews30: number; snippet: string; audit_running: boolean; audit_runs_left?: number;
 }
 
 export type Counted = [string, number, number];
@@ -210,3 +210,6 @@ export interface BillingData {
   card: string | null; last_method: string | null; comped: boolean; storage: { used_mb: number; limit_mb: number };
   test_mode: boolean; grace_days: number;
 }
+
+export interface FixItem { label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
+export interface FixesResponse { allowed: boolean; connected: boolean; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }

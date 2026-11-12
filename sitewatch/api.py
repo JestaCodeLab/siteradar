@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, connector, db, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, connector, db, events, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -58,47 +58,69 @@ def blueprint(cfg):
         return jsonify(error=getattr(e, "description", "Not found")), 404
 
     # ---- activity and settings -------------------------------------------
+    ACTIVITY_PAGE = 50
+    ACTIVITY_FILTERS = {
+        "incidents": ("down", "recovered"), "alerts": ("ssl", "slow", "renewal", "domain", "dns"), "audits": ("audit", "audit_run"),
+        "billing": ("subscription", "invoice"), "changes": ("fix", "audit_run", "plugin"),
+    }
+
     @bp.get("/activity")
     def activity():
-        limit = min(max(int(request.args.get("limit", 50)), 1), 200)
+        """50 events a page, newest first. `before` is the time of the last event on the previous page; `type` filters; `site` limits it to one website."""
+        size = min(max(int(request.args.get("limit", ACTIVITY_PAGE)), 1), ACTIVITY_PAGE)
+        before = float(request.args.get("before") or time.time() + 1)
+        kinds = set(ACTIVITY_FILTERS.get(request.args.get("type", "all"), ())) or None
+        only = request.args.get("site")
         ws_id = g.ws["id"]
         names = {x["id"]: x["name"] for x in db.q("SELECT id, name FROM sites WHERE workspace_id=?", (ws_id,)) if allowed(x["id"])}
-        ids = list(names)
-        sub_ids = [str(x["id"]) for x in db.q("SELECT id FROM subscriptions WHERE workspace_id=?", (ws_id,))]
-        events = []
+        ids = [only] if only in names else [] if only else list(names)
+        sub_ids = [] if only else [str(x["id"]) for x in db.q("SELECT id FROM subscriptions WHERE workspace_id=?", (ws_id,))]
+        n = size + 1                      # one extra row per source tells us whether there is a next page
+        events_ = []
+        want = lambda *k: kinds is None or bool(kinds.intersection(k))
 
         def add(ts, kind, level, title, detail="", site_id=None):
-            events.append({"ts": ts, "kind": kind, "level": level, "title": title, "detail": detail,
-                           "site_id": site_id if site_id in names else None, "site_name": names.get(site_id)})
+            if ts < before:
+                events_.append({"ts": ts, "kind": kind, "level": level, "title": title, "detail": detail,
+                                "site_id": site_id if site_id in names else None, "site_name": names.get(site_id)})
 
-        for i in db.q("SELECT * FROM incidents WHERE site_id = ANY(?) ORDER BY started DESC LIMIT ?", (ids, limit)):
-            n = names.get(i["site_id"], i["site_id"])
-            add(i["started"], "down", "bad", f"{n} went down", i["cause"] or "", i["site_id"])
-            if i["ended"]:
-                mins = max(1, round((i["ended"] - i["started"]) / 60))
-                add(i["ended"], "recovered", "ok", f"{n} is back up", f"Down for {mins} minute{'' if mins == 1 else 's'}", i["site_id"])
-        for a in db.q("SELECT * FROM alerts_sent WHERE site_id = ANY(?) OR (site_id = '' AND split_part(kind, ':', 2) = ANY(?)) ORDER BY ts DESC LIMIT ?",
-                        (ids, sub_ids, limit)):
-            if a["kind"].startswith("renewal:"):
-                add(a["ts"], "renewal", "warn", f"Renewal reminder: {a['message']}", "Email sent to the team")
-            elif a["kind"].startswith("domain:"):
-                add(a["ts"], "domain", "bad" if ":expired:" in a["kind"] else "warn", a["message"], "Alert sent", a["site_id"])
-            elif a["kind"] == "dns":
-                add(a["ts"], "dns", "warn", a["message"], "Alert sent", a["site_id"])
-            elif a["kind"] in ("ssl", "slow"):
-                add(a["ts"], a["kind"], "warn", a["message"], "Alert sent", a["site_id"])
-        for a in db.q("SELECT site_id, ts, pages, scores FROM audits WHERE site_id = ANY(?) ORDER BY ts DESC LIMIT ?", (ids, limit)):
-            score = json.loads(a["scores"]).get("Overall")
-            add(a["ts"], "audit", "info", f"Audit completed for {names.get(a['site_id'], a['site_id'])}",
-                f"Score {score}, {a['pages']} pages crawled", a["site_id"])
-        for i in db.q("""SELECT i.uploaded ts, i.original_name, s.name, s.site_id FROM invoices i
-                         JOIN subscriptions s ON s.id = i.subscription_id WHERE s.workspace_id = ?
-                         ORDER BY i.uploaded DESC LIMIT ?""", (ws_id, limit)):
-            add(i["ts"], "invoice", "info", f"Invoice uploaded for {i['name']}", i["original_name"] or "", i["site_id"])
-        for s_ in db.q("SELECT name, created, site_id FROM subscriptions WHERE workspace_id=? ORDER BY created DESC LIMIT ?", (ws_id, limit)):
-            add(s_["created"], "subscription", "info", f"Subscription added: {s_['name']}", "", s_["site_id"])
-        events.sort(key=lambda e: -e["ts"])
-        return jsonify(events=events[:limit])
+        if want("down", "recovered"):
+            for i in db.q("SELECT * FROM incidents WHERE site_id = ANY(?) AND (started<? OR ended<?) ORDER BY started DESC LIMIT ?", (ids, before, before, n)):
+                nm = names.get(i["site_id"], i["site_id"])
+                add(i["started"], "down", "bad", f"{nm} went down", i["cause"] or "", i["site_id"])
+                if i["ended"]:
+                    mins = max(1, round((i["ended"] - i["started"]) / 60))
+                    add(i["ended"], "recovered", "ok", f"{nm} is back up", f"Down for {mins} minute{'' if mins == 1 else 's'}", i["site_id"])
+        if want("ssl", "slow", "renewal", "domain", "dns"):
+            for a in db.q("SELECT * FROM alerts_sent WHERE ts<? AND (site_id = ANY(?) OR (site_id = '' AND split_part(kind, ':', 2) = ANY(?))) ORDER BY ts DESC LIMIT ?",
+                          (before, ids, sub_ids, n)):
+                if a["kind"].startswith("renewal:"):
+                    add(a["ts"], "renewal", "warn", f"Renewal reminder: {a['message']}", "Email sent to the team")
+                elif a["kind"].startswith("domain:"):
+                    add(a["ts"], "domain", "bad" if ":expired:" in a["kind"] else "warn", a["message"], "Alert sent", a["site_id"])
+                elif a["kind"] == "dns":
+                    add(a["ts"], "dns", "warn", a["message"], "Alert sent", a["site_id"])
+                elif a["kind"] in ("ssl", "slow"):
+                    add(a["ts"], a["kind"], "warn", a["message"], "Alert sent", a["site_id"])
+        if want("audit"):
+            for a in db.q("SELECT site_id, ts, pages, scores FROM audits WHERE site_id = ANY(?) AND ts<? ORDER BY ts DESC LIMIT ?", (ids, before, n)):
+                score = json.loads(a["scores"]).get("Overall")
+                add(a["ts"], "audit", "info", f"Audit completed for {names.get(a['site_id'], a['site_id'])}",
+                    f"Score {score}, {a['pages']} pages crawled", a["site_id"])
+        if not only and want("invoice"):
+            for i in db.q("""SELECT i.uploaded ts, i.original_name, s.name, s.site_id FROM invoices i
+                             JOIN subscriptions s ON s.id = i.subscription_id WHERE s.workspace_id = ? AND i.uploaded<?
+                             ORDER BY i.uploaded DESC LIMIT ?""", (ws_id, before, n)):
+                add(i["ts"], "invoice", "info", f"Invoice uploaded for {i['name']}", i["original_name"] or "", i["site_id"])
+        if not only and want("subscription"):
+            for s_ in db.q("SELECT name, created, site_id FROM subscriptions WHERE workspace_id=? AND created<? ORDER BY created DESC LIMIT ?", (ws_id, before, n)):
+                add(s_["created"], "subscription", "info", f"Subscription added: {s_['name']}", "", s_["site_id"])
+        if want("fix", "audit_run", "plugin"):
+            for e in events.fetch(ids, sorted(kinds & {"fix", "audit_run", "plugin"}) if kinds else ["fix", "audit_run", "plugin"], before, n):
+                add(e["ts"], e["kind"], e["level"], e["title"], (f"By {e['who']}. " if e["who"] else "") + e["detail"], e["site_id"])
+        events_.sort(key=lambda e: -e["ts"])
+        page = events_[:size]
+        return jsonify(events=page, more=len(events_) > size, next=page[-1]["ts"] if page else None)
 
     @bp.get("/settings")
     def settings():
@@ -279,6 +301,7 @@ def blueprint(cfg):
             "platform": stack.saved(site_id),
             "connector": {**connector.status(site_id), "allowed": bool(plans.limits(g.ws).get("one_click_fix"))},
             "audit_running": site_id in running_audits,
+            "audit_runs_left": audit_runs_left(site_id),
             # still waiting on the first results of a website that was only just added
             "first_run": {"checks": not db.q1("SELECT 1 FROM checks WHERE site_id=? LIMIT 1", (site_id,)),
                           "audit": bool(s.get("audit", True)) and au is None and (site_id in running_audits or fresh(site_id, now))},
@@ -410,7 +433,34 @@ def blueprint(cfg):
         s = site_or_404(site_id)
         if security.limited("connector-check", 10, 5, key=site_id):
             return jsonify(error="Checked a few times already. Wait a minute and try again.", code="rate"), 429
-        return jsonify(connector.check(s))
+        r = connector.check(s)
+        events.record(site_id, "plugin", {"alive": "Checked the plugin: connected", "gone": "Checked the plugin: not found on the website"}.get(r.get("result"), "Checked the plugin: could not reach it"),
+                      who=g.user.get("email") or "", level="ok" if r.get("result") == "alive" else "warn")
+        return jsonify(r)
+
+    @bp.get("/sites/<site_id>/fixes")
+    def site_fixes(site_id):
+        """The fixes SiteRadar can apply through the connected plugin, and where each one stands."""
+        site_or_404(site_id)
+        items, log = fixes.listing(site_id)
+        st = connector.status(site_id)
+        return jsonify(allowed=bool(plans.limits(g.ws).get("one_click_fix")), connected=st["connected"], items=items, log=log)
+
+    @bp.post("/sites/<site_id>/fixes/<rule>")
+    @need("admin")
+    def set_fix(site_id, rule):
+        """Apply a fix ({"on": true}) or undo it ({"on": false}). It is switched on here; the plugin applies it and confirms."""
+        s = site_or_404(site_id)
+        if not plans.limits(g.ws).get("one_click_fix"):
+            return jsonify(error="One-click fixes are part of the Starter, Growth and Scale plans.", code="limit"), 402
+        on = bool((body() or {}).get("on", True))
+        if on and not connector.status(site_id)["connected"]:
+            return jsonify(error="Connect the SiteRadar plugin first.", code="not_connected"), 409
+        if not fixes.set_enabled(site_id, rule, on, g.user.get("email") or ""):
+            return jsonify(error="There is no automatic fix for this finding."), 404
+        threading.Thread(target=connector.nudge, args=(s,), daemon=True).start()
+        items, log = fixes.listing(site_id)
+        return jsonify(item=items[rule], log=log)
 
     @bp.post("/sites/<site_id>/wordpress-plugin")
     @need("admin")
@@ -423,6 +473,7 @@ def blueprint(cfg):
         if not found or found.get("platform") != "wordpress":
             return jsonify(error="This website was not detected as WordPress."), 409
         data = connector.plugin_zip(cfg, s)
+        events.record(site_id, "plugin", "Downloaded the WordPress plugin", "A new connection key was made, so an older copy of the plugin stops working.", who=g.user.get("email") or "")
         return Response(data, mimetype="application/zip", headers={"Content-Disposition": 'attachment; filename="siteradar.zip"', "Cache-Control": "no-store"})
 
     @bp.post("/sites/<site_id>/check")
@@ -444,10 +495,28 @@ def blueprint(cfg):
                 running_audits.discard(s["id"])
         threading.Thread(target=job, daemon=True).start()
 
+    AUDITS_PER_DAY = 2
+
+    def audit_runs_left(site_id):
+        """Manual audits left today (UTC day). The nightly audit and the first audit of a new website do not count."""
+        q = db.kv_get(f"audit-quota:{site_id}") or {}
+        used = q.get("n", 0) if q.get("day") == time.strftime("%Y-%m-%d", time.gmtime()) else 0
+        return max(0, AUDITS_PER_DAY - used)
+
     @bp.post("/sites/<site_id>/audit")
     def audit_now(site_id):
-        start_audit(site_or_404(site_id))
-        return jsonify(started=True), 202
+        s = site_or_404(site_id)
+        who = g.user.get("email") or ""
+        if site_id in running_audits:
+            return jsonify(started=True, runs_left=audit_runs_left(site_id)), 202
+        left = audit_runs_left(site_id)
+        if left <= 0:
+            events.record(site_id, "audit_run", "Audit refused: today's manual audits are used up", who=who, level="warn")
+            return jsonify(error=f"You have used today's {AUDITS_PER_DAY} manual audits for this website. The nightly audit still runs, and you can run another tomorrow.", code="quota", runs_left=0), 429
+        db.kv_set(f"audit-quota:{site_id}", {"day": time.strftime("%Y-%m-%d", time.gmtime()), "n": AUDITS_PER_DAY - left + 1})
+        events.record(site_id, "audit_run", "Ran an audit by hand", f"{left - 1} manual {'audit' if left - 1 == 1 else 'audits'} left today.", who=who)
+        start_audit(s)
+        return jsonify(started=True, runs_left=left - 1), 202
 
     def report_response(key, fmt, download_name, in_progress, make):
         """A finished month's report is made once and then served from file storage; the current month is rebuilt every time."""

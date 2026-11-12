@@ -49,6 +49,27 @@ function siteradar_register_rest() {
 			'permission_callback' => '__return_true',
 		)
 	);
+	register_rest_route(
+		'siteradar/v1',
+		'/nudge',
+		array(
+			'methods'             => 'POST',
+			'callback'            => 'siteradar_rest_nudge',
+			'permission_callback' => '__return_true',
+		)
+	);
+}
+
+/**
+ * SiteRadar taps on the shoulder when a fix was switched on or off, so it is applied at once. The tap carries nothing: the plugin asks SiteRadar,
+ * with its own key, what to do. Limited to one check-in every 20 seconds.
+ */
+function siteradar_rest_nudge() {
+	if ( ! get_transient( 'siteradar_nudged' ) ) {
+		set_transient( 'siteradar_nudged', 1, 20 );
+		siteradar_send_heartbeat();
+	}
+	return array( 'ok' => true );
 }
 
 function siteradar_rest_ping() {
@@ -102,7 +123,7 @@ function siteradar_seo_plugin() {
 /**
  * Tell SiteRadar the plugin is alive. Returns the answer from SiteRadar, or a WP_Error. Stores the outcome so the settings page can show it.
  */
-function siteradar_send_heartbeat() {
+function siteradar_send_heartbeat( $again = true ) {
 	if ( ! siteradar_is_configured() ) {
 		return new WP_Error( 'siteradar_not_configured', 'This plugin has no connection details.' );
 	}
@@ -121,6 +142,7 @@ function siteradar_send_heartbeat() {
 					'php_version'    => PHP_VERSION,
 					'seo_plugin'     => siteradar_seo_plugin(),
 					'snippet'        => siteradar_snippet_enabled() ? 'on' : 'off',
+					'fixes'          => siteradar_active_fixes(),
 				)
 			),
 		)
@@ -154,7 +176,15 @@ function siteradar_send_heartbeat() {
 		),
 		false
 	);
-	return $ok ? json_decode( wp_remote_retrieve_body( $res ), true ) : new WP_Error( 'siteradar_http', $msg );
+	if ( ! $ok ) {
+		return new WP_Error( 'siteradar_http', $msg );
+	}
+	$answer = json_decode( wp_remote_retrieve_body( $res ), true );
+	// SiteRadar says which fixes should be on. When that changed, check in once more so SiteRadar sees what is really active.
+	if ( is_array( $answer ) && isset( $answer['fixes'] ) && siteradar_store_fixes( $answer['fixes'] ) && $again ) {
+		return siteradar_send_heartbeat( false );
+	}
+	return $answer;
 }
 
 /**

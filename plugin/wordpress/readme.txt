@@ -2,7 +2,7 @@
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 0.1.2
+Stable tag: 0.2.0
 License: GPLv2 or later
 
 Connects this website to your SiteRadar account. Adds the tracking snippet automatically. Fixes you approve in SiteRadar will be applied by this plugin in later versions.
@@ -21,3 +21,9 @@ Requires PHP 8.2 or newer.
 
 = 0.1.2 =
 * SiteRadar now notices when the plugin is deactivated or removed.
+
+= 0.1.3 =
+* The menu icon keeps its orange background and white logo.
+
+= 0.2.0 =
+* One-click fixes switched on in SiteRadar: security headers, hiding the PHP version and the mobile viewport tag.

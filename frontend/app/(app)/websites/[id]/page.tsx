@@ -4,7 +4,7 @@ import { useToast } from "@/components/toast";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
@@ -85,16 +85,18 @@ function SiteView() {
         <div className="flex flex-wrap gap-2.5">
           <button onClick={refresh} disabled={refreshing} aria-label="Refresh this page" title="Refresh" className={`${btn.secondary} !px-3.5`}><RefreshCw size={18} className={refreshing ? "animate-spin" : ""} aria-hidden="true" /></button>
           <button onClick={checkNow} disabled={busy !== null} className={btn.secondary}>{busy === "check" ? "Checking…" : "Check now"}</button>
-          <button onClick={runAudit} disabled={busy !== null || site.audit_running} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}</button>
-          <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} className={btn.primary}>Latest report (PDF)</a>
+          <button onClick={runAudit} disabled={busy !== null || site.audit_running || site.audit_runs_left === 0} title={site.audit_runs_left === 0 ? "You have used today's 2 manual audits. Try again tomorrow." : undefined} className={btn.secondary}>{site.audit_running ? "Audit running…" : "Run audit"}{!site.audit_running && site.audit_runs_left !== undefined && <span className="ml-1.5 text-xs font-medium text-muted">({site.audit_runs_left} left today)</span>}</button>
+          <a href={`/api/sites/${id}/reports/${lastPeriod}.pdf`} aria-label="Latest report (PDF)" className={btn.primary}>
+            <Download size={15} aria-hidden="true" className="mr-1.5 sm:hidden" /><span className="sm:hidden">Report</span><span className="hidden sm:inline">Latest report (PDF)</span>
+          </a>
         </div>
       </header>
 
-      <div role="tablist" aria-label="Website sections" className="flex flex-wrap gap-1 border-b border-[#d9dde4]">
+      <div role="tablist" aria-label="Website sections" className="flex gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b border-[#d9dde4] [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden">
         {TABS.map(([key, label]) => (
           <button key={key} role="tab" aria-selected={tab === key}
             onClick={() => router.replace(key === "overview" ? `/websites/${id}` : `/websites/${id}?tab=${key}`, { scroll: false })}
-            className={`-mb-px min-h-11 border-b-[3px] px-4 text-[15px] ${tab === key ? "border-brand font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink"}`}>
+            className={`shrink-0 lg:-mb-px min-h-11 border-b-[3px] px-4 text-[15px] ${tab === key ? "border-brand font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink"}`}>
             {label}
           </button>
         ))}
@@ -102,7 +104,7 @@ function SiteView() {
 
       {tab === "overview" && <OverviewTab site={site} onChange={() => mutate()} />}
       {tab === "analytics" && <AnalyticsTab id={id} />}
-      {tab === "audit" && <AuditTab id={id} />}
+      {tab === "audit" && <AuditTab id={id} site={site} onRun={runAudit} busy={busy !== null} />}
       {tab === "domain" && <DomainTab site={site} />}
       {tab === "dns" && <DnsTab id={id} />}
       {tab === "sitemap" && <SitemapTab id={id} />}

@@ -8,10 +8,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 function siteradar_admin_menu() {
-	// Its own item in the admin menu with the SiteRadar icon. The icon goes in as a data URI so WordPress sizes it like its own menu icons on every admin page.
-	$svg  = file_get_contents( SITERADAR_DIR . 'assets/siteradar-icon.svg' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	$icon = $svg ? 'data:image/svg+xml;base64,' . base64_encode( $svg ) : 'dashicons-chart-area';
-	add_menu_page( 'SiteRadar', 'SiteRadar', 'manage_options', 'siteradar', 'siteradar_render_page', $icon, 80 );
+	// Its own item in the admin menu. The icon is set in siteradar_menu_icon_css(): WordPress repaints icons it is given as data URIs, which turns the orange square white.
+	add_menu_page( 'SiteRadar', 'SiteRadar', 'manage_options', 'siteradar', 'siteradar_render_page', 'none', 80 );
+}
+
+/**
+ * The menu icon: the SiteRadar orange square with the white logo, kept in its own colors on every admin page.
+ */
+function siteradar_menu_icon_css() {
+	$icon = esc_url( plugins_url( 'assets/siteradar-icon.svg', SITERADAR_FILE ) );
+	echo '<style id="siteradar-menu-icon">#adminmenu .toplevel_page_siteradar div.wp-menu-image{background:url(' . $icon . ') center / 20px 20px no-repeat;opacity:1}#adminmenu .toplevel_page_siteradar div.wp-menu-image:before{display:none}</style>';
 }
 
 /**
@@ -112,6 +118,21 @@ function siteradar_render_page() {
 					<?php wp_nonce_field( 'siteradar_check' ); ?>
 					<button type="submit" class="siteradar-btn is-secondary">Check connection</button>
 				</form>
+			<?php endif; ?>
+		</section>
+
+		<?php $siteradar_fixes = siteradar_active_fixes(); ?>
+		<section class="siteradar-card" aria-labelledby="siteradar-fixes">
+			<h2 id="siteradar-fixes">Fixes from SiteRadar</h2>
+			<?php if ( $siteradar_fixes ) : ?>
+				<p>These fixes were switched on in your SiteRadar account. Switch them off there and they are removed from this website.</p>
+				<ul class="siteradar-steps">
+					<?php foreach ( $siteradar_fixes as $siteradar_fix ) : ?>
+						<li><?php echo esc_html( siteradar_fix_catalog()[ $siteradar_fix ] ); ?></li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p>No fixes are switched on. When you fix a finding from the Audit tab in SiteRadar, it shows up here.</p>
 			<?php endif; ?>
 		</section>
 

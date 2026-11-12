@@ -9,23 +9,24 @@ import { btn, Card, Empty, ErrorState, PageHeader, Skeleton } from "@/components
 import { fetcher, type ActivityEvent } from "@/lib/api";
 import { dayLabel, fmtTime } from "@/lib/format";
 
-const FILTERS: [string, string, string[]][] = [
-  ["all", "All", []],
-  ["incidents", "Incidents", ["down", "recovered"]],
-  ["alerts", "Alerts", ["ssl", "slow", "renewal", "domain", "dns"]],
-  ["audits", "Audits", ["audit"]],
-  ["billing", "Subscriptions", ["subscription", "invoice"]],
+const FILTERS: [string, string][] = [
+  ["all", "All"], ["incidents", "Incidents"], ["alerts", "Alerts"], ["audits", "Audits"], ["changes", "Fixes and changes"], ["billing", "Subscriptions"],
 ];
 
 const dot = { bad: "bg-bad", warn: "bg-bar-warn", ok: "bg-ok", info: "bg-brand" } as const;
 
 export default function ActivityPage() {
-  const { data, error, mutate } = useSWR<{ events: ActivityEvent[] }>("/api/activity?limit=200", fetcher, { refreshInterval: 60000 });
   const [filter, setFilter] = useState("all");
+  // Pages are 50 events. Each page starts after the last event of the one before it, so the cursors of the pages visited are kept here.
+  const [cursors, setCursors] = useState<(number | null)[]>([null]);
+  const page = cursors.length;
+  const before = cursors[page - 1];
+  const { data, error, mutate } = useSWR<{ events: ActivityEvent[]; more: boolean; next: number | null }>(
+    `/api/activity?type=${filter}${before ? `&before=${before}` : ""}`, fetcher, { refreshInterval: page === 1 ? 60000 : 0, keepPreviousData: true });
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
 
-  const kinds = FILTERS.find(([k]) => k === filter)![2];
-  const events = (data?.events ?? []).filter((e) => !kinds.length || kinds.includes(e.kind));
+  const events = data?.events ?? [];
+  const pick = (k: string) => { setFilter(k); setCursors([null]); };
   const days: [string, ActivityEvent[]][] = [];
   for (const e of events) {
     const label = dayLabel(e.ts);
@@ -39,7 +40,7 @@ export default function ActivityPage() {
       <PageHeader title="Activity logs" subtitle="Incidents, alerts, audits and changes across all websites and subscriptions." />
       <div role="tablist" aria-label="Filter" className="flex flex-wrap gap-1.5">
         {FILTERS.map(([k, label]) => (
-          <button key={k} role="tab" aria-selected={filter === k} onClick={() => setFilter(k)}
+          <button key={k} role="tab" aria-selected={filter === k} onClick={() => pick(k)}
             className={`min-h-10 rounded-lg px-3.5 text-sm ${filter === k ? "bg-brand-soft font-semibold text-brand-ink" : "font-medium text-muted hover:bg-surface"}`}>{label}</button>
         ))}
       </div>
@@ -51,7 +52,7 @@ export default function ActivityPage() {
           <h2 className="mb-1 text-sm font-semibold text-muted">{label}</h2>
           <ul>
             {items.map((e) => (
-              <li key={e.kind + e.ts + e.title} className="flex gap-3.5 border-t border-line-soft py-3.5">
+              <li key={e.kind + e.ts + e.title + (e.site_id ?? "")} className="flex gap-3.5 border-t border-line-soft py-3.5">
                 <span className={`mt-1.5 size-2.5 shrink-0 rounded-full ${dot[e.level]}`} />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="text-[15px] font-medium">{e.title}</span>
@@ -64,6 +65,13 @@ export default function ActivityPage() {
           </ul>
         </Card>
       ))}
+      {data && (page > 1 || data.more) && (
+        <nav aria-label="Pages" className="flex items-center justify-between gap-3">
+          <button type="button" onClick={() => setCursors((c) => c.slice(0, -1))} disabled={page === 1} className={btn.secondary}>Newer</button>
+          <span className="text-sm text-muted">Page {page}</span>
+          <button type="button" onClick={() => data.next && setCursors((c) => [...c, data.next])} disabled={!data.more} className={btn.secondary}>Older</button>
+        </nav>
+      )}
     </>
   );
 }

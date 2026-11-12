@@ -271,6 +271,13 @@ CREATE TABLE push_subscriptions (
 CREATE INDEX idx_push_ws ON push_subscriptions(workspace_id);
 CREATE INDEX idx_push_user ON push_subscriptions(user_id);
 """),
+    (18, """
+CREATE TABLE site_events (
+    id BIGSERIAL PRIMARY KEY, site_id TEXT NOT NULL, ts DOUBLE PRECISION NOT NULL, who TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL, level TEXT NOT NULL DEFAULT 'info', title TEXT NOT NULL, detail TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_site_events ON site_events(site_id, ts DESC);
+"""),
 ]
 
 
