@@ -15,7 +15,7 @@ import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
-  fetcher, send, type AnalyticsResponse, type AuditResponse, type FixesResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
+  fetcher, send, type ActivityEvent, type AnalyticsResponse, type AuditResponse, type FixesResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
@@ -281,7 +281,28 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
           </div>
         ))}
       </Card>
+      <RecentChanges id={id} />
     </div>
+  );
+}
+
+/** The latest fixes, manual audits and plugin actions on this website. The full list is on the Activity logs page. */
+function RecentChanges({ id }: { id: string }) {
+  const { data } = useSWR<{ events: ActivityEvent[] }>(`/api/activity?type=changes&site=${id}&limit=10`, fetcher, { refreshInterval: 30000 });
+  if (!data || data.events.length === 0) return null;
+  return (
+    <Card className="px-5 pb-2 pt-5">
+      <CardTitle aside={<Link href="/activity" className="font-semibold text-brand">See all</Link>}>Recent changes</CardTitle>
+      {data.events.map((e) => (
+        <div key={e.kind + e.ts + e.title} className="flex flex-wrap items-start justify-between gap-3 border-t border-line-soft py-3">
+          <span className="flex min-w-[240px] flex-1 flex-col gap-0.5">
+            <span className="text-[15px] font-medium">{e.title}</span>
+            {e.detail && <span className="text-sm text-muted">{e.detail}</span>}
+          </span>
+          <time className="shrink-0 font-mono text-[13px] text-muted">{fmtDateTime(e.ts)}</time>
+        </div>
+      ))}
+    </Card>
   );
 }
 

@@ -8,7 +8,7 @@ Only fixes that are the same for the whole website live here. Fixes that need te
 come later, with a review step."""
 import time
 
-from . import db
+from . import db, events
 
 # audit rule -> (setting the plugin understands, button label, what it does in plain words, needs a confirmation first)
 CATALOG = {
@@ -43,8 +43,20 @@ def report(site_id, active):
     s = _load(site_id)
     active = {k for k in (active or []) if k in SETTINGS}
     now = time.time()
+    fresh = [k for k in active if k not in s["applied"] and k in s["enabled"]]
     s["applied"] = {k: s["applied"].get(k, now) for k in active}
     db.kv_set(f"fixes:{site_id}", s)
+    for k in fresh:
+        rule = next(r for r, v in CATALOG.items() if v[0] == k)
+        events.record(site_id, "fix", f"The plugin confirmed the fix: {_title(rule)}", "It is now active on the website.", level="ok")
+
+
+def _title(rule):
+    return RULE_NAMES.get(rule, rule)
+
+
+RULE_NAMES = {"no_hsts": "HSTS header", "no_xcto": "X-Content-Type-Options header", "no_frame": "X-Frame-Options header",
+              "no_referrer_policy": "Referrer-Policy header", "server_leak": "hide the PHP version", "no_viewport": "viewport tag"}
 
 
 def set_enabled(site_id, rule, on, who=""):
@@ -60,6 +72,8 @@ def set_enabled(site_id, rule, on, who=""):
         s["applied"].pop(key, None)
     s["log"] = ([{"t": time.time(), "who": who, "rule": rule, "action": "apply" if on else "undo"}] + s["log"])[:100]
     db.kv_set(f"fixes:{site_id}", s)
+    events.record(site_id, "fix", f"{'Applied' if on else 'Undid'} the fix: {_title(rule)}",
+                  "Waiting for the plugin to apply it." if on else "Switched off again.", who=who, level="info" if on else "warn")
     return True
 
 
