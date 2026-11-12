@@ -89,7 +89,7 @@ def sms_used(ws_id):
     return db.q1("SELECT COUNT(*) n FROM sms_log WHERE workspace_id=? AND ok=1 AND ts>=?", (ws_id, start))["n"]
 
 
-OVERRIDABLE = ("sites", "members", "sms", "interval_minutes", "history_months", "audit_pages", "storage_mb")
+OVERRIDABLE = ("sites", "members", "sms", "interval_minutes", "history_months", "audit_pages", "storage_mb", "ai_credits")
 
 
 def limits(ws):
@@ -100,7 +100,7 @@ def limits(ws):
     if custom:
         plan = {**plan, **{k: int(v) for k, v in custom.items() if k in OVERRIDABLE and v not in (None, "")}}
     if is_locked(ws):
-        plan = {**plan, "sites": 0, "sms": 0, "channels": ["email"], "one_click_fix": False}
+        plan = {**plan, "sites": 0, "sms": 0, "channels": ["email"], "one_click_fix": False, "ai_credits": 0}
     return plan if sms_allowed(ws) else without_sms(plan)
 
 
@@ -123,6 +123,19 @@ def check_can_add_seat(ws, role):
     if u["seats"] >= plan["members"]:
         raise LimitError(f"Your {plan['name']} plan includes {plan['members']} team member{'s' if plan['members'] != 1 else ''}, "
                          "counting pending invitations. Upgrade to add more.")
+
+
+def ai_used(ws_id):
+    """AI drafts made this month."""
+    t = time.localtime()
+    start = time.mktime((t.tm_year, t.tm_mon, 1, 0, 0, 0, 0, 0, -1))
+    return int(db.q1("SELECT COALESCE(SUM(credits), 0) n FROM ai_usage WHERE workspace_id=? AND ts>=?", (ws_id, start))["n"])
+
+
+def ai_status(ws):
+    """The AI draft allowance: included each month by the plan, plus bought credits that do not expire."""
+    quota, used, bonus = limits(ws)["ai_credits"], ai_used(ws["id"]), ws.get("ai_bonus") or 0
+    return {"quota": quota, "used": used, "bonus": bonus, "left": max(quota - used, 0) + bonus}
 
 
 def sms_quota(ws):

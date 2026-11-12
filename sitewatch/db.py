@@ -278,6 +278,18 @@ CREATE TABLE site_events (
 );
 CREATE INDEX idx_site_events ON site_events(site_id, ts DESC);
 """),
+    (19, """
+ALTER TABLE plans ADD COLUMN ai_credits INTEGER NOT NULL DEFAULT 0;
+UPDATE plans SET ai_credits=300 WHERE id='starter';
+UPDATE plans SET ai_credits=1500 WHERE id='growth';
+UPDATE plans SET ai_credits=6000 WHERE id='scale';
+ALTER TABLE workspaces ADD COLUMN ai_bonus INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE ai_usage (
+    id BIGSERIAL PRIMARY KEY, workspace_id BIGINT NOT NULL, site_id TEXT, ts DOUBLE PRECISION NOT NULL, kind TEXT NOT NULL, model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0, credits INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX idx_ai_usage_ws ON ai_usage(workspace_id, ts);
+"""),
 ]
 
 

@@ -455,7 +455,7 @@ def blueprint(cfg):
                     v = float(p[f])
                     if v < 0: raise ValueError("Prices can't be negative.")
                     sets.append(f"{f}=?"); args.append(v)
-            for f in ("sites", "members", "interval_minutes", "sms", "history_months", "audit_pages", "storage_mb"):
+            for f in ("sites", "members", "interval_minutes", "sms", "history_months", "audit_pages", "storage_mb", "ai_credits"):
                 if f in p:
                     v = int(float(p[f]))
                     if v < 0 or (f in ("sites", "members", "interval_minutes") and v < 1):
