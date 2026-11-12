@@ -264,7 +264,7 @@ def blueprint(cfg):
                     "support.mode": f"{who} changed the support session: {a['detail']}", "note": f"{who} added an internal note",
                     "customer.update": f"{who} updated the account: {a['detail']}", "payment.link": f"{who} sent a payment link to the owner",
                     "payment.retry": f"{who} retried the payment ({a['detail']})", "payment.refund": f"{who} refunded GHS {a['detail']}",
-                    "plan.cancel": a["detail"], "plan.lapsed": a["detail"]}.get(a["action"], f"{who}: {a['action']} {a['detail']}")
+                    "ai.credits": f"{who} changed AI credits: {a['detail']}", "plan.cancel": a["detail"], "plan.lapsed": a["detail"]}.get(a["action"], f"{who}: {a['action']} {a['detail']}")
             events.append({"ts": a["ts"], "text": text, "tone": "bad" if a["action"] == "plan.lapsed" else "purple" if a["action"] != "plan.cancel" else "muted"})
         for p in db.q("SELECT * FROM payments WHERE workspace_id=? AND status IN ('success','failed','abandoned','refunded') ORDER BY created DESC LIMIT 10", (ws["id"],)):
             ok = p["status"] in ("success", "refunded")
@@ -321,6 +321,8 @@ def blueprint(cfg):
                     if failed_recent and w["plan_status"] in ("past_due", "lapsed") else None),
             notes=[{"ts": n["ts"], "admin": n["first_name"] or "Admin", "text": n["detail"]} for n in db.q(
                 "SELECT a.ts, a.detail, u.first_name FROM admin_audit a LEFT JOIN users u ON u.id=a.admin_id WHERE a.workspace_id=? AND a.action='note' ORDER BY a.ts DESC LIMIT 20", (ws_id,))],
+            ai={**plans.ai_status(w), "history": [{"ts": a["ts"], "admin": a["first_name"] or "Admin", "text": a["detail"]} for a in db.q(
+                "SELECT a.ts, a.detail, u.first_name FROM admin_audit a LEFT JOIN users u ON u.id=a.admin_id WHERE a.workspace_id=? AND a.action='ai.credits' ORDER BY a.ts DESC LIMIT 8", (ws_id,))]},
             audit=trail(w), grace_days=billing.GRACE_DAYS, plans=[{"id": p["id"], "name": p["name"]} for p in cat.values()])
 
     @bp.patch("/customers/<int:ws_id>")
@@ -368,6 +370,28 @@ def blueprint(cfg):
         audit("customer.delete", ws_id, f"Deleted {name}: {removed['websites']} websites, {removed['subscriptions']} subscriptions, {removed['invoices']} invoices, "
                                          f"{removed['files']} files, {removed['people']} people. Reason: {reason}")
         return jsonify(ok=True, removed=removed)
+
+    @bp.post("/customers/<int:ws_id>/ai-credits")
+    def adjust_ai_credits(ws_id):
+        """Add credits to a customer's balance, or take some away. Only the credits they were given or bought can be taken back, never the monthly allowance
+        (change that with the plan's custom limits). A reason is required and is kept in the trail."""
+        w = ws_or_404(ws_id)
+        d = body()
+        n = int(float(d.get("amount") or 0))
+        reason = (d.get("reason") or "").strip()
+        if d.get("action") not in ("add", "remove") or n < 1:
+            raise ValueError("Choose add or remove and a number of credits above zero.")
+        if not reason:
+            raise ValueError("Give a reason, so the trail shows why.")
+        have = w.get("ai_bonus") or 0
+        if d["action"] == "add":
+            db.exec("UPDATE workspaces SET ai_bonus=ai_bonus+? WHERE id=?", (n, ws_id))
+        else:
+            if n > have:
+                raise ValueError(f"This customer only has {have:,} bought or given credits to take back. The monthly allowance comes from their plan.")
+            db.exec("UPDATE workspaces SET ai_bonus=ai_bonus-? WHERE id=?", (n, ws_id))
+        audit("ai.credits", ws_id, f"{'added' if d['action'] == 'add' else 'removed'} {n:,} credits ({reason[:200]}); balance {have + n if d['action'] == 'add' else have - n:,}")
+        return customer(ws_id)
 
     @bp.post("/customers/<int:ws_id>/notes")
     def add_note(ws_id):

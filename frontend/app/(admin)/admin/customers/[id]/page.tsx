@@ -24,11 +24,12 @@ interface Detail {
   payments: { reference: string; plan_id: string; cycle: string; amount: number; status: string; method: string | null; created: number; paid: number | null; refunded: number | null }[];
   failed: { ts: number; amount: number; plan_id: string } | null;
   notes: { ts: number; admin: string; text: string }[]; audit: { ts: number; text: string; tone: string }[];
+  ai: { quota: number; used: number; bonus: number; left: number; history: { ts: number; admin: string; text: string }[] };
   grace_days: number; plans: { id: string; name: string }[];
 }
 type Panel = null | "support" | "plan" | "free" | "limits" | "refund";
 const dot: Record<string, string> = { purple: "#6B4FE0", bad: "#B3261E", ok: "#0B7A4B", muted: "#5B6472" };
-const LIMIT_FIELDS: [string, string][] = [["sites", "Websites"], ["members", "Team members"], ["sms", "SMS per month"], ["interval_minutes", "Check every (min)"], ["history_months", "History (months)"], ["audit_pages", "Audit pages"], ["storage_mb", "Invoice storage (MB)"]];
+const LIMIT_FIELDS: [string, string][] = [["sites", "Websites"], ["members", "Team members"], ["sms", "SMS per month"], ["interval_minutes", "Check every (min)"], ["history_months", "History (months)"], ["audit_pages", "Audit pages"], ["storage_mb", "Invoice storage (MB)"], ["ai_credits", "AI drafts per month"]];
 const reasons = ["Support request from the customer", "Billing or payment question", "Investigating a bug", "Other"];
 
 export default function CustomerPage() {
@@ -156,6 +157,20 @@ export default function CustomerPage() {
             <div key={u.label} className="flex flex-col gap-1.5"><div className="flex justify-between text-sm"><span>{u.label}</span><span className="font-semibold">{u.text}</span></div>
               <div className="h-2 rounded bg-[#E8EBF0]"><div className="h-2 rounded bg-[#6B4FE0]" style={{ width: `${Math.min(100, Math.max(u.pct > 0 ? 3 : 0, u.pct * 100))}%` }} /></div></div>
           ))}
+        </AdminCard>
+
+        <AdminCard label="AI credits" className="flex min-w-0 flex-[1_1_340px] flex-col gap-3">
+          <h2 className="text-lg font-semibold">AI credits</h2>
+          <p className="text-sm text-[#5B6472]">{data.ai.used.toLocaleString()} of {data.ai.quota.toLocaleString()} used this month, plus {data.ai.bonus.toLocaleString()} bought or given. <b className="text-[#16122B]">{data.ai.left.toLocaleString()} left.</b></p>
+          <form key={data.ai.history.length} onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => send("POST", `/api/admin/customers/${id}/ai-credits`, { action: f.get("action"), amount: f.get("amount"), reason: f.get("reason") }), "AI credits updated."); }} className="flex flex-col gap-2.5">
+            <div className="flex gap-2.5">
+              <select name="action" aria-label="Add or remove" className="min-h-11 rounded-lg border border-[#C9CFD8] bg-white px-3 text-sm"><option value="add">Add</option><option value="remove">Remove</option></select>
+              <input name="amount" inputMode="numeric" aria-label="Number of credits" placeholder="Credits" className="min-h-11 w-full min-w-0 rounded-lg border border-[#C9CFD8] px-3 text-sm" />
+            </div>
+            <input name="reason" aria-label="Reason" placeholder="Reason, kept in the trail" className="min-h-11 rounded-lg border border-[#C9CFD8] px-3 text-sm" />
+            <div><button disabled={busy} className={aBtn.primary}>Update credits</button></div>
+          </form>
+          {data.ai.history.map((h, i) => <div key={i} className="border-t border-[#EDEFF3] pt-2.5 text-[13px] leading-relaxed text-[#3F4857]"><b>{h.admin}</b> · {fmtDateTime(h.ts)}<br />{h.text}</div>)}
         </AdminCard>
       </div>
 
