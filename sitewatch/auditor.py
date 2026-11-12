@@ -526,7 +526,7 @@ class Auditor:
             urls = list(dict.fromkeys(h[0] for h in hits))
             issues.append({
                 "rule": rule, "category": cat, "severity": sev, "title": title, "fix": fix,
-                "count": len(urls), "examples": [{"url": u, "detail": d} for u, d in hits[:8]],
+                "count": len(urls), "examples": [{"url": u, "detail": d} for u, d in hits[:25]],
                 "share": min(1.0, len(urls) / n_pages),
             })
         order = {"high": 0, "medium": 1, "low": 2}

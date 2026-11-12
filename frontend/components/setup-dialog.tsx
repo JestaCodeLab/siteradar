@@ -103,7 +103,7 @@ function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: (
         <div className="flex items-start gap-3.5">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"><Plug aria-hidden="true" size={22} /></span>
           <div className="min-w-0 flex-1">
-            <h2 id="setup-title" className="text-xl font-bold">{isWp ? `Connect ${site.host} to SiteRadar` : `Install the tracking snippet on ${site.host}`}</h2>
+            <h2 id="setup-title" className="text-xl font-bold">{isWp ? <>Connect <span className="text-brand">{site.host}</span> to SiteRadar</> : <>Install the tracking snippet on <span className="text-brand">{site.host}</span></>}</h2>
             <p className="mt-0.5 text-[15px] text-muted">{isWp ? "Install the SiteRadar plugin. It adds tracking automatically, and it is how one-click fixes get applied." : "Add this snippet to your website so SiteRadar can show visitors, sources and page speed, and send your monthly report."}</p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft"><X aria-hidden="true" size={18} /></button>
