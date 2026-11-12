@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X, History } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -278,6 +278,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
 }
 export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDetail; onRun: () => void; busy: boolean }) {
   const { open: openSetup, isWp } = useSetup();
+  const [view, setView] = useState<"findings" | "changes">("findings");
   const { data: fx, mutate: refetchFx } = useSWR<FixesResponse>(isWp ? `/api/sites/${id}/fixes` : null, fetcher,
     { refreshInterval: (d) => (d && Object.values(d.items).some((i) => i.state === "queued") ? 4000 : 0) });
   const { data, error, mutate: retry } = useSWR<AuditResponse>(`/api/sites/${id}/audit`, fetcher, { refreshInterval: (d) => (d?.running ? 5000 : 0) });
@@ -316,6 +317,15 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
           </div>
         ))}
       </section>
+      <div role="group" aria-label="Audit sections" className="inline-flex gap-1 self-end rounded-[10px] bg-[#e8ebf0] p-1">
+        {([["findings", "Findings", ClipboardCheck], ["changes", "Recent changes", History]] as const).map(([key, label, Glyph]) => (
+          <button key={key} type="button" aria-pressed={view === key} onClick={() => setView(key)}
+            className={`inline-flex min-h-10 items-center gap-2 rounded-[7px] px-4 text-sm ${view === key ? "bg-surface font-semibold shadow-sm" : "font-medium text-ink-2"}`}>
+            <Glyph size={16} aria-hidden="true" />{label}
+          </button>
+        ))}
+      </div>
+      {view === "changes" ? <RecentChanges id={id} /> : (
       <Card className="px-5 pb-2 pt-5">
         <CardTitle aside={
           <span className="flex flex-wrap items-center gap-3">
@@ -326,7 +336,7 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
         {issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-ok">No issues found. Nice work.</p>}
         {issues.map((i) => <IssueRow key={i.rule} siteId={id} issue={i} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} host={site.host} />)}
       </Card>
-      <RecentChanges id={id} />
+      )}
     </div>
   );
 }
@@ -334,10 +344,11 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
 /** The latest fixes, manual audits and plugin actions on this website. The full list is on the Activity logs page. */
 function RecentChanges({ id }: { id: string }) {
   const { data } = useSWR<{ events: ActivityEvent[] }>(`/api/activity?type=changes&site=${id}&limit=10`, fetcher, { refreshInterval: 30000 });
-  if (!data || data.events.length === 0) return null;
+  if (!data) return <Loading />;
   return (
     <Card className="px-5 pb-2 pt-5">
       <CardTitle aside={<Link href="/activity" className="font-semibold text-brand">See all</Link>}>Recent changes</CardTitle>
+      {data.events.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-muted">Nothing yet. Fixes you apply, audits you run by hand and plugin actions on this website are listed here.</p>}
       {data.events.map((e) => (
         <div key={e.kind + e.ts + e.title} className="flex flex-wrap items-start justify-between gap-3 border-t border-line-soft py-3">
           <span className="flex min-w-[240px] flex-1 flex-col gap-0.5">
