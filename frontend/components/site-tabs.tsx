@@ -5,6 +5,7 @@ import { AlertTriangle, ChevronDown, Receipt, CalendarClock, ClipboardCheck, Eye
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { fixGuide } from "@/lib/fix-guides";
 import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
 import { TrackingInstall } from "./tracking-install";
@@ -171,13 +172,26 @@ export function AnalyticsTab({ id }: { id: string }) {
   );
 }
 
-function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: string; issue: Issue; fx: FixesResponse | undefined; onChange: () => void; openSetup: () => void; host: string }) {
+function CodeBlock({ label, code }: { label: string; code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3"><span className="text-[13px] font-medium text-ink-2">{label}</span>
+        <button type="button" onClick={() => { navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }).catch(() => { /* the code stays selectable */ }); }} className="min-h-8 text-[13px] font-semibold text-brand hover:underline">{copied ? "Copied" : "Copy"}</button></div>
+      <pre className="overflow-x-auto rounded-lg border border-line bg-surface p-3 font-mono text-[12.5px] leading-relaxed text-ink"><code>{code}</code></pre>
+    </div>
+  );
+}
+
+function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform }: { siteId: string; issue: Issue; fx: FixesResponse | undefined; onChange: () => void; openSetup: () => void; host: string; isWp: boolean; platform: string | null }) {
   const { isAdmin } = useMe();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(false);
   const [open, setOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
   const item = fx?.items[issue.rule];
+  const guide = isWp ? null : fixGuide(issue.rule, platform);
   const pages = issue.examples ?? [];
 
   useEffect(() => {
@@ -216,6 +230,8 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
     else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>;
     else control = <button type="button" onClick={() => setAsking(true)} className={`${btn.primary} whitespace-nowrap`}><Wrench size={15} aria-hidden="true" />Fix this issue</button>;
   }
+  // websites that cannot be fixed with one click (not WordPress) get a panel that explains the fix instead
+  if (!isWp) control = <button type="button" onClick={() => setGuideOpen((o) => !o)} aria-expanded={guideOpen} className={`${btn.secondary} whitespace-nowrap`}>{guideOpen ? "Hide fix" : "Show fix"}<ChevronDown size={16} aria-hidden="true" className={`transition-transform ${guideOpen ? "rotate-180" : ""}`} /></button>;
   const note = item?.state === "applied" ? "It disappears from this list after the next audit." : item?.state === "queued" ? "Waiting for the plugin on your website to confirm." : null;
 
   return (
@@ -242,6 +258,15 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host }: { siteId: st
           </div>
         )}
         {note && <span className="text-[13px] text-muted">{note}</span>}
+        {!isWp && guideOpen && (
+          <div className="mt-1.5 flex flex-col gap-3 rounded-lg border border-line-soft bg-soft p-3.5">
+            <span className="text-[13px] font-semibold text-muted">How to fix it</span>
+            <p className="text-sm leading-relaxed text-ink-2">{guide?.note ?? issue.fix}</p>
+            {guide?.example && guide.snippets.length > 0 && <p className="text-[13px] leading-relaxed text-muted">SiteRadar cannot see your code, so treat this as an example. Change the file names and values to match your project.</p>}
+            {guide?.snippets.map((sn) => <CodeBlock key={sn.label} label={sn.label} code={sn.code} />)}
+            {!guide && <p className="text-[13px] text-muted">This one depends on how your website is built, so there is no ready-made code. Pass the advice above to whoever maintains it.</p>}
+          </div>
+        )}
         {/* phones: the control sits under the text; wide screens: it moves to the right edge */}
         {control && <div className="mt-1.5 lg:hidden">{item?.state === "available" && <span className="mb-1.5 block text-[13px] leading-relaxed text-muted">{item.what}</span>}{control}</div>}
       </div>
@@ -352,7 +377,7 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
           </span>
         }>Findings</CardTitle>
         {issues.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-ok">No issues found. Nice work.</p>}
-        {issues.map((i) => <IssueRow key={i.rule} siteId={id} issue={i} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} host={site.host} />)}
+        {issues.map((i) => <IssueRow key={i.rule} siteId={id} issue={i} fx={fx} onChange={() => refetchFx()} openSetup={openSetup} host={site.host} isWp={isWp} platform={site.platform?.platform ?? null} />)}
       </Card>
       )}
     </div>
