@@ -13,6 +13,7 @@ import { fmtDateTs } from "@/lib/format";
 import { ghs, money, useMe } from "@/lib/me";
 import { DiscountBox } from "./discount-field";
 import { checkout, payFor } from "@/lib/paystack";
+import { AiTopUpModal, useAiCredits } from "./ai-topup";
 import { priceLine } from "@/lib/plans";
 
 const box = "rounded-[14px] border border-line bg-surface p-[22px]";
@@ -35,6 +36,8 @@ const planLine = (p: PlanInfo) => {
 
 export function BillingPanel() {
   const { isOwner, isGhana, mutate: refreshMe } = useMe();
+  const { data: ai, mutate: refreshAi } = useAiCredits();
+  const [topUp, setTopUp] = useState(false);
   const { data, error, mutate } = useSWR<BillingData>("/api/billing", fetcher);
   const [yearly, setYearly] = useState<boolean | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -138,6 +141,12 @@ export function BillingPanel() {
           <Bar label="Websites" value={`${ws.usage.sites} of ${ws.plan.sites}`} pct={(ws.usage.sites / Math.max(ws.plan.sites, 1)) * 100} warn={ws.usage.sites >= ws.plan.sites} />
           <Bar label="Team members" value={`${ws.usage.seats} of ${ws.plan.members}${pendingInv ? ` (${pendingInv} invitation${pendingInv === 1 ? "" : "s"} pending)` : ""}`} pct={(ws.usage.seats / Math.max(ws.plan.members, 1)) * 100} warn={ws.usage.seats >= ws.plan.members} />
           {ws.plan.sms > 0 && <Bar label="SMS alerts this month" value={`${ws.usage.sms} of ${ws.plan.sms}${ws.sms_credits ? ` + ${ws.sms_credits} bought` : ""}`} pct={(ws.usage.sms / ws.plan.sms) * 100} />}
+          {ai?.allowed && (
+            <div className="flex flex-col gap-1.5">
+              <Bar label="AI drafts this month" value={`${ai.used.toLocaleString()} of ${ai.quota.toLocaleString()}${ai.bonus ? ` + ${ai.bonus.toLocaleString()} bought` : ""}`} pct={(ai.used / Math.max(ai.quota, 1)) * 100} warn={ai.left < 1} />
+              {isOwner && <button type="button" onClick={() => setTopUp(true)} className="self-start text-[13px] font-semibold text-brand hover:underline">Buy more AI credits</button>}
+            </div>
+          )}
           <Bar label="Invoice storage" value={`${data.storage.used_mb} MB of ${data.storage.limit_mb >= 1024 ? `${data.storage.limit_mb / 1024} GB` : `${data.storage.limit_mb} MB`}`} pct={(data.storage.used_mb / Math.max(data.storage.limit_mb, 1)) * 100} />
         </section>
       </div>
@@ -223,6 +232,7 @@ export function BillingPanel() {
           </div></div>
         )}
       </section>
+      {topUp && ai && <AiTopUpModal credits={ai} onClose={() => setTopUp(false)} onBought={async () => { await refreshAi(); setTopUp(false); }} />}
     </>
   );
 }

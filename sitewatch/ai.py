@@ -22,6 +22,13 @@ RULES = ("Write in the same language as the page. Use only facts that are on the
          "Answer with the text only: no quotes, no label, no explanation.")
 
 
+PRICE_IN, PRICE_OUT = 0.10, 0.50        # US dollars per million tokens for Haiku 5.5 (prompts up to 100K tokens)
+
+
+def cost_usd(input_tokens, output_tokens):
+    return (input_tokens * PRICE_IN + output_tokens * PRICE_OUT) / 1_000_000
+
+
 class AIError(Exception):
     """Something the customer can be told about."""
 

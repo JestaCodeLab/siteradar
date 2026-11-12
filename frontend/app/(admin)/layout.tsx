@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Activity, Clock, CreditCard, LayoutGrid, Star, Tag, Users } from "lucide-react";
+import { Activity, Clock, CreditCard, LayoutGrid, Sparkles, Star, Tag, Users } from "lucide-react";
 import useSWR from "swr";
 import { PageLoader } from "@/components/page-loader";
 import { AdminTopbar } from "@/components/admin/topbar";
@@ -19,6 +19,7 @@ const nav = [
   { href: "/admin/plans", label: "Plans and pricing", Icon: Star },
   { href: "/admin/payments", label: "Payments", Icon: CreditCard, badge: "failed_payments" as const },
   { href: "/admin/discounts", label: "Discount codes", Icon: Tag },
+  { href: "/admin/ai", label: "AI credits", Icon: Sparkles },
   { href: "/admin/health", label: "Platform health", Icon: Activity },
 ];
 

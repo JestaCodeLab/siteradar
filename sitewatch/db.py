@@ -290,6 +290,11 @@ CREATE TABLE ai_usage (
 );
 CREATE INDEX idx_ai_usage_ws ON ai_usage(workspace_id, ts);
 """),
+    (20, """
+UPDATE plans SET ai_credits=500 WHERE id='starter';
+UPDATE plans SET ai_credits=3000 WHERE id='growth';
+UPDATE plans SET ai_credits=10000 WHERE id='scale';
+"""),
 ]
 
 

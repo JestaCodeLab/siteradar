@@ -215,3 +215,12 @@ export interface BillingData {
 
 export interface FixItem { title: string; severity: "high" | "medium" | "low"; issue_fix: string; label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
 export interface FixesResponse { allowed: boolean; connected: boolean; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }
+
+export interface AiCredits { quota: number; used: number; bonus: number; left: number; allowed: boolean; currency: "GHS" | "USD"; bundles: { credits: number; price: number }[] }
+export interface AiAdmin {
+  model: string; configured: boolean; price_in: number; price_out: number; budget_usd: number; spent_usd: number; left_usd: number; tokens_left: number; tokens_used: number;
+  month: { input: number; output: number; drafts: number }; all_time: { input: number; output: number; drafts: number; usd: number }; avg_cost_per_draft: number | null;
+  credits_bought_outstanding: number; credits_included_unused: number; bundle_revenue: Record<string, number>;
+  by_kind: { kind: string; drafts: number; usd: number }[]; top: { workspace: string; id: number; drafts: number; usd: number }[];
+  bundles: { credits: number; price_ghs: number; price_usd: number }[]; plans: { id: string; name: string; ai_credits: number; price_month_usd: number }[];
+}

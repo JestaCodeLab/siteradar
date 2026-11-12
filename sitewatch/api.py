@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, alerts, analytics, auditor, connector, db, events, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, alerts, analytics, auditor, billing, connector, db, events, fixes, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -121,6 +121,14 @@ def blueprint(cfg):
         events_.sort(key=lambda e: -e["ts"])
         page = events_[:size]
         return jsonify(events=page, more=len(events_) > size, next=page[-1]["ts"] if page else None)
+
+    @bp.get("/ai/credits")
+    def ai_credits():
+        """The AI draft allowance and the packages that can be bought, priced in the workspace's currency."""
+        cur = g.ws["currency"]
+        key = "price_usd" if cur == "USD" else "price_ghs"
+        return jsonify(**plans.ai_status(g.ws), allowed=bool(plans.limits(g.ws).get("one_click_fix")), currency=cur,
+                       bundles=[{"credits": b["credits"], "price": b[key]} for b in billing.ai_bundles()])
 
     @bp.get("/settings")
     def settings():
