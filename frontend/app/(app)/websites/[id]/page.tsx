@@ -7,7 +7,6 @@ import { Suspense, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
-import { SearchTab } from "@/components/search-tab";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
@@ -15,7 +14,7 @@ import { SetupProvider } from "@/components/setup-dialog";
 import { fmtAgo } from "@/lib/format";
 
 const TABS = [
-  ["overview", "Overview"], ["analytics", "Analytics"], ["search", "Search"], ["audit", "Audit"], ["domain", "Domain"],
+  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"], ["domain", "Domain"],
   ["dns", "DNS & email"], ["sitemap", "Sitemap"],
   ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
 ] as const;
@@ -23,7 +22,8 @@ const TABS = [
 function SiteView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const tab = useSearchParams().get("tab") ?? "overview";
+  const rawTab = useSearchParams().get("tab") ?? "overview";
+  const tab = rawTab === "search" ? "analytics" : rawTab;       // the Search tab was folded into Analytics
   const { data: site, error, mutate } = useSWR<SiteDetail>(`/api/sites/${id}`, fetcher, {
     refreshInterval: (d) => (d?.audit_running || d?.preview.running || d?.first_run?.checks || d?.first_run?.audit ? 4000 : d && !d.preview.desktop ? 10000 : 60000),
   });
@@ -105,7 +105,6 @@ function SiteView() {
 
       {tab === "overview" && <OverviewTab site={site} onChange={() => mutate()} />}
       {tab === "analytics" && <AnalyticsTab id={id} />}
-      {tab === "search" && <SearchTab id={id} />}
       {tab === "audit" && <AuditTab id={id} site={site} onRun={runAudit} busy={busy !== null} />}
       {tab === "domain" && <DomainTab site={site} />}
       {tab === "dns" && <DnsTab id={id} />}

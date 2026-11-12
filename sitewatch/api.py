@@ -539,7 +539,7 @@ def blueprint(cfg):
         data = db.kv_get(f"gsc-data:{site_id}")
         if data:
             summary, opps = gsc.analyse(data)
-            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps, series=data.get("series"), queries=data.get("queries"))
+            out.update(fetched=data["fetched"], start=data["start"], end=data["end"], summary=summary, opportunities=opps, series=data.get("series"), queries=data.get("queries"), countries=data.get("countries"))
         return jsonify(out)
 
     @bp.post("/sites/<site_id>/search/connect")
@@ -548,7 +548,7 @@ def blueprint(cfg):
         s = site_or_404(site_id)
         if not gsc.configured():
             return jsonify(error="Google is not set up on this server yet."), 503
-        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], str(body().get("tab") or "search")))
+        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], "analytics"))
 
     @bp.post("/sites/<site_id>/search/refresh")
     @need("admin")

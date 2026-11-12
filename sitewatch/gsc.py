@@ -38,10 +38,10 @@ def _saved(site_id):
     return db.kv_get(f"gsc:{site_id}")
 
 
-def auth_url(site, ws_id, user_id, tab="search"):
+def auth_url(site, ws_id, user_id, tab="analytics"):
     """Where to send the owner to approve read-only access. The state is single use and ties the answer to this website and person."""
     state = secrets.token_urlsafe(24)
-    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "tab": tab if tab in ("search", "analytics") else "search", "created": time.time()})
+    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "tab": "analytics", "created": time.time()})
     q = {"client_id": os.environ["GOOGLE_CLIENT_ID"], "redirect_uri": redirect_uri(), "response_type": "code", "scope": SCOPE,
          "state": state, "access_type": "offline", "prompt": "consent", "include_granted_scopes": "false"}
     return google_auth.AUTH_URL + "?" + urlencode(q)
@@ -148,12 +148,9 @@ def refresh(site):
         r = got.get(d)
         series.append({"d": d, "clicks": int(r["clicks"]), "impressions": int(r["impressions"]), "ctr": r["ctr"], "position": round(r["position"], 1)} if r
                       else {"d": d, "clicks": 0, "impressions": 0, "ctr": 0, "position": None})
-    by_query = defaultdict(lambda: [0, 0])
-    for r in qrows:
-        q = by_query[r["keys"][1]]
-        q[0] += int(r["clicks"])
-        q[1] += int(r["impressions"])
-    queries = [{"query": k, "clicks": v[0], "impressions": v[1]} for k, v in sorted(by_query.items(), key=lambda kv: -kv[1][1])[:15]]
+    row = lambda r, key: {key: r["keys"][0], "clicks": int(r["clicks"]), "impressions": int(r["impressions"]), "ctr": r["ctr"], "position": round(r["position"], 1)}
+    queries = [row(r, "query") for r in _query(saved["property"], token, {**base, "dimensions": ["query"], "rowLimit": 100})]
+    countries = [row(r, "country") for r in _query(saved["property"], token, {**base, "dimensions": ["country"], "rowLimit": 50})]
     terms = defaultdict(list)
     for r in qrows:
         terms[r["keys"][0]].append({"query": r["keys"][1], "clicks": int(r["clicks"]), "impressions": int(r["impressions"])})
@@ -162,7 +159,7 @@ def refresh(site):
         url = r["keys"][0]
         top = sorted(terms.get(url, []), key=lambda q: -q["impressions"])[:5]
         out.append({"page": url, "clicks": int(r["clicks"]), "impressions": int(r["impressions"]), "ctr": r["ctr"], "position": round(r["position"], 1), "queries": top})
-    data = {"fetched": time.time(), "start": start.isoformat(), "end": end.isoformat(), "pages": out, "series": series, "queries": queries}
+    data = {"fetched": time.time(), "start": start.isoformat(), "end": end.isoformat(), "pages": out, "series": series, "queries": queries, "countries": countries}
     db.kv_set(f"gsc-data:{site['id']}", data)
     return data
 

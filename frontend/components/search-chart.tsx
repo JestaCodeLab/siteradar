@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
 import { fmtDay } from "@/lib/format";
 import type { SearchPoint } from "@/lib/api";
 
 type Metric = "clicks" | "impressions" | "ctr" | "position";
-const METRICS: { key: Metric; label: string }[] = [
-  { key: "clicks", label: "Clicks" }, { key: "impressions", label: "Times shown" }, { key: "ctr", label: "Click rate" }, { key: "position", label: "Average position" },
+// One colour per measure, all dark enough for white text. The line takes the colour of the card that is selected.
+const METRICS: { key: Metric; label: string; note: string; color: string }[] = [
+  { key: "clicks", label: "Clicks", note: "Visits from Google", color: "#2B5FD9" },
+  { key: "impressions", label: "Times shown", note: "How often pages appeared", color: "#5B3FD1" },
+  { key: "ctr", label: "Click rate", note: "Clicks divided by times shown", color: "#0F766E" },
+  { key: "position", label: "Average position", note: "Lower is better", color: "#B4530A" },
 ];
 
 const sum = (pts: SearchPoint[], f: (p: SearchPoint) => number) => pts.reduce((a, p) => a + f(p), 0);
@@ -53,7 +58,6 @@ export function SearchOverview({ series, days }: { series: SearchPoint[]; days: 
   const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const [W, setW] = useState(640);
-  const gid = useId().replace(/:/g, "");
 
   useEffect(() => {
     const el = box.current;
@@ -63,6 +67,7 @@ export function SearchOverview({ series, days }: { series: SearchPoint[]; days: 
     return () => ro.disconnect();
   }, []);
 
+  const color = METRICS.find((m) => m.key === metric)!.color;
   const pts = series.slice(-days);
   const n = pts.length;
   const flip = metric === "position";
@@ -93,21 +98,27 @@ export function SearchOverview({ series, days }: { series: SearchPoint[]; days: 
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="group" aria-label="What to chart" className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
-        {METRICS.map((m) => (
-          <button key={m.key} type="button" aria-pressed={metric === m.key} onClick={() => { setMetric(m.key); setHover(null); }}
-            className={`flex flex-col gap-0.5 rounded-xl border px-4 py-3 text-left ${metric === m.key ? "border-brand bg-brand-soft/40" : "border-line bg-surface hover:bg-soft"}`}>
-            <span className="text-[13px] text-muted">{m.label}</span>
-            <span className="text-[22px] font-semibold leading-tight">{fmt(m.key, measure(m.key, pts))}</span>
-          </button>
-        ))}
+      <div role="group" aria-label="What to chart" className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))" }}>
+        {METRICS.map((m) => {
+          const on = metric === m.key;
+          return (
+            <button key={m.key} type="button" aria-pressed={on} onClick={() => { setMetric(m.key); setHover(null); }} style={{ backgroundColor: m.color }}
+              className={`flex flex-col gap-1 rounded-xl px-4 py-3.5 text-left text-white outline-offset-2 transition-opacity hover:opacity-100 ${on ? "opacity-100 ring-2 ring-ink ring-offset-2 ring-offset-surface" : "opacity-80"}`}>
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <span aria-hidden="true" className={`flex size-[18px] items-center justify-center rounded-[4px] border-2 border-white ${on ? "bg-white" : ""}`}>{on && <Check size={12} strokeWidth={3.5} style={{ color: m.color }} />}</span>{m.label}
+              </span>
+              <span className="text-[30px] font-semibold leading-tight">{fmt(m.key, measure(m.key, pts))}</span>
+              <span className="text-xs text-white/85">{m.note}</span>
+            </button>
+          );
+        })}
       </div>
 
       {have.length === 0 ? <p className="py-10 text-center text-sm text-muted">No search data for these days yet.</p> : (
         <>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[13px] text-ink-2">
-            <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="h-0 w-5 border-t-2 border-brand/40" />Daily</span>
-            {showAvg && <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="h-0 w-5 border-t-[3px] border-brand" />7-day average</span>}
+            <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="h-0 w-5 border-t-2" style={{ borderColor: color, opacity: 0.4 }} />Daily</span>
+            {showAvg && <span className="inline-flex items-center gap-2"><span aria-hidden="true" className="h-0 w-5 border-t-[3px]" style={{ borderColor: color }} />7-day average</span>}
             {flip && <span className="text-muted">Lower is better</span>}
           </div>
           <div ref={box} className="relative">
@@ -119,12 +130,12 @@ export function SearchOverview({ series, days }: { series: SearchPoint[]; days: 
                   <text x={L - 10} y={y(t) + 4} fontSize="11" textAnchor="end" fill="var(--color-muted)" fontFamily="var(--font-geist-mono), monospace">{fmt(metric, t)}</text>
                 </g>
               ))}
-              {segments(daily, x, y).map((pl, k) => <polyline key={`d${k}`} fill="none" stroke="var(--color-brand)" strokeOpacity={showAvg ? 0.4 : 1} strokeWidth={showAvg ? 1.5 : 2.5} strokeLinejoin="round" strokeLinecap="round" points={pl} />)}
-              {showAvg && segments(avg, x, y).map((pl, k) => <polyline key={`a${k}`} fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={pl} />)}
-              {n <= 14 && daily.map((v, i) => v != null && <circle key={i} cx={x(i)} cy={y(v)} r={4} fill="var(--color-surface)" stroke="var(--color-brand)" strokeWidth="2.5" />)}
+              {segments(daily, x, y).map((pl, k) => <polyline key={`d${k}`} fill="none" stroke={color} strokeOpacity={showAvg ? 0.4 : 1} strokeWidth={showAvg ? 1.5 : 2.5} strokeLinejoin="round" strokeLinecap="round" points={pl} />)}
+              {showAvg && segments(avg, x, y).map((pl, k) => <polyline key={`a${k}`} fill="none" stroke={color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={pl} />)}
+              {n <= 14 && daily.map((v, i) => v != null && <circle key={i} cx={x(i)} cy={y(v)} r={4} fill="var(--color-surface)" stroke={color} strokeWidth="2.5" />)}
               {hover != null && hv != null && (<>
                 <line x1={x(hover)} x2={x(hover)} y1={T} y2={H - B} stroke="var(--color-muted)" strokeOpacity="0.4" strokeDasharray="3 3" />
-                <circle cx={x(hover)} cy={y(hv)} r={6} fill="var(--color-surface)" stroke="var(--color-brand)" strokeWidth="2.5" />
+                <circle cx={x(hover)} cy={y(hv)} r={6} fill="var(--color-surface)" stroke={color} strokeWidth="2.5" />
               </>)}
               {labelAt.map((i) => (
                 <text key={i} x={x(i)} y={H - 8} fontSize="11" fill="var(--color-muted)" textAnchor={i === 0 && n > 1 ? "start" : i === n - 1 && n > 1 ? "end" : "middle"}>{fmtDay(pts[i].d)}</text>

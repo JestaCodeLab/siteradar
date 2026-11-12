@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { fixGuide } from "@/lib/fix-guides";
-import { SearchCard } from "./search-tab";
+import { SearchCard, TrafficTabs } from "./search-tab";
 import { AI_RULES, AiFixModal } from "./ai-fix-modal";
 import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
@@ -144,32 +144,15 @@ export function AnalyticsTab({ id }: { id: string }) {
             <Tile label="Bounce rate" icon={MousePointerClick} info="The share of visits that looked at only one page and then left. Lower usually means visitors found what they wanted." value={`${a.bounce_rate ?? 0}%`} note={`${a.pages_per_visit ?? 0} pages per visit`} />
             <Tile label="Real page load" icon={Zap} info="The median time pages took to finish loading in real visitors' browsers. Half of the visits were faster than this." value={fmtMs(a.median_load_ms)} note="Median for visitors" />
           </section>
-          <div className="flex flex-wrap items-start gap-5">
-            <Card className="min-w-0 flex-[1.4_1_420px] px-5 pb-2 pt-5">
-              <CardTitle>Top pages</CardTitle>
-              {a.top_pages?.map(([path, n]) => (
-                <div key={path} className="flex justify-between gap-3 border-t border-line-soft py-3.5">
-                  <span className="min-w-0 truncate font-mono text-sm">{path}</span><span className="font-mono text-sm">{n.toLocaleString()}</span>
-                </div>
-              ))}
-            </Card>
-            <Card className="flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-5">
-              <CardTitle>Where visitors come from</CardTitle>
-              {a.referrers?.map(([name, , pct]) => <HBar key={name} label={name} value={`${pct}%`} pct={pct} />)}
-              <p className="text-[13px] leading-relaxed text-muted">Cookieless tracking. No personal data is stored.</p>
-            </Card>
-          </div>
-          <div className="flex flex-wrap items-start gap-5">
-            <Card className="flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-5">
-              <CardTitle>Devices</CardTitle>
-              {a.devices?.map(([name, , pct]) => <HBar key={name} label={name} value={`${pct}%`} pct={pct} color="bg-ok" />)}
-            </Card>
-            <Card className="flex min-w-0 flex-[1_1_320px] flex-col gap-4 p-5">
-              <CardTitle>Browsers</CardTitle>
-              {a.browsers?.map(([name, , pct]) => <HBar key={name} label={name} value={`${pct}%`} pct={pct} color="bg-ok" />)}
-            </Card>
-          </div>
         </>
+      )}
+      <TrafficTabs id={id} a={a} />
+      {!empty && (
+        <Card className="flex flex-col gap-4 p-5">
+          <CardTitle>Where visitors come from</CardTitle>
+          {a.referrers?.map(([name, , pct]) => <HBar key={name} label={name} value={`${pct}%`} pct={pct} />)}
+          <p className="text-[13px] leading-relaxed text-muted">Cookieless tracking. No personal data is stored.</p>
+        </Card>
       )}
     </div>
   );

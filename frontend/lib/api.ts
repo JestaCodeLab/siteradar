@@ -234,8 +234,10 @@ export interface AiTargets { field: "desc" | "title" | "alt"; label: string; cou
 export interface SearchOpportunity { page: string; clicks: number; impressions: number; ctr: number; position: number; expected_ctr: number; missed_clicks: number; queries: { query: string; clicks: number; impressions: number }[] }
 export interface SearchStatus {
   configured: boolean; connected: boolean; property: string | null; error: "no_property" | "revoked" | "list_failed" | null; min_impressions: number;
-  series?: SearchPoint[] | null; queries?: { query: string; clicks: number; impressions: number }[] | null;
+  series?: SearchPoint[] | null; queries?: SearchRow<"query">[] | null; countries?: SearchRow<"country">[] | null;
   fetched?: number; start?: string; end?: string; summary?: { clicks: number; impressions: number; ctr: number; position: number | null; pages: number }; opportunities?: SearchOpportunity[];
 }
 
 export interface SearchPoint { d: string; clicks: number; impressions: number; ctr: number; position: number | null }
+
+export type SearchRow<K extends string> = { [P in K]: string } & { clicks: number; impressions: number; ctr?: number; position?: number };
