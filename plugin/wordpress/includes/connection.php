@@ -127,7 +127,8 @@ function siteradar_send_heartbeat( $again = true ) {
 	if ( ! siteradar_is_configured() ) {
 		return new WP_Error( 'siteradar_not_configured', 'This plugin has no connection details.' );
 	}
-	$res = wp_remote_post(
+	$edit_results = get_option( 'siteradar_edit_results', array() );
+	$res          = wp_remote_post(
 		trailingslashit( get_option( 'siteradar_api' ) ) . 'api/connector/heartbeat',
 		array(
 			'timeout' => 10,
@@ -143,6 +144,7 @@ function siteradar_send_heartbeat( $again = true ) {
 					'seo_plugin'     => siteradar_seo_plugin(),
 					'snippet'        => siteradar_snippet_enabled() ? 'on' : 'off',
 					'fixes'          => siteradar_active_fixes(),
+					'edit_results'   => is_array( $edit_results ) ? $edit_results : array(),
 				)
 			),
 		)
@@ -179,9 +181,23 @@ function siteradar_send_heartbeat( $again = true ) {
 	if ( ! $ok ) {
 		return new WP_Error( 'siteradar_http', $msg );
 	}
+	if ( $edit_results ) {
+		delete_option( 'siteradar_edit_results' ); // SiteRadar has them now
+	}
 	$answer = json_decode( wp_remote_retrieve_body( $res ), true );
-	// SiteRadar says which fixes should be on. When that changed, check in once more so SiteRadar sees what is really active.
-	if ( is_array( $answer ) && isset( $answer['fixes'] ) && siteradar_store_fixes( $answer['fixes'] ) && $again ) {
+	// SiteRadar says which fixes should be on and which approved text changes to apply. When something changed, check in once more so SiteRadar sees the result.
+	$again_needed = false;
+	if ( is_array( $answer ) && isset( $answer['fixes'] ) && siteradar_store_fixes( $answer['fixes'] ) ) {
+		$again_needed = true;
+	}
+	if ( is_array( $answer ) && ! empty( $answer['edits'] ) && is_array( $answer['edits'] ) ) {
+		$done = siteradar_apply_edits( $answer['edits'] );
+		if ( $done ) {
+			update_option( 'siteradar_edit_results', $done, false );
+			$again_needed = true;
+		}
+	}
+	if ( $again_needed && $again ) {
 		return siteradar_send_heartbeat( false );
 	}
 	return $answer;

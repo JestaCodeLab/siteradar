@@ -224,3 +224,9 @@ export interface AiAdmin {
   by_kind: { kind: string; drafts: number; usd: number }[]; top: { workspace: string; id: number; drafts: number; usd: number }[];
   bundles: { credits: number; price_ghs: number; price_usd: number }[]; plans: { id: string; name: string; ai_credits: number; price_month_usd: number }[];
 }
+
+export interface AiEdit {
+  id: string; rule: string; field: "desc" | "title" | "alt"; url: string; current: string; error?: string;
+  status: "draft" | "approved" | "applied" | "failed" | "reverting" | "reverted" | "skipped"; text?: string; alts?: { src: string; alt: string }[];
+}
+export interface AiTargets { field: "desc" | "title" | "alt"; label: string; count: number; pages: { url: string; detail: string; item: AiEdit | null }[]; credits: { quota: number; used: number; bonus: number; left: number } }
