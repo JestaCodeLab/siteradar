@@ -35,12 +35,6 @@ export default function WebsitesPage() {
       )}
       {role === "viewer" && <p role="status" className="rounded-xl bg-[#e8ebf0] px-5 py-3.5 text-sm leading-relaxed text-ink-2"><b>You have view-only access.</b> You can see dashboards and reports. Ask an admin if you need to add or change websites.</p>}
 
-      <section aria-label="Plan usage" className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-xl border border-line bg-surface px-5 py-4">
-        <span className="text-sm font-semibold">Websites on your plan</span>
-        <div className="h-2 min-w-[200px] flex-1 rounded bg-[#e8ebf0]"><div className={`h-2 rounded ${atLimit ? "bg-bar-warn" : "bg-brand"}`} style={{ width: `${limit ? Math.min(100, (used / limit) * 100) : 0}%` }} /></div>
-        <span className="font-mono text-sm">{used} of {limit}</span>
-      </section>
-
       <SitesTable sites={data?.sites} loading={isLoading} full />
     </>
   );
