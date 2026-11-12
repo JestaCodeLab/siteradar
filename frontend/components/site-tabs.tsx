@@ -1,10 +1,10 @@
 "use client";
 
 import { useToast } from "@/components/toast";
-import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench } from "lucide-react";
+import { AlertTriangle, Receipt, CalendarClock, ClipboardCheck, Eye, MousePointerClick, ShieldCheck, Timer, Users, Zap, Activity, Wrench, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import useSWR, { mutate } from "swr";
 import { HBar, StripLegend, UptimeStrip } from "./charts";
 import { TrackingInstall } from "./tracking-install";
@@ -15,7 +15,7 @@ import { ResponseChart } from "./response-chart";
 import { PreviewCard } from "./preview-card";
 import { btn, Card, CardTitle, Empty, ErrorState, Field, input, SeverityChip, Skeleton, SubStatusChip, Tile } from "./ui";
 import {
-  fetcher, send, type ActivityEvent, type AnalyticsResponse, type AuditResponse, type FixesResponse, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
+  fetcher, send, type ActivityEvent, type AnalyticsResponse, type AuditResponse, type FixesResponse, type Issue, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
 import { useMe } from "@/lib/me";
 import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
