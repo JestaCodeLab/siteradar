@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, CreditCard, Headphones, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { Building2, Check, CheckCheck, CreditCard, Headphones, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import useSWR from "swr";
 import { fetcher, type ActivityEvent, type SitesResponse, type SubscriptionsResponse } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
@@ -98,52 +98,67 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
 
 // ---- notifications ------------------------------------------------------------
 const SEEN_KEY = "sitewatch.notifications.seen";
+const READ_KEY = "sitewatch.notifications.read";
 const dot: Record<ActivityEvent["level"], string> = { bad: "bg-bad", warn: "bg-bar-warn", ok: "bg-ok", info: "bg-muted" };
+const evKey = (e: ActivityEvent) => e.kind + e.ts + e.title;
 
+/** Read marks live in this browser: "mark all" moves a cut-off time, and a single item is remembered by its key. */
 function Notifications() {
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<number>(() => {
     try { return typeof window === "undefined" ? 0 : Number(localStorage.getItem(SEEN_KEY)) || 0; } catch { return 0; }
   });
+  const [read, setRead] = useState<string[]>(() => {
+    try { return typeof window === "undefined" ? [] : (JSON.parse(localStorage.getItem(READ_KEY) || "[]") as string[]); } catch { return []; }
+  });
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
   const { data } = useSWR<{ events: ActivityEvent[] }>("/api/activity?limit=30", fetcher, { refreshInterval: 60000 });
   const items = (data?.events ?? []).filter((e) => e.level !== "info").slice(0, 8);
 
-  const unread = items.filter((e) => e.ts > seen).length;
+  const isNew = (e: ActivityEvent) => e.ts > seen && !read.includes(evKey(e));
+  const unread = items.filter(isNew).length;
 
-  function toggle() {
-    if (!open) {
-      // keep `seen` as it was so new items stay highlighted while the panel is open
-      try { localStorage.setItem(SEEN_KEY, String(Date.now() / 1000)); } catch { /* ignore */ }
-    } else {
-      setSeen(Date.now() / 1000);
-    }
-    setOpen((o) => !o);
+  function markOne(e: ActivityEvent) {
+    const next = [...read, evKey(e)].slice(-200);
+    setRead(next);
+    try { localStorage.setItem(READ_KEY, JSON.stringify(next)); } catch { /* the mark lasts until the page is reloaded */ }
+  }
+  function markAll() {
+    const now = Date.now() / 1000;
+    setSeen(now);
+    try { localStorage.setItem(SEEN_KEY, String(now)); } catch { /* the marks last until the page is reloaded */ }
   }
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={toggle} aria-haspopup="true" aria-expanded={open} aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} className={iconBtn}>
+      <button onClick={() => setOpen((o) => !o)} aria-haspopup="true" aria-expanded={open} aria-label={unread ? `Notifications, ${unread} new` : "Notifications"} className={iconBtn}>
         <Icon.bell />
         {unread > 0 && <span className="absolute right-2 top-2 flex min-w-4 items-center justify-center rounded-full bg-bad px-1 text-[10px] font-semibold leading-4 text-white">{unread}</span>}
       </button>
       {open && (
         <div className={`${panel} w-[min(92vw,380px)]`}>
-          <div className="flex items-center justify-between border-b border-line px-4 py-3"><h2 className="text-sm font-semibold">Notifications</h2></div>
+          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+            <h2 className="text-sm font-semibold">Notifications</h2>
+            {unread > 0 && <button type="button" onClick={markAll} className="inline-flex min-h-8 items-center gap-1.5 text-[13px] font-semibold text-brand hover:underline"><CheckCheck size={15} aria-hidden="true" />Mark all as read</button>}
+          </div>
           <ul className="max-h-[60vh] overflow-y-auto">
             {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-muted">Nothing needs your attention.</li>}
-            {items.map((e) => (
-              <li key={e.kind + e.ts + e.title} className={`flex gap-3 border-b border-line-soft px-4 py-3 ${e.ts > seen ? "bg-brand-soft/40" : ""}`}>
-                <span className={`mt-1.5 size-2 shrink-0 rounded-full ${dot[e.level]}`} />
-                <span className="flex min-w-0 flex-col gap-0.5">
-                  <span className="text-sm font-medium">{e.title}</span>
-                  {e.detail && <span className="truncate text-xs text-muted">{e.detail}</span>}
-                  <span className="text-xs text-muted">{fmtAgo(e.ts)}</span>
-                </span>
-              </li>
-            ))}
+            {items.map((e) => {
+              const fresh = isNew(e);
+              return (
+                <li key={evKey(e)} className={`flex gap-3 border-b border-line-soft px-4 py-3 ${fresh ? "bg-brand-soft/40" : ""}`}>
+                  <span className={`mt-1.5 size-2 shrink-0 rounded-full ${dot[e.level]}`} />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className={`text-sm ${fresh ? "font-semibold" : "font-medium text-ink-2"}`}>{e.title}</span>
+                    {e.detail && <span className="truncate text-xs text-muted">{e.detail}</span>}
+                    <span className="text-xs text-muted">{fmtAgo(e.ts)}</span>
+                  </span>
+                  {fresh && <button type="button" onClick={() => markOne(e)} aria-label={`Mark as read: ${e.title}`} title="Mark as read" className="-mr-1.5 flex size-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft hover:text-brand"><Check size={16} aria-hidden="true" /></button>}
+                </li>
+              );
+            })}
           </ul>
           <Link href="/activity" onClick={close} className="flex min-h-11 items-center justify-center text-sm font-semibold text-brand">View all activity</Link>
         </div>
