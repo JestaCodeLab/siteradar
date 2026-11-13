@@ -44,20 +44,27 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function Tile({ label, value, note, tone = "muted", icon: Glyph, info }: {
+/** A stat card. With `cta` and `href` (or `onClick`) the whole card is a link: the link text sits at the bottom and stretches over the card. `attention` draws a coloured border. */
+export function Tile({ label, value, note, tone = "muted", icon: Glyph, info, href, onClick, cta, attention }: {
   label: string; value: ReactNode; note?: ReactNode; tone?: "muted" | "ok" | "warn" | "bad"; icon?: LucideIcon; info?: string;
+  href?: string; onClick?: () => void; cta?: string; attention?: "warn" | "bad";
 }) {
   const toneClass = { muted: "text-muted", ok: "text-ok font-medium", warn: "text-warn font-medium", bad: "text-bad font-medium" }[tone];
   const chip = { muted: "bg-brand-soft text-brand", ok: "bg-ok-soft text-ok", warn: "bg-warn-soft text-warn", bad: "bg-bad-soft text-bad" }[tone];
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-5">
+    <div className={`relative flex flex-col gap-2 rounded-xl p-5 ${attention === "bad" ? "border-2 border-bad bg-bad-soft/30" : attention === "warn" ? "border-2 border-warn bg-warn-soft/40" : "border border-line bg-surface"} ${cta ? "transition-shadow hover:shadow-md" : ""}`}>
       {Glyph && <span className={`mb-1 flex size-9 shrink-0 items-center justify-center rounded-lg ${chip}`}><Glyph aria-hidden="true" size={18} /></span>}
       <div className="flex items-start justify-between gap-2">
         <span className="text-[13px] leading-snug text-muted">{label}</span>
-        {info && <InfoTip label={label} text={info} />}
+        {info && <span className="relative z-10"><InfoTip label={label} text={info} /></span>}
       </div>
       <span className="text-[30px] font-semibold leading-none">{value}</span>
       {note && <span className={`text-[13px] ${toneClass}`}>{note}</span>}
+      {cta && (href || onClick) && (() => {
+        const cls = `mt-1 inline-flex items-center gap-1 self-start text-[13px] font-semibold after:absolute after:inset-0 after:rounded-xl after:content-[''] ${attention === "bad" ? "text-bad" : attention === "warn" ? "text-warn" : "text-brand"}`;
+        return href ? <Link href={href} scroll={false} className={cls}>{cta}<ChevronRight size={14} aria-hidden="true" /></Link>
+          : <button type="button" onClick={onClick} className={cls}>{cta}<ChevronRight size={14} aria-hidden="true" /></button>;
+      })()}
     </div>
   );
 }

@@ -13,7 +13,7 @@ from urllib.parse import quote, urlencode, urlparse
 
 import requests
 
-from . import db, google_auth, security, vault
+from . import db, events, google_auth, security, vault
 
 log = logging.getLogger("sitewatch.gsc")
 
@@ -38,10 +38,10 @@ def _saved(site_id):
     return db.kv_get(f"gsc:{site_id}")
 
 
-def auth_url(site, ws_id, user_id, tab="analytics"):
+def auth_url(site, ws_id, user_id, who="", tab="analytics"):
     """Where to send the owner to approve read-only access. The state is single use and ties the answer to this website and person."""
     state = secrets.token_urlsafe(24)
-    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "tab": "analytics", "created": time.time()})
+    db.kv_set(f"gsc-state:{security.sha(state)}", {"site_id": site["id"], "ws_id": ws_id, "user_id": user_id, "tab": "analytics", "who": who, "created": time.time()})
     q = {"client_id": os.environ["GOOGLE_CLIENT_ID"], "redirect_uri": redirect_uri(), "response_type": "code", "scope": SCOPE,
          "state": state, "access_type": "offline", "prompt": "consent", "include_granted_scopes": "false"}
     return google_auth.AUTH_URL + "?" + urlencode(q)
@@ -65,7 +65,7 @@ def _token_request(data):
     return r
 
 
-def connect(site, code):
+def connect(site, code, who=""):
     """Finish the connection: trade the code for tokens, keep the refresh token encrypted, and find the Search Console property for this website."""
     r = _token_request({"code": code, "redirect_uri": redirect_uri(), "grant_type": "authorization_code"})
     r.raise_for_status()
@@ -74,6 +74,10 @@ def connect(site, code):
         raise RuntimeError("Google did not return long-term access.")
     prop, why = find_property(site, t["access_token"])
     db.kv_set(f"gsc:{site['id']}", {"refresh": vault.seal(t["refresh_token"]), "property": prop, "error": why, "connected_at": time.time()})
+    if prop:
+        events.record(site["id"], "search", "Connected Google Search Console", prop.replace("sc-domain:", ""), who=who, level="ok")
+    else:
+        events.record(site["id"], "search", "Connected Google, but this website is not in Search Console", "Add and verify it there, then refresh.", who=who, level="warn")
     return prop, why
 
 
@@ -87,6 +91,8 @@ def _access_token(site_id):
     r = _token_request({"refresh_token": refresh, "grant_type": "refresh_token"})
     if r.status_code >= 400:
         if r.status_code in (400, 401):      # the owner revoked access, or the token expired
+            if saved.get("error") != "revoked":
+                events.record(site_id, "search", "Google Search Console access was removed or expired", "Connect it again to keep the data coming.", level="warn")
             saved.update(error="revoked")
             db.kv_set(f"gsc:{site_id}", saved)
         return None
@@ -107,7 +113,7 @@ def find_property(site, token):
     return None, "no_property"
 
 
-def disconnect(site_id):
+def disconnect(site_id, who=""):
     saved = _saved(site_id)
     if saved:
         token = vault.unseal(saved["refresh"])
@@ -118,6 +124,8 @@ def disconnect(site_id):
                 pass
     for k in (f"gsc:{site_id}", f"gsc-data:{site_id}"):
         db.exec("DELETE FROM kv WHERE key=?", (k,))
+    if saved:
+        events.record(site_id, "search", "Disconnected Google Search Console", "The saved search data was removed.", who=who, level="warn")
 
 
 def _query(prop, token, body):

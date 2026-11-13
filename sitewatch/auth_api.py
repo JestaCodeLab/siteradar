@@ -168,7 +168,7 @@ def blueprint(cfg):
         if request.args.get("error") or not code or not site:
             return redirect(back + "&gsc=denied")
         try:
-            prop, _why = gsc.connect(site, code)
+            prop, _why = gsc.connect(site, code, st.get("who", ""))
             if prop:
                 gsc.refresh(site)
         except Exception:

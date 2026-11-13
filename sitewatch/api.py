@@ -61,7 +61,7 @@ def blueprint(cfg):
     ACTIVITY_PAGE = 50
     ACTIVITY_FILTERS = {
         "incidents": ("down", "recovered"), "alerts": ("ssl", "slow", "renewal", "domain", "dns"), "audits": ("audit", "audit_run"),
-        "billing": ("subscription", "invoice"), "changes": ("fix", "audit_run", "plugin", "ai"),
+        "billing": ("subscription", "invoice"), "changes": ("fix", "audit_run", "plugin", "ai", "search"),
     }
 
     @bp.get("/activity")
@@ -115,8 +115,8 @@ def blueprint(cfg):
         if not only and want("subscription"):
             for s_ in db.q("SELECT name, created, site_id FROM subscriptions WHERE workspace_id=? AND created<? ORDER BY created DESC LIMIT ?", (ws_id, before, n)):
                 add(s_["created"], "subscription", "info", f"Subscription added: {s_['name']}", "", s_["site_id"])
-        if want("fix", "audit_run", "plugin", "ai"):
-            for e in events.fetch(ids, sorted(kinds & {"fix", "audit_run", "plugin", "ai"}) if kinds else ["fix", "audit_run", "plugin", "ai"], before, n):
+        if want("fix", "audit_run", "plugin", "ai", "search"):
+            for e in events.fetch(ids, sorted(kinds & {"fix", "audit_run", "plugin", "ai", "search"}) if kinds else ["fix", "audit_run", "plugin", "ai", "search"], before, n):
                 add(e["ts"], e["kind"], e["level"], e["title"], (f"By {e['who']}. " if e["who"] else "") + e["detail"], e["site_id"])
         events_.sort(key=lambda e: -e["ts"])
         page = events_[:size]
@@ -224,6 +224,7 @@ def blueprint(cfg):
             "ssl_days": last["ssl_days_left"] if last else None,
             "uptime30": u30["uptime"], "avg_ms30": u30["avg_ms"],
             "audit_score": au["scores"]["Overall"] if au else None,
+            "worst_issue": next((sev for sev in ("high", "medium", "low") if any(i["severity"] == sev for i in au["issues"])), None) if au else None,
             "visitors30": analytics.summary(s["id"], now - 30 * 86400, now).get("visitors", 0),
             "strip": day_strip(s["id"]),
             "tracking_verified": analytics.is_verified(s["id"]),
@@ -300,6 +301,7 @@ def blueprint(cfg):
                           for i in incidents[::-1][:10]],
             "top_issues": [i for i in (au["issues"] if au else []) if i["severity"] == "high"][:5],
             "audit_ts": au["ts"] if au else None,
+            "issue_counts": {sev: sum(1 for i in (au["issues"] if au else []) if i["severity"] == sev) for sev in ("high", "medium", "low")},
             "pagespeed": au["pagespeed"] if au else None,
             "tracking_live": bool(db.q1("SELECT 1 FROM hits WHERE site_id=? AND ts>? LIMIT 1", (site_id, now - 86400))),
             "tracking": {**{"verified_at": None, "checked_at": None}, **{k: v for k, v in (db.kv_get(f"tracking:{site_id}") or {}).items() if k in ("verified_at", "checked_at")},
@@ -548,7 +550,7 @@ def blueprint(cfg):
         s = site_or_404(site_id)
         if not gsc.configured():
             return jsonify(error="Google is not set up on this server yet."), 503
-        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], "analytics"))
+        return jsonify(url=gsc.auth_url(s, g.ws["id"], g.user["id"], g.user.get("email") or ""))
 
     @bp.post("/sites/<site_id>/search/refresh")
     @need("admin")
@@ -569,7 +571,7 @@ def blueprint(cfg):
     @need("admin")
     def search_disconnect(site_id):
         site_or_404(site_id)
-        gsc.disconnect(site_id)
+        gsc.disconnect(site_id, g.user.get("email") or "")
         return jsonify(ok=True)
 
     @bp.post("/sites/<site_id>/wordpress-plugin")
