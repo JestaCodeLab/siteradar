@@ -33,7 +33,7 @@ export function SitesTable({ sites, loading, full = false }: { sites?: SiteCard[
               {full && <span className={mono}>{r.status === "down" ? "—" : fmtMs(r.response_ms)}</span>}
               <span className="font-mono text-[13px]" title={r.ssl_days == null ? undefined : `${r.ssl_days} days left`}>{r.ssl_expires ? fmtDate(r.ssl_expires) : "—"}</span>
               {full && <span className={mono}>{r.audit_score ?? "—"}</span>}
-              <span>{r.audit_score == null ? <span className={mono}>—</span> : r.worst_issue ? <SeverityChip severity={r.worst_issue} /> : <span className="text-sm font-semibold text-ok">None</span>}</span>
+              <span>{r.audit_score == null ? <span className={mono}>—</span> : r.worst_issue ? <SeverityChip severity={r.worst_issue} /> : <span className="text-sm font-semibold text-ok">All clear</span>}</span>
               {full && <span className={mono}>{fmtNum(r.visitors30)}</span>}
             </Link>
           ))}
