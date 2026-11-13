@@ -38,6 +38,16 @@ CATALOG = {
                 "Makes images below the first screen load only when a visitor scrolls to them, so pages open faster. The first three images still load straight away. If you use a caching plugin, clear its cache afterwards.", False),
     "mixed_content": ("https_links", "Use secure links",
                       "Changes http:// links to your own website into https:// on every page. It does not change links to other websites, so one of those can still leave this finding open. If you use a caching plugin, clear its cache afterwards.", False),
+    "noindex": ("indexing", "Let Google list this website",
+                "Turns off WordPress's \"Discourage search engines from indexing this site\" setting, so Google may list this website. Only do this if the website is meant to be public: staging and unfinished sites often have it on deliberately.", True),
+    "robots_blocks_all": ("indexing", "Let Google list this website",
+                          "Turns off WordPress's \"Discourage search engines from indexing this site\" setting, which is what makes its robots.txt block everything. Only do this if the website is meant to be public. If robots.txt is a real file on the server, WordPress cannot change it.", True),
+    "form_labels": ("labels", "Label the form fields",
+                    "Gives each form field that has no label a label for screen readers, taken from its placeholder or title. Fields with nothing usable to go on are left alone, so this may not clear the whole finding.", False),
+    "lang_missing": ("lang", "Set the page language",
+                     "Makes sure the page's html tag states the website's language, which screen readers and search engines use. It only works if the theme prints the language itself.", False),
+    "h1_multiple": ("h1", "Keep a single H1 heading",
+                    "On pages with more than one H1, keeps the first and turns the others into H2 headings. It changes the heading level only, not the text or look of the page apart from the theme's H1 and H2 styling.", False),
 }
 SETTINGS = {v[0] for v in CATALOG.values()}
 
@@ -72,7 +82,9 @@ def _title(rule):
 RULE_NAMES = {"no_hsts": "HSTS header", "no_xcto": "X-Content-Type-Options header", "no_frame": "X-Frame-Options header",
               "no_referrer_policy": "Referrer-Policy header", "server_leak": "hide the PHP version", "no_viewport": "viewport tag",
               "og_missing": "social sharing tags", "schema_missing": "structured data", "canonical_missing": "canonical tag", "robots_missing": "robots.txt",
-              "sitemap_missing": "sitemap address", "no_lazy": "lazy-loading images", "mixed_content": "secure links"}
+              "sitemap_missing": "sitemap address", "no_lazy": "lazy-loading images", "mixed_content": "secure links",
+              "noindex": "let Google list this website", "robots_blocks_all": "let Google list this website", "form_labels": "form field labels",
+              "lang_missing": "page language", "h1_multiple": "single H1 heading"}
 
 
 def set_enabled(site_id, rule, on, who=""):

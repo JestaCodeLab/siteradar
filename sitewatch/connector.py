@@ -153,7 +153,7 @@ def blueprint(cfg):
         if not site:
             return jsonify(error="Unknown connection. Download the plugin again from SiteRadar."), 401
         d = request.get_json(silent=True) or {}
-        info = {k: str(d.get(k) or "")[:60] for k in ("plugin_version", "wp_version", "php_version", "seo_plugin", "snippet")}
+        info = {k: str(d.get(k) or "")[:60] for k in ("plugin_version", "wp_version", "php_version", "seo_plugin", "snippet", "search_visibility")}
         c = db.kv_get(f"connector:{site['id']}")
         c.update(last_seen=time.time(), info=info)
         db.kv_set(f"connector:{site['id']}", c)

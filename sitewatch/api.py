@@ -454,6 +454,11 @@ def blueprint(cfg):
         site_or_404(site_id)
         items, log = fixes.listing(site_id)
         st = connector.status(site_id)
+        # The indexing switch only helps when WordPress's own search setting is what blocks Google; the plugin reports that setting
+        if (st.get("info") or {}).get("search_visibility") == "visible":
+            for rule in ("noindex", "robots_blocks_all"):
+                if items[rule]["state"] == "available":
+                    items[rule].update(state="unavailable", reason="WordPress's search setting already lets Google in, so this is blocked another way: an SEO plugin's page setting, the theme, or a real robots.txt file. Check the SEO settings of the pages listed.")
         return jsonify(allowed=bool(plans.limits(g.ws).get("one_click_fix")), connected=st["connected"], items=items, log=log, ai=edits.summary(site_id))
 
     @bp.post("/sites/<site_id>/fixes/<rule>")

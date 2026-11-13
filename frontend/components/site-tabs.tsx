@@ -222,6 +222,7 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
         <span className="rounded-full bg-warn-soft px-2.5 py-1 text-[13px] font-semibold text-warn">Applying…</span>
         {undo("Cancel")}
       </div>);
+    else if (item.state === "unavailable") control = <span className="max-w-[360px] text-[13px] leading-relaxed text-muted lg:text-right">{item.reason}</span>;
     else if (!fx.allowed) control = <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with one click</Link>;
     else if (!fx.connected) control = <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>;
     else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to apply this fix.</span>;

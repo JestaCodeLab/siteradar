@@ -143,6 +143,7 @@ function siteradar_send_heartbeat( $again = true ) {
 					'php_version'    => PHP_VERSION,
 					'seo_plugin'     => siteradar_seo_plugin(),
 					'snippet'        => siteradar_snippet_enabled() ? 'on' : 'off',
+					'search_visibility' => siteradar_search_visibility(),
 					'fixes'          => siteradar_active_fixes(),
 					'edit_results'   => is_array( $edit_results ) ? $edit_results : array(),
 				)
