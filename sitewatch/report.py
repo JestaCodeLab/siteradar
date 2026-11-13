@@ -49,6 +49,36 @@ def brand(site):
     return {"name": ws["name"], "logo": ws["logo_url"]}
 
 
+def search_month(site_id, year, month, until_eff):
+    """Google search numbers (clicks, times shown, click rate, average position) for the report month, from Search Console. Only when the site is connected and the
+    daily data we hold covers the month from its first day (it keeps the last 90 days). Compared with the same number of days the month before when that is held too."""
+    data = db.kv_get(f"gsc-data:{site_id}")
+    if not data or not data.get("series"):
+        return None
+    by = {p["d"]: p for p in data["series"]}
+    today = dt.date.fromtimestamp(until_eff)
+    first = dt.date(year, month, 1)
+    last = min(dt.date(year, month, calendar.monthrange(year, month)[1]), today)
+    if first.isoformat() not in by:
+        return None
+    days = [(first + dt.timedelta(days=i)).isoformat() for i in range((last - first).days + 1)]
+    cur = [by[d] for d in days if d in by]
+    if not cur:
+        return None
+
+    def total(rows):
+        clicks, imps = sum(r["clicks"] for r in rows), sum(r["impressions"] for r in rows)
+        pos = sum((r["position"] or 0) * r["impressions"] for r in rows) / imps if imps else None
+        return {"clicks": clicks, "impressions": imps, "ctr": (clicks / imps) if imps else 0, "position": round(pos, 1) if pos else None}
+    now = total(cur)
+    py, pm = previous_month(year, month)
+    pfirst = dt.date(py, pm, 1)
+    prev_days = [(pfirst + dt.timedelta(days=i)).isoformat() for i in range(len(days))]
+    prev = total([by[d] for d in prev_days if d in by]) if all(d in by for d in prev_days) else None
+    return {"now": now, "prev": prev, "partial": last < dt.date(year, month, calendar.monthrange(year, month)[1]), "through": last.strftime("%d %B"),
+            "clicks_delta": _delta(now["clicks"], prev["clicks"]) if prev else None, "impressions_delta": _delta(now["impressions"], prev["impressions"]) if prev else None}
+
+
 def build(cfg, site, year, month):
     since, until = month_bounds(year, month)
     until_eff = min(until, time.time())
@@ -65,6 +95,8 @@ def build(cfg, site, year, month):
 
     a = analytics.summary(site["id"], since, until_eff)
     a_prev = analytics.summary(site["id"], psince, puntil)
+
+    search = search_month(site["id"], year, month, until_eff)
 
     audit = db.latest_audit(site["id"], before=until)
     prev_audit = None
@@ -97,7 +129,7 @@ def build(cfg, site, year, month):
         "generated": dt.datetime.now().strftime("%d %B %Y, %H:%M"),
         "partial": until > time.time(),
         "up": up, "up_prev": up_prev, "ssl_days": ssl["ssl_days_left"] if ssl else None,
-        "a": a, "a_prev": a_prev,
+        "a": a, "a_prev": a_prev, "search": search,
         "deltas": {
             "visitors": _delta(a.get("visitors"), a_prev.get("visitors")),
             "pageviews": _delta(a.get("pageviews"), a_prev.get("pageviews")),

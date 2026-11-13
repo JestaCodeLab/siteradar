@@ -69,6 +69,12 @@ export function DomainTab({ site }: { site: SiteDetail }) {
         </p>
       )}
 
+      <div id="ssl" className="scroll-mt-20"><Card className="flex flex-col gap-2 p-5">
+        <CardTitle aside={site.ssl_days == null ? undefined : <span className={site.ssl_days <= 21 ? "font-semibold text-warn" : "font-semibold text-ok"}>{site.ssl_days <= 21 ? "Renew soon" : "Valid"}</span>}>SSL certificate</CardTitle>
+        <p className="text-sm leading-relaxed text-ink-2">{site.ssl_days == null ? "The certificate has not been checked yet. It is checked with every uptime check." : <>The security certificate for <b>{site.host}</b> runs out in <b>{site.ssl_days} days</b>{site.ssl_expires ? `, on ${fmtDate(site.ssl_expires)}` : ""}. After that date visitors see a security warning, so renew it before then.</>}</p>
+        <p className="text-[13px] text-muted">The team is emailed 21 days before it expires, then daily, until it is renewed.</p>
+      </Card></div>
+
       <Card className="flex flex-wrap items-center justify-between gap-3 p-5">
         <p className="text-sm text-muted">Last checked {fmtAgo(d.ts)}. Checked every night, straight from the domain registry.</p>
         <RecheckButton busy={busy} onClick={recheck} />

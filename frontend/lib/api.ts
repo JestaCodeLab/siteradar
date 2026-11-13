@@ -63,7 +63,7 @@ export interface PageSpeedResult {
 export interface PageSpeed { mobile: PageSpeedResult | null; desktop: PageSpeedResult | null }
 
 export interface SiteDetail extends SiteCard {
-  audit_ts: number | null; pagespeed: PageSpeed | null;
+  audit_ts: number | null; pagespeed: PageSpeed | null; issue_counts?: { high: number; medium: number; low: number };
   /** True while the first results of a website that was just added are still on their way. */
   first_run?: { checks: boolean; audit: boolean };
   preview: { desktop: number | null; mobile: number | null; running: boolean };

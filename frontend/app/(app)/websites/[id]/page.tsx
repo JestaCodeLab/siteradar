@@ -14,7 +14,7 @@ import { SetupProvider } from "@/components/setup-dialog";
 import { fmtAgo } from "@/lib/format";
 
 const TABS = [
-  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"], ["domain", "Domain"],
+  ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"], ["domain", "Domain & SSL"],
   ["dns", "DNS & email"], ["sitemap", "Sitemap"],
   ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
 ] as const;
@@ -99,6 +99,10 @@ function SiteView() {
             onClick={() => router.replace(key === "overview" ? `/websites/${id}` : `/websites/${id}?tab=${key}`, { scroll: false })}
             className={`shrink-0 lg:-mb-px min-h-11 border-b-[3px] px-4 text-[15px] ${tab === key ? "border-brand font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink"}`}>
             {label}
+            {key === "audit" && (site.issue_counts?.high || site.issue_counts?.medium) ? (
+              <span aria-label={`${(site.issue_counts?.high ?? 0) + (site.issue_counts?.medium ?? 0)} high and medium issues`}
+                className={`ml-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-5 text-white ${site.issue_counts?.high ? "bg-bad" : "bg-warn"}`}>{(site.issue_counts?.high ?? 0) + (site.issue_counts?.medium ?? 0)}</span>
+            ) : null}
           </button>
         ))}
       </div>

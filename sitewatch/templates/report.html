@@ -209,6 +209,17 @@ svg.strip{width:100%;height:30px;display:block}
   {% else %}
   <div class="box"><h2>We are not counting visitors yet</h2><p class="lead">Ask your web developer to add the tracking code from your SiteRadar dashboard. Once it is added, this page fills in with who visits, how they found you and what they use.</p></div>
   {% endif %}
+  {% if search %}
+  <div class="box"><h2>Found on Google{{ ' so far' if search.partial }}</h2>
+    <div class="tiles">
+      <div class="tile"><div class="l">Clicks from Google</div><div class="v" style="font-size:22px">{{ '{:,}'.format(search.now.clicks) }}</div><div class="s">People who came from search</div></div>
+      <div class="tile"><div class="l">Times shown</div><div class="v" style="font-size:22px">{{ '{:,}'.format(search.now.impressions) }}</div><div class="s">Appearances in search results</div></div>
+      <div class="tile"><div class="l">Click rate</div><div class="v" style="font-size:22px">{{ '%.1f'|format(search.now.ctr * 100) }}%</div><div class="s">Of those shown, how many clicked</div></div>
+      <div class="tile"><div class="l">Average position</div><div class="v" style="font-size:22px">{{ search.now.position if search.now.position else '—' }}</div><div class="s">Lower is higher up the page</div></div>
+    </div>
+    <p class="note">{% if search.prev %}Compared with the same days last month: clicks {{ ('up ' ~ search.clicks_delta ~ '%') if search.clicks_delta and search.clicks_delta > 0 else (('down ' ~ (search.clicks_delta|abs) ~ '%') if search.clicks_delta else 'about the same') }}, click rate {{ '%.1f'|format(search.prev.ctr * 100) }}% before and {{ '%.1f'|format(search.now.ctr * 100) }}% now. {% endif %}From Google Search Console{% if search.partial %}, up to {{ search.through }}{% endif %}. Google&#39;s newest few days are not available yet.</p>
+  </div>
+  {% endif %}
 
   <div class="col" style="gap:10px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px"><h2>Health check scores</h2>{% if audit %}<span class="s12">{{ audit.pages }} pages checked · {% if prev_audit %}previous overall score {{ prev_audit.scores.Overall }}{% else %}first check, so no comparison yet{% endif %}</span>{% endif %}</div>
