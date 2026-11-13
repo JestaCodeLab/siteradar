@@ -25,6 +25,10 @@ function siteradar_fix_catalog() {
 		'robots'      => array( 'robots.txt', 'Serves a robots.txt that points search engines to your sitemap. Skipped when an SEO plugin or a real robots.txt file exists.' ),
 		'sitemap'     => array( 'XML sitemap', 'Makes /sitemap.xml lead to the sitemap WordPress already builds. Skipped when an SEO plugin or a real sitemap.xml file exists.' ),
 		'lazy'        => array( 'Lazy-load images', 'Loads images below the first screen only when a visitor scrolls to them.' ),
+		'indexing'    => array( 'Let Google list this website', 'Turns off WordPress\'s "Discourage search engines" setting.' ),
+		'labels'      => array( 'Label form fields', 'Gives unlabelled form fields a label for screen readers, taken from their placeholder or title.' ),
+		'lang'        => array( 'Page language', 'Makes sure the html tag states the website\'s language.' ),
+		'h1'          => array( 'Single H1 heading', 'On pages with more than one H1, keeps the first and turns the others into H2.' ),
 		'https_links' => array( 'Secure links', 'Changes http:// links to this website\'s own address into https:// so pages stop mixing secure and insecure content.' ),
 	);
 }
@@ -52,6 +56,7 @@ function siteradar_store_fixes( $wanted ) {
 		return false;
 	}
 	update_option( 'siteradar_fixes', $wanted, false );
+	siteradar_sync_indexing( $now, $wanted );
 	return true;
 }
 
@@ -256,7 +261,7 @@ function siteradar_boot_fixes() {
  * Lazy-loading and secure links work on the finished page, so they also reach images and links the theme prints itself.
  */
 function siteradar_start_buffer() {
-	if ( ! ( siteradar_fix_on( 'lazy' ) || siteradar_fix_on( 'https_links' ) ) ) {
+	if ( ! ( siteradar_fix_on( 'lazy' ) || siteradar_fix_on( 'https_links' ) || siteradar_fix_on( 'labels' ) || siteradar_fix_on( 'h1' ) ) ) {
 		return;
 	}
 	if ( is_admin() || is_feed() || is_embed() || is_customize_preview() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
@@ -278,6 +283,12 @@ function siteradar_filter_page( $html ) {
 			}
 		}
 	}
+	if ( siteradar_fix_on( 'labels' ) ) {
+		$html = siteradar_label_fields( $html );
+	}
+	if ( siteradar_fix_on( 'h1' ) ) {
+		$html = siteradar_single_h1( $html );
+	}
 	if ( siteradar_fix_on( 'lazy' ) ) {
 		$seen = 0;
 		// The first three images are usually on the first screen, so they load straight away. The rest wait until they are near the screen.
@@ -295,4 +306,108 @@ function siteradar_filter_page( $html ) {
 		$html = null === $out ? $html : $out;
 	}
 	return $html;
+}
+
+/**
+ * The indexing fix changes a WordPress setting, so it is done once when the fix is switched on and put back when it is switched off.
+ */
+function siteradar_sync_indexing( $before, $after ) {
+	$was = in_array( 'indexing', $before, true );
+	$is  = in_array( 'indexing', $after, true );
+	if ( $is && ! $was && '0' === (string) get_option( 'blog_public' ) ) {
+		update_option( 'siteradar_prev_blog_public', '0', false );
+		update_option( 'blog_public', '1' );
+	} elseif ( ! $is && $was ) {
+		if ( '0' === (string) get_option( 'siteradar_prev_blog_public' ) ) {
+			update_option( 'blog_public', '0' );
+		}
+		delete_option( 'siteradar_prev_blog_public' );
+	}
+}
+
+/**
+ * Whether WordPress is asking search engines to stay away. SiteRadar uses it to say whether this setting is the cause of a blocked website.
+ */
+function siteradar_search_visibility() {
+	return '0' === (string) get_option( 'blog_public' ) ? 'hidden' : 'visible';
+}
+
+/**
+ * The page language on the html tag, for themes that print it with language_attributes().
+ */
+function siteradar_language_attributes( $output ) {
+	if ( siteradar_fix_on( 'lang' ) && false === stripos( (string) $output, 'lang=' ) ) {
+		$output = trim( $output . ' lang="' . esc_attr( str_replace( '_', '-', get_bloginfo( 'language' ) ) ) . '"' );
+	}
+	return $output;
+}
+
+/**
+ * Give form fields without a label an aria-label taken from their placeholder, title or name. Works on the finished page.
+ */
+function siteradar_label_fields( $html ) {
+	$stash = array();
+	$html  = preg_replace_callback(
+		'/<label\b.*?<\/label>/is',
+		static function ( $m ) use ( &$stash ) {
+			$key           = '<!--sr-label-' . count( $stash ) . '-->';
+			$stash[ $key ] = $m[0];
+			return $key;
+		},
+		$html
+	);
+	$for = array();
+	if ( preg_match_all( '/<label\b[^>]*\bfor\s*=\s*["\']([^"\']+)["\']/i', implode( ' ', $stash ), $ids ) ) {
+		$for = array_flip( $ids[1] );
+	}
+	$out   = preg_replace_callback(
+		'/<(input|select|textarea)\b[^>]*>/i',
+		static function ( $m ) use ( $for ) {
+			$tag = $m[0];
+			if ( preg_match( '/\btype\s*=\s*["\']?(hidden|submit|button|image|reset)\b/i', $tag ) || preg_match( '/\b(aria-label|aria-labelledby|title)\s*=/i', $tag ) ) {
+				return $tag;
+			}
+			if ( preg_match( '/\bid\s*=\s*["\']([^"\']+)["\']/i', $tag, $id ) && isset( $for[ $id[1] ] ) ) {
+				return $tag;
+			}
+			$label = '';
+			if ( preg_match( '/\bplaceholder\s*=\s*["\']([^"\']+)["\']/i', $tag, $p ) ) {
+				$label = wp_strip_all_tags( html_entity_decode( $p[1] ) );
+			} elseif ( preg_match( '/\bname\s*=\s*["\']([A-Za-z][A-Za-z_\-\[\]]{2,40})["\']/i', $tag, $n ) && ! preg_match( '/\d{3,}/', $n[1] ) ) {
+				$label = ucfirst( trim( preg_replace( '/[_\-\[\]]+/', ' ', $n[1] ) ) );
+			}
+			$label = trim( $label );
+			if ( '' === $label || strlen( $label ) > 80 ) {
+				return $tag;
+			}
+			return preg_replace( '/\s*\/?>$/', ' aria-label="' . esc_attr( $label ) . '"$0', $tag, 1 );
+		},
+		$html
+	);
+	$html = null === $out ? $html : $out;
+	return strtr( $html, $stash );
+}
+
+/**
+ * Keep the first H1 on a page and turn the others into H2, so there is one main heading.
+ */
+function siteradar_single_h1( $html ) {
+	if ( preg_match_all( '/<h1\b/i', $html ) < 2 ) {
+		return $html;
+	}
+	$seen = 0;
+	$cur  = 0;
+	$out  = preg_replace_callback(
+		'/<(\/?)h1\b/i',
+		static function ( $m ) use ( &$seen, &$cur ) {
+			if ( '' === $m[1] ) {
+				++$seen;
+				$cur = $seen;
+				return 1 === $seen ? $m[0] : '<h2';
+			}
+			return 1 === $cur ? $m[0] : '</h2';
+		},
+		$html
+	);
+	return null === $out ? $html : $out;
 }

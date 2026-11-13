@@ -142,6 +142,30 @@ function siteradar_apply_alt_edit( $edit ) {
 }
 
 /**
+ * SiteRadar says which text changes are applied right now. Kept as a mirror, so the Fixes page lists them even for changes made before this version.
+ */
+function siteradar_store_applied_edits( $list ) {
+	$clean = array();
+	foreach ( array_slice( (array) $list, 0, 100 ) as $e ) {
+		if ( ! is_array( $e ) || empty( $e['field'] ) || empty( $e['url'] ) || ! in_array( $e['field'], array( 'title', 'desc', 'alt' ), true ) ) {
+			continue;
+		}
+		$clean[] = array(
+			'field' => $e['field'],
+			'url'   => esc_url_raw( (string) $e['url'] ),
+			'time'  => isset( $e['t'] ) ? (int) $e['t'] : 0,
+			'n'     => isset( $e['n'] ) ? max( 1, (int) $e['n'] ) : 1,
+		);
+	}
+	update_option( 'siteradar_applied_edits', $clean, false );
+}
+
+function siteradar_applied_edits() {
+	$v = get_option( 'siteradar_applied_edits', array() );
+	return is_array( $v ) ? $v : array();
+}
+
+/**
  * Apply the changes SiteRadar sent. Returns one result per change, for SiteRadar to record.
  */
 function siteradar_apply_edits( $edits ) {

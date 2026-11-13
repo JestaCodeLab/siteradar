@@ -126,6 +126,9 @@ def blueprint(cfg):
         else:
             out.append({"name": "Payment webhooks", "status": "Operational", "tone": "ok",
                         "detail": f"Last event received {int((now - hook['ts']) / 60)} minutes ago." if hook.get("ts") else "No events received yet."})
+        from . import turnstile
+        out.append({"name": "Sign-up bot check (Turnstile)", "status": "On" if turnstile.enabled() else "Off", "tone": "ok" if turnstile.enabled() else "warn",
+                    "detail": "Sign-ups are checked with Cloudflare Turnstile." if turnstile.enabled() else "Set TURNSTILE_SECRET on the API and NEXT_PUBLIC_TURNSTILE_SITE_KEY on the website to switch it on."})
         out.append({"name": "Google PageSpeed quota", "status": "Operational" if cfg.get("pagespeed_api_key") else "No API key", "tone": "ok" if cfg.get("pagespeed_api_key") else "warn",
                     "detail": "API key connected." if cfg.get("pagespeed_api_key") else "Add PAGESPEED_API_KEY to show Core Web Vitals."})
         return out, bal

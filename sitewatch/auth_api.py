@@ -7,7 +7,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile
 from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
@@ -113,6 +113,8 @@ def blueprint(cfg):
         if limited("register", 60, 10):
             return jsonify(error="Too many sign-ups from this network. Try again later."), 429
         data = body()
+        if turnstile.enabled() and not turnstile.verify(data.get("turnstile_token"), client_ip()):
+            return jsonify(error="We could not confirm you are a person. Please complete the check and try again.", code="captcha"), 400
         user = accounts.register(data, request_country() or str(data.get("country") or ""))
         return jsonify(email=user["email"]), 201
 

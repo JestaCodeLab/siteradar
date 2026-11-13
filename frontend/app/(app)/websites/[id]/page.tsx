@@ -8,6 +8,7 @@ import { Download, RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { PluginTab } from "@/components/plugin-tab";
+import { useAuditWatch } from "@/components/audit-watch";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
@@ -29,6 +30,7 @@ function SiteView() {
     refreshInterval: (d) => (d?.audit_running || d?.preview.running || d?.first_run?.checks || d?.first_run?.audit ? 4000 : d && !d.preview.desktop ? 10000 : 60000),
   });
   const toast = useToast();
+  const { watch: watchAudit } = useAuditWatch();
   const [busy, setBusy] = useState<"check" | "audit" | null>(null);
   const { mutate: refreshAll } = useSWRConfig();
   const [refreshing, setRefreshing] = useState(false);
@@ -63,7 +65,8 @@ function SiteView() {
     setBusy("audit");
     try {
       await send("POST", `/api/sites/${id}/audit`);
-      toast.info("Audit started. Results appear in about a minute.");
+      watchAudit(id, site?.name ?? "this website");
+      toast.info("Audit started. Results appear in about a minute.", "You can leave this page. We will tell you when it is done.");
       await mutate();
     } catch (e) { toast.error(e instanceof Error ? e.message : "Could not start the audit."); }
     setBusy(null);

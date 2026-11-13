@@ -10,12 +10,12 @@ const dev = process.env.NODE_ENV !== "production";
 // or sent to an unlisted site, the page can't be framed, and forms can only post to us or to Google sign-in.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://js.paystack.co${dev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://js.paystack.co https://challenges.cloudflare.com${dev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' https://api.paystack.co https://checkout.paystack.com${dev ? " ws: wss:" : ""}`,
-  "frame-src https://checkout.paystack.com https://js.paystack.co",
+  `connect-src 'self' https://api.paystack.co https://checkout.paystack.com https://challenges.cloudflare.com${dev ? " ws: wss:" : ""}`,
+  "frame-src https://checkout.paystack.com https://js.paystack.co https://challenges.cloudflare.com",
   "form-action 'self' https://accounts.google.com",
   "base-uri 'self'",
   "object-src 'none'",

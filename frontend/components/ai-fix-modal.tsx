@@ -27,7 +27,7 @@ export function AiFixModal({ siteId, issue, host, onClose }: { siteId: string; i
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, modal]);
 
-  const refresh = async () => { await Promise.all([mutate(), globalMutate("/api/ai/credits")]); };
+  const refresh = async () => { await Promise.all([mutate(), globalMutate("/api/ai/credits"), globalMutate(`/api/sites/${siteId}/fixes`)]); };
   const noun = data?.label ?? "text";
 
   return (

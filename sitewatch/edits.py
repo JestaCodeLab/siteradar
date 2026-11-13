@@ -168,4 +168,32 @@ def report(site_id, results):
     _save(site_id, s)
 
 
+def summary(site_id):
+    """Per finding: how many of the flagged pages already have an applied change, and how many are waiting. Lets the audit show a finding as fixed before the next audit runs."""
+    from .auditor import RULES
+    au = db.latest_audit(site_id)
+    issues = {i["rule"]: i for i in (au["issues"] if au else [])}
+    items = list(_load(site_id)["items"].values())
+    out = {}
+    for rule in FIELDS:
+        mine = [i for i in items if i["rule"] == rule]
+        if not mine:
+            continue
+        flagged = {ex["url"] for ex in (issues.get(rule, {}).get("examples") or [])}
+        done = {i["url"] for i in mine if i["status"] == "applied"}
+        _cat, sev, title, _how = RULES.get(rule, ("", "low", rule, ""))
+        out[rule] = {"title": title, "severity": sev, "field": FIELDS[rule], "label": LABEL[FIELDS[rule]],
+                     "applied": len(done), "applied_on_flagged": len(done & flagged), "pending": sum(1 for i in mine if i["status"] in ("approved", "reverting")),
+                     "total": issues[rule]["count"] if rule in issues else 0, "since": max((i["updated"] for i in mine if i["status"] == "applied"), default=None)}
+    return out
+
+
+def applied_list(site_id):
+    """Every change that is applied, for the plugin to show on its Fixes page."""
+    rows = [i for i in _load(site_id)["items"].values() if i["status"] == "applied"]
+    rows.sort(key=lambda i: -i["updated"])
+    return [{"id": i["id"], "field": i["field"], "url": i["url"], "t": i["updated"],
+             "n": len([a for a in i.get("applied_alts", []) if a.get("alt")]) if i["field"] == "alt" else 1} for i in rows[:100]]
+
+
 MAX_ALTS = 10

@@ -213,8 +213,9 @@ export interface BillingData {
   test_mode: boolean; grace_days: number;
 }
 
-export interface FixItem { title: string; severity: "high" | "medium" | "low"; issue_fix: string; label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied"; since: number | null }
-export interface FixesResponse { allowed: boolean; connected: boolean; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }
+export interface FixItem { title: string; severity: "high" | "medium" | "low"; issue_fix: string; label: string; what: string; confirm: boolean; state: "available" | "queued" | "applied" | "unavailable"; reason?: string; since: number | null }
+export interface AiSummary { title: string; severity: "high" | "medium" | "low"; field: "desc" | "title" | "alt"; label: string; applied: number; applied_on_flagged: number; pending: number; total: number; since: number | null }
+export interface FixesResponse { allowed: boolean; connected: boolean; ai?: Record<string, AiSummary>; items: Record<string, FixItem>; log: { t: number; who: string; rule: string; action: "apply" | "undo" }[] }
 
 export interface AiCredits { quota: number; used: number; bonus: number; left: number; allowed: boolean; currency: "GHS" | "USD"; bundles: { credits: number; price: number }[] }
 export interface AiAdmin {

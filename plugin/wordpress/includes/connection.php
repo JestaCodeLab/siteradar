@@ -143,6 +143,7 @@ function siteradar_send_heartbeat( $again = true ) {
 					'php_version'    => PHP_VERSION,
 					'seo_plugin'     => siteradar_seo_plugin(),
 					'snippet'        => siteradar_snippet_enabled() ? 'on' : 'off',
+					'search_visibility' => siteradar_search_visibility(),
 					'fixes'          => siteradar_active_fixes(),
 					'edit_results'   => is_array( $edit_results ) ? $edit_results : array(),
 				)
@@ -189,6 +190,9 @@ function siteradar_send_heartbeat( $again = true ) {
 	$again_needed = false;
 	if ( is_array( $answer ) && isset( $answer['fixes'] ) && siteradar_store_fixes( $answer['fixes'] ) ) {
 		$again_needed = true;
+	}
+	if ( is_array( $answer ) && isset( $answer['applied_edits'] ) && is_array( $answer['applied_edits'] ) ) {
+		siteradar_store_applied_edits( $answer['applied_edits'] );
 	}
 	if ( is_array( $answer ) && ! empty( $answer['edits'] ) && is_array( $answer['edits'] ) ) {
 		$done = siteradar_apply_edits( $answer['edits'] );
