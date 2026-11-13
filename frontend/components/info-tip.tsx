@@ -4,7 +4,7 @@ import { Info } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 // A small "i" button that explains a card. Opens on hover, focus or tap; closes on Escape or outside tap.
-export function InfoTip({ label, text }: { label: string; text: string }) {
+export function InfoTip({ label, text, compact = false }: { label: string; text: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [alignRight, setAlignRight] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
@@ -30,8 +30,8 @@ export function InfoTip({ label, text }: { label: string; text: string }) {
     <span ref={ref} className="relative inline-flex" onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
       <button type="button" aria-label={`About ${label}`} aria-describedby={open ? id : undefined} aria-expanded={open}
         onClick={() => (open ? setOpen(false) : show())} onFocus={show} onBlur={() => setOpen(false)}
-        className="relative inline-flex size-5 items-center justify-center rounded-full text-muted before:absolute before:-inset-3 before:content-[''] hover:text-brand">
-        <Info size={15} aria-hidden="true" />
+        className={`relative inline-flex items-center justify-center rounded-full text-muted before:absolute before:-inset-3 before:content-[''] hover:text-brand ${compact ? "size-4" : "size-5"}`}>
+        <Info size={compact ? 13 : 15} aria-hidden="true" />
       </button>
       {open && (
         <span role="tooltip" id={id}

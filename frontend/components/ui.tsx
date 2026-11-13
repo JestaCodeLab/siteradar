@@ -54,17 +54,16 @@ export function Tile({ label, value, note, tone = "muted", icon: Glyph, info, hr
   return (
     <div className={`relative flex flex-col gap-2 rounded-xl p-5 ${attention === "bad" ? "border-2 border-bad bg-bad-soft/30" : attention === "warn" ? "border-2 border-warn bg-warn-soft/40" : "border border-line bg-surface"} ${cta ? "transition-shadow hover:shadow-md" : ""}`}>
       {Glyph && <span className={`mb-1 flex size-9 shrink-0 items-center justify-center rounded-lg ${chip}`}><Glyph aria-hidden="true" size={18} /></span>}
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center gap-1.5">
         <span className="text-[13px] leading-snug text-muted">{label}</span>
-        {info && <span className="relative z-10"><InfoTip label={label} text={info} /></span>}
+        {info && <span className="relative z-10 inline-flex"><InfoTip label={label} text={info} compact /></span>}
       </div>
       <span className="text-[30px] font-semibold leading-none">{value}</span>
       {note && <span className={`text-[13px] ${toneClass}`}>{note}</span>}
-      {cta && (href || onClick) && (() => {
-        const cls = `mt-1 inline-flex items-center gap-1 self-start text-[13px] font-semibold after:absolute after:inset-0 after:rounded-xl after:content-[''] ${attention === "bad" ? "text-bad" : attention === "warn" ? "text-warn" : "text-brand"}`;
-        return href ? <Link href={href} scroll={false} className={cls}>{cta}<ChevronRight size={14} aria-hidden="true" /></Link>
-          : <button type="button" onClick={onClick} className={cls}>{cta}<ChevronRight size={14} aria-hidden="true" /></button>;
-      })()}
+      {/* the whole card is the link: an invisible layer over it, named for screen readers */}
+      {cta && (href || onClick) && (href
+        ? <Link href={href} scroll={false} aria-label={`${label}: ${cta}`} className="absolute inset-0 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />
+        : <button type="button" onClick={onClick} aria-label={`${label}: ${cta}`} className="absolute inset-0 cursor-pointer rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand" />)}
     </div>
   );
 }
