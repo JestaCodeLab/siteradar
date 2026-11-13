@@ -36,7 +36,7 @@ export interface SiteCard {
   report_to: string[]; alert_to: string[]; track_analytics: boolean; audit_enabled: boolean;
   status: SiteStatus; error: string | null; down_since: number | null; last_check: number | null;
   response_ms: number | null; ssl_days: number | null; uptime30: number | null; avg_ms30: number | null;
-  audit_score: number | null; visitors30: number; strip: StripDay[]; domain_days: number | null;
+  audit_score: number | null; worst_issue?: "high" | "medium" | "low" | null; visitors30: number; strip: StripDay[]; domain_days: number | null;
   domain_expires: string | null; ssl_expires: string | null; tracking_verified: boolean; platform?: { platform: string } | null;
 }
 

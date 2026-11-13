@@ -224,6 +224,7 @@ def blueprint(cfg):
             "ssl_days": last["ssl_days_left"] if last else None,
             "uptime30": u30["uptime"], "avg_ms30": u30["avg_ms"],
             "audit_score": au["scores"]["Overall"] if au else None,
+            "worst_issue": next((sev for sev in ("high", "medium", "low") if any(i["severity"] == sev for i in au["issues"])), None) if au else None,
             "visitors30": analytics.summary(s["id"], now - 30 * 86400, now).get("visitors", 0),
             "strip": day_strip(s["id"]),
             "tracking_verified": analytics.is_verified(s["id"]),
