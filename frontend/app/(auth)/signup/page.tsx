@@ -7,12 +7,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { GoogleButton, AuthShell, authButton, authInput, authLabel, FormError } from "@/components/auth-shell";
 import { send } from "@/lib/api";
+import { Turnstile, turnstileKey } from "@/components/turnstile";
 
 function Form() {
   const router = useRouter();
   const params = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [captcha, setCaptcha] = useState<string | null>(null);
+  const [captchaReset, setCaptchaReset] = useState(0);
   const country = useVisitorCountry();
   const inGhana = country === "GH";
 
@@ -21,13 +24,15 @@ function Form() {
     const f = new FormData(e.currentTarget);
     const phone = inGhana ? ghanaPhone(String(f.get("phone") ?? "")) : "";
     if (inGhana && !phone) { setError("Enter a Ghana phone number, for example 024 123 4567."); return; }
+    if (turnstileKey && !captcha) { setError("Please complete the security check first."); return; }
     setBusy(true); setError(null);
     try {
-      await send("POST", "/api/auth/register", { first_name: f.get("first_name"), last_name: f.get("last_name"), email: f.get("email"), phone, country, password: f.get("password") });
+      await send("POST", "/api/auth/register", { first_name: f.get("first_name"), last_name: f.get("last_name"), email: f.get("email"), phone, country, password: f.get("password"), turnstile_token: captcha });
       try { const plan = params.get("plan"); if (plan) sessionStorage.setItem("sitewatch.plan", JSON.stringify({ plan, cycle: params.get("cycle") ?? "monthly" })); } catch { /* optional */ }
       router.push(`/verify?email=${encodeURIComponent(String(f.get("email")))}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create your account.");
+      setCaptchaReset((n) => n + 1);          // a check can only be used once
       setBusy(false);
     }
   }
@@ -48,6 +53,7 @@ function Form() {
       <div className="flex flex-col gap-1.5"><label htmlFor="password" className={authLabel}>Password</label><input id="password" name="password" type="password" autoComplete="new-password" minLength={8} required className={authInput} /></div>
       <label className="flex cursor-pointer items-start gap-2.5 text-sm text-[#334155]"><input type="checkbox" required className="mt-px size-[18px] flex-none accent-[#F97316]" />
         <span>I agree to the <Link href="/terms-of-service" target="_blank" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="font-semibold text-[#C2410C] hover:text-[#7C2D12]">Privacy Policy</Link>.</span></label>
+      <Turnstile onToken={setCaptcha} resetKey={captchaReset} />
       <FormError message={error} />
       <button type="submit" disabled={busy} className={authButton}>{busy ? "Creating account…" : "Create account"}</button>
     </form>
