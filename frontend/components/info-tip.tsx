@@ -30,7 +30,7 @@ export function InfoTip({ label, text, compact = false }: { label: string; text:
     <span ref={ref} className="relative inline-flex" onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
       <button type="button" aria-label={`About ${label}`} aria-describedby={open ? id : undefined} aria-expanded={open}
         onClick={() => (open ? setOpen(false) : show())} onFocus={show} onBlur={() => setOpen(false)}
-        className={`relative inline-flex items-center justify-center rounded-full text-muted before:absolute before:-inset-3 before:content-[''] hover:text-brand ${compact ? "size-4" : "size-5"}`}>
+        className={`relative inline-flex items-center justify-center rounded-full ${compact ? "text-muted/55" : "text-muted"} before:absolute before:-inset-3 before:content-[''] hover:text-brand ${compact ? "size-4" : "size-5"}`}>
         <Info size={compact ? 13 : 15} aria-hidden="true" />
       </button>
       {open && (
