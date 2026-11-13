@@ -1,6 +1,7 @@
 "use client";
 
 import { AddWebsiteProvider } from "./add-website";
+import { AuditWatchProvider } from "./audit-watch";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,6 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AddWebsiteProvider>
+    <AuditWatchProvider>
     <div className="min-h-screen bg-[#F3F4F6]">
       <SupportFrame />
       <Sidebar open={menu} onClose={() => setMenu(false)} />
@@ -63,6 +65,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
+    </AuditWatchProvider>
     </AddWebsiteProvider>
   );
 }

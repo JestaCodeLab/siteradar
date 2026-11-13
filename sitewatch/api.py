@@ -454,7 +454,7 @@ def blueprint(cfg):
         site_or_404(site_id)
         items, log = fixes.listing(site_id)
         st = connector.status(site_id)
-        return jsonify(allowed=bool(plans.limits(g.ws).get("one_click_fix")), connected=st["connected"], items=items, log=log)
+        return jsonify(allowed=bool(plans.limits(g.ws).get("one_click_fix")), connected=st["connected"], items=items, log=log, ai=edits.summary(site_id))
 
     @bp.post("/sites/<site_id>/fixes/<rule>")
     @need("admin")

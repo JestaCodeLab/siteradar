@@ -161,7 +161,7 @@ def blueprint(cfg):
             fixes.report(site["id"], d["fixes"])
         if isinstance(d.get("edit_results"), list):   # what the plugin did with the text changes it was given
             edits.report(site["id"], d["edit_results"])
-        return jsonify(ok=True, snippet=True, fixes=fixes.enabled(site["id"]), edits=edits.pending(site["id"]))
+        return jsonify(ok=True, snippet=True, fixes=fixes.enabled(site["id"]), edits=edits.pending(site["id"]), applied_edits=edits.applied_list(site["id"]))
 
     @bp.post("/disconnect")
     def disconnect():

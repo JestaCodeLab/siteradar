@@ -183,6 +183,9 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
   const [guideOpen, setGuideOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const item = fx?.items[issue.rule];
+  const ai = fx?.ai?.[issue.rule];
+  // every flagged page already has an applied AI change, so the finding is fixed and only waits for the next audit
+  const aiDone = !!ai && ai.total > 0 && ai.applied_on_flagged >= ai.total;
   const guide = isWp ? null : fixGuide(issue.rule, platform);
   // "Show fix" only when it says more than the advice already on the row: example code, or different wording
   const hasMore = !!guide && (guide.snippets.length > 0 || (!!guide.note && guide.note.trim() !== issue.fix.trim()));
@@ -226,14 +229,21 @@ function IssueRow({ siteId, issue, fx, onChange, openSetup, host, isWp, platform
   }
   // text findings (descriptions, titles, alt text) are fixed with AI drafts that the owner reviews
   if (isWp && fx && !item && AI_RULES.includes(issue.rule)) {
-    if (!fx.allowed) control = <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with AI</Link>;
+    if (aiDone) control = (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 lg:justify-end">
+        <span className="rounded-full bg-ok-soft px-2.5 py-1 text-[13px] font-semibold text-ok">Fix applied</span>
+        {isAdmin && <button type="button" onClick={() => setAiOpen(true)} className="min-h-9 text-[13px] font-semibold text-brand hover:underline">Review</button>}
+      </div>);
+    else if (!fx.allowed) control = <Link href="/settings?tab=billing" className="text-[13px] font-semibold text-brand hover:underline">Upgrade to fix this with AI</Link>;
     else if (!fx.connected) control = <button type="button" onClick={openSetup} className={btn.secondary}>Connect the plugin to fix this</button>;
     else if (!isAdmin) control = <span className="text-[13px] text-muted">Ask an account admin to fix this.</span>;
     else control = <button type="button" onClick={() => setAiOpen(true)} className={`${btn.primary} whitespace-nowrap`}><Sparkles size={15} aria-hidden="true" />Fix with AI</button>;
   }
   // websites that cannot be fixed with one click (not WordPress) get a panel that explains the fix instead
   if (!isWp) control = !hasMore ? null : <button type="button" onClick={() => setGuideOpen((o) => !o)} aria-expanded={guideOpen} className={`${btn.secondary} whitespace-nowrap`}>{guideOpen ? "Hide fix" : "Show fix"}<ChevronDown size={16} aria-hidden="true" className={`transition-transform ${guideOpen ? "rotate-180" : ""}`} /></button>;
-  const note = item?.state === "applied" ? "It disappears from this list after the next audit." : item?.state === "queued" ? "Waiting for the plugin on your website to confirm." : null;
+  const note = item?.state === "applied" || aiDone ? "It disappears from this list after the next audit."
+    : item?.state === "queued" || (ai && ai.pending > 0) ? "Waiting for the plugin on your website to confirm."
+    : ai && ai.applied_on_flagged > 0 ? `${ai.applied_on_flagged} of ${ai.total} pages fixed so far.` : null;
 
   return (
     <div className="flex flex-wrap gap-3.5 border-t border-line-soft py-4 lg:flex-nowrap">
@@ -315,7 +325,11 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
   }
   const { scores, issues } = data.audit;
   // applied fixes whose finding the latest audit no longer reports
-  const fixed = fx ? Object.entries(fx.items).filter(([rule, it]) => it.state === "applied" && !issues.some((i) => i.rule === rule)) : [];
+  type FixedRow = { title: string; severity: "high" | "medium" | "low"; what: string; since: number | null };
+  const fixedSwitch: [string, FixedRow][] = fx ? Object.entries(fx.items).filter(([rule, it]) => it.state === "applied" && !issues.some((i) => i.rule === rule)).map(([rule, it]) => [rule, { title: it.title, severity: it.severity, what: it.what, since: it.since }]) : [];
+  const fixedAi: [string, FixedRow][] = fx?.ai ? Object.entries(fx.ai).filter(([rule, s]) => s.applied > 0 && !issues.some((i) => i.rule === rule))
+    .map(([rule, s]) => [rule, { title: s.title, severity: s.severity, what: `AI-written ${s.label} applied to ${s.applied} ${s.applied === 1 ? "page" : "pages"}.`, since: s.since }]) : [];
+  const fixed = [...fixedSwitch, ...fixedAi];
   const color = (v: number) => (v >= 85 ? "bg-bar-ok" : v >= 60 ? "bg-bar-warn" : "bg-bar-bad");
   return (
     <div className="flex flex-col gap-5">

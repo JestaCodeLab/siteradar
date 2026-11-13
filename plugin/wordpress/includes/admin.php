@@ -188,6 +188,34 @@ function siteradar_render_fixes() {
 			<?php endif; ?>
 		</section>
 
+		<?php
+		$siteradar_texts = siteradar_applied_edits();
+		$siteradar_names = array(
+			'title' => 'Page title',
+			'desc'  => 'Meta description',
+			'alt'   => 'Image alt text',
+		);
+		?>
+		<section class="siteradar-card" aria-labelledby="siteradar-texts">
+			<div class="siteradar-title">
+				<h2 id="siteradar-texts">Text changes from SiteRadar</h2>
+				<span class="siteradar-chip <?php echo $siteradar_texts ? 'is-ok' : 'is-warn'; ?>"><?php echo esc_html( count( $siteradar_texts ) ); ?> applied</span>
+			</div>
+			<?php if ( $siteradar_texts ) : ?>
+				<p>Titles, descriptions and image alt text you approved in SiteRadar. To take one back, press Undo on it in SiteRadar.</p>
+				<ul class="siteradar-fixlist">
+					<?php foreach ( array_slice( $siteradar_texts, 0, 50 ) as $siteradar_e ) : ?>
+						<li>
+							<span class="siteradar-fixtext"><strong><?php echo esc_html( $siteradar_names[ $siteradar_e['field'] ] . ( 'alt' === $siteradar_e['field'] ? ' (' . $siteradar_e['n'] . ')' : '' ) ); ?></strong><span><?php echo esc_html( (string) wp_parse_url( $siteradar_e['url'], PHP_URL_PATH ) ?: '/' ); ?><?php echo $siteradar_e['time'] ? ' · ' . esc_html( human_time_diff( $siteradar_e['time'] ) ) . ' ago' : ''; ?></span></span>
+							<span class="siteradar-chip is-ok">Active</span>
+						</li>
+					<?php endforeach; ?>
+				</ul>
+			<?php else : ?>
+				<p>None yet. When you fix a finding with AI in SiteRadar, the pages changed are listed here.</p>
+			<?php endif; ?>
+		</section>
+
 		<?php if ( $idle ) : ?>
 			<section class="siteradar-card" aria-labelledby="siteradar-idle">
 				<h2 id="siteradar-idle">Other fixes SiteRadar can apply</h2>

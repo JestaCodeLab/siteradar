@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle, Bell, Check, Info, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 type Kind = "success" | "error" | "info" | "notification";
-interface ToastItem { id: number; kind: Kind; title: string; text?: string }
+interface ToastLink { href: string; label: string }
+interface ToastItem { id: number; kind: Kind; title: string; text?: string; link?: ToastLink }
 interface ToastApi {
-  success: (title: string, text?: string) => void;
+  success: (title: string, text?: string, link?: ToastLink) => void;
   error: (title: string, text?: string) => void;
   info: (title: string, text?: string) => void;
-  notify: (title: string, text?: string) => void;
+  notify: (title: string, text?: string, link?: ToastLink) => void;
 }
 
 const look: Record<Kind, { icon: typeof Check; chip: string }> = {
@@ -27,16 +29,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const next = useRef(1);
 
   const dismiss = useCallback((id: number) => setItems((all) => all.filter((t) => t.id !== id)), []);
-  const push = useCallback((kind: Kind, title: string, text?: string) => {
+  const push = useCallback((kind: Kind, title: string, text?: string, link?: ToastLink) => {
     const id = next.current++;
-    setItems((all) => [...all.slice(-3), { id, kind, title, text }]);
+    setItems((all) => [...all.slice(-3), { id, kind, title, text, link }]);
   }, []);
 
   const api = useMemo<ToastApi>(() => ({
-    success: (t, x) => push("success", t, x),
+    success: (t, x, l) => push("success", t, x, l),
     error: (t, x) => push("error", t, x),
     info: (t, x) => push("info", t, x),
-    notify: (t, x) => push("notification", t, x),
+    notify: (t, x, l) => push("notification", t, x, l),
   }), [push]);
 
   return (
@@ -52,7 +54,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 function ToastCard({ item, onClose }: { item: ToastItem; onClose: () => void }) {
   const { icon: Glyph, chip } = look[item.kind];
   const [paused, setPaused] = useState(false);
-  const ms = item.kind === "error" ? 8000 : 5000;
+  const ms = item.kind === "error" ? 8000 : item.link ? 15000 : 5000;
 
   useEffect(() => {
     if (paused) return;
@@ -71,6 +73,7 @@ function ToastCard({ item, onClose }: { item: ToastItem; onClose: () => void }) 
       <div className="min-w-0 flex-1 pt-0.5">
         <p className="text-sm font-semibold leading-snug text-ink">{item.title}</p>
         {item.text && <p className="mt-0.5 text-[13px] leading-snug text-muted">{item.text}</p>}
+        {item.link && <Link href={item.link.href} onClick={onClose} className="mt-1.5 inline-block text-[13px] font-semibold text-brand hover:underline">{item.link.label}</Link>}
       </div>
       <button type="button" onClick={onClose} aria-label="Dismiss message" className="-m-1 flex size-8 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-soft hover:text-ink">
         <X aria-hidden="true" size={16} />

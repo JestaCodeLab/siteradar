@@ -190,6 +190,9 @@ function siteradar_send_heartbeat( $again = true ) {
 	if ( is_array( $answer ) && isset( $answer['fixes'] ) && siteradar_store_fixes( $answer['fixes'] ) ) {
 		$again_needed = true;
 	}
+	if ( is_array( $answer ) && isset( $answer['applied_edits'] ) && is_array( $answer['applied_edits'] ) ) {
+		siteradar_store_applied_edits( $answer['applied_edits'] );
+	}
 	if ( is_array( $answer ) && ! empty( $answer['edits'] ) && is_array( $answer['edits'] ) ) {
 		$done = siteradar_apply_edits( $answer['edits'] );
 		if ( $done ) {

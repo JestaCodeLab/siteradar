@@ -2,7 +2,7 @@
 Requires at least: 5.6
 Tested up to: 6.8
 Requires PHP: 8.2
-Stable tag: 0.4.0
+Stable tag: 0.4.1
 License: GPLv2 or later
 
 Connects this website to your SiteRadar account. Adds the tracking snippet automatically. Applies the fixes you approve in SiteRadar.
@@ -34,3 +34,6 @@ Requires PHP 8.2 or newer.
 
 = 0.4.0 =
 * Applies page titles, meta descriptions and image alt text that you approve in SiteRadar, and can undo them.
+
+= 0.4.1 =
+* The Fixes page now lists the titles, descriptions and alt text applied from SiteRadar.
