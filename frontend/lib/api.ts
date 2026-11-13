@@ -71,7 +71,7 @@ export interface SiteDetail extends SiteCard {
   response_series: { day: string; ms: number }[];
   incidents: { started: number; ended: number | null; cause: string | null }[];
   platform: { platform: string; signals: string[]; seo_plugin: string | null; checked_at: number } | null;
-  connector: { issued: boolean; connected: boolean; last_seen: number | null; allowed: boolean; info: { plugin_version?: string; wp_version?: string; php_version?: string; seo_plugin?: string; snippet?: string } };
+  connector: { issued: boolean; connected: boolean; last_seen: number | null; allowed: boolean; latest_version?: string | null; info: { plugin_version?: string; wp_version?: string; php_version?: string; seo_plugin?: string; snippet?: string } };
   top_issues: Issue[]; tracking_live: boolean; tracking: { verified_at: number | null; checked_at: number | null; last_hit: number | null }; pageviews30: number; snippet: string; audit_running: boolean; audit_runs_left?: number;
 }
 

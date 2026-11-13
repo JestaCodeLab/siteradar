@@ -309,7 +309,7 @@ def blueprint(cfg):
             "pageviews30": a.get("pageviews", 0),
             "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site_id}"></script>',
             "platform": stack.saved(site_id),
-            "connector": {**connector.status(site_id), "allowed": bool(plans.limits(g.ws).get("one_click_fix"))},
+            "connector": {**connector.status(site_id), "allowed": bool(plans.limits(g.ws).get("one_click_fix")), "latest_version": connector.latest_version()},
             "audit_running": site_id in running_audits,
             "audit_runs_left": audit_runs_left(site_id),
             # still waiting on the first results of a website that was only just added

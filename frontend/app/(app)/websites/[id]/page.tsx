@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
+import { PluginTab } from "@/components/plugin-tab";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
 import { ApiError, fetcher, send, type SiteDetail } from "@/lib/api";
@@ -16,7 +17,7 @@ import { fmtAgo } from "@/lib/format";
 const TABS = [
   ["overview", "Overview"], ["analytics", "Analytics"], ["audit", "Audit"], ["domain", "Domain & SSL"],
   ["dns", "DNS & email"], ["sitemap", "Sitemap"],
-  ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
+  ["plugin", "Plugin"], ["reports", "Reports"], ["subscriptions", "Subscriptions"], ["settings", "Settings"],
 ] as const;
 
 function SiteView() {
@@ -94,7 +95,7 @@ function SiteView() {
       </header>
 
       <div role="tablist" aria-label="Website sections" className="flex gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b border-[#d9dde4] [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden">
-        {TABS.map(([key, label]) => (
+        {TABS.filter(([k]) => k !== "plugin" || site.platform?.platform === "wordpress").map(([key, label]) => (
           <button key={key} role="tab" aria-selected={tab === key}
             onClick={() => router.replace(key === "overview" ? `/websites/${id}` : `/websites/${id}?tab=${key}`, { scroll: false })}
             className={`shrink-0 lg:-mb-px min-h-11 border-b-[3px] px-4 text-[15px] ${tab === key ? "border-brand font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink"}`}>
@@ -113,6 +114,7 @@ function SiteView() {
       {tab === "domain" && <DomainTab site={site} />}
       {tab === "dns" && <DnsTab id={id} />}
       {tab === "sitemap" && <SitemapTab id={id} />}
+      {tab === "plugin" && site.platform?.platform === "wordpress" && <PluginTab site={site} onChange={() => mutate()} />}
       {tab === "reports" && <ReportsTab id={id} />}
       {tab === "subscriptions" && <SiteSubscriptionsTab site={site} />}
       {tab === "settings" && <SettingsTab site={site} />}
