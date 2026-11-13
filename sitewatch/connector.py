@@ -7,6 +7,7 @@ import hmac
 import io
 import json
 import os
+import re
 import secrets
 import time
 import zipfile
@@ -97,6 +98,16 @@ def auto_check(site, every=6 * 3600):
     c["probed"] = time.time()
     db.kv_set(f"connector:{site['id']}", c)
     check(site)
+
+
+def latest_version():
+    """The version of the plugin that a new download contains, read from the plugin file."""
+    try:
+        with open(PLUGIN_VERSION_FILE, encoding="utf-8") as f:
+            m = re.search(r"^\s*\*\s*Version:\s*([0-9][0-9.]*)", f.read(4000), re.M)
+        return m.group(1) if m else None
+    except OSError:
+        return None
 
 
 def plugin_zip(cfg, site):

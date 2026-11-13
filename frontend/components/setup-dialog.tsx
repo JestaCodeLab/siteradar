@@ -53,18 +53,10 @@ export function SetupProvider({ site, onChange, children }: { site: SiteDetail; 
   );
 }
 
-function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: () => void | Promise<unknown>; onClose: () => void }) {
-  const { isAdmin } = useMe();
+/** Download the plugin for this website, or ask SiteRadar whether it is still there. Used by the setup dialog and the Plugin tab. */
+export function usePluginActions(site: SiteDetail, onChange: () => void | Promise<unknown>) {
   const toast = useToast();
   const [busy, setBusy] = useState<"download" | "check" | null>(null);
-  const isWp = isWordPress(site);
-  const conn = site.connector;
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
 
   async function download() {
     setBusy("download");
@@ -96,6 +88,20 @@ function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: (
     } catch { toast.error("Could not check the connection. Please try again."); }
     setBusy(null);
   }
+  return { busy, download, check };
+}
+
+function SetupModal({ site, onChange, onClose }: { site: SiteDetail; onChange: () => void | Promise<unknown>; onClose: () => void }) {
+  const { isAdmin } = useMe();
+  const { busy, download, check } = usePluginActions(site, onChange);
+  const isWp = isWordPress(site);
+  const conn = site.connector;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="setup-title" className="fixed inset-0 z-50 flex items-center justify-center bg-[#0F172A]/60 p-4">
