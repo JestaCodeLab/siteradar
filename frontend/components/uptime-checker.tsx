@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 import { Turnstile, turnstileKey } from "./turnstile";
 import { ApiError, send } from "@/lib/api";
@@ -30,22 +31,32 @@ function Fact({ label, value, note }: { label: string; value: string; note?: str
 }
 
 export function UptimeChecker() {
-  const [url, setUrl] = useState("");
+  const given = useSearchParams().get("url") ?? "";            // a link from another page (an article, say) arrives with the address filled in
+  const [url, setUrl] = useState(given.slice(0, 300));
+  const autoRan = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [res, setRes] = useState<Result | null>(null);
   const [captcha, setCaptcha] = useState<string | null>(null);
   const [captchaReset, setCaptchaReset] = useState(0);
 
-  async function check(e: React.FormEvent) {
-    e.preventDefault();
+  async function run(address: string) {
     if (turnstileKey && !captcha) { setError("Please complete the security check first."); return; }
     setBusy(true); setError(null); setRes(null);
-    try { setRes(await send<Result>("POST", "/api/tools/uptime-check", { url, turnstile_token: captcha })); }
+    try { setRes(await send<Result>("POST", "/api/tools/uptime-check", { url: address, turnstile_token: captcha })); }
     catch (err) { setError(err instanceof ApiError || err instanceof Error ? err.message : "The check could not be run."); }
     setCaptcha(null); setCaptchaReset((n) => n + 1);
     setBusy(false);
   }
+  const check = (e: React.FormEvent) => { e.preventDefault(); void run(url); };
+
+  // arrived with an address: check it as soon as the page can (after the security check, when there is one)
+  useEffect(() => {
+    if (!given.trim() || autoRan.current || (turnstileKey && !captcha)) return;
+    autoRan.current = true;
+    void run(given.slice(0, 300));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captcha]);
 
   const v = res ? VERDICT[res.verdict] : null;
   const ssl = res?.ssl_days_left;

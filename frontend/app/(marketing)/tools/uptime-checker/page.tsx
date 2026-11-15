@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { Container, CtaBand, Rings } from "@/components/mkt";
 import { UptimeChecker } from "@/components/uptime-checker";
@@ -43,7 +44,7 @@ export default function UptimeCheckerPage() {
         </Container>
       </section>
       <section className="py-10 md:py-14">
-        <Container className="max-w-[860px]"><UptimeChecker /></Container>
+        <Container className="max-w-[860px]"><Suspense fallback={null}><UptimeChecker /></Suspense></Container>
       </section>
       <section className="border-t border-[#EFE4D8] bg-white py-12 md:py-16">
         <Container className="flex max-w-[860px] flex-col gap-5 text-[17px] leading-[1.75] text-[#334155]">
