@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { Icon } from "@/components/ui";
-import { ghs, useMe } from "@/lib/me";
+import { useMe } from "@/lib/me";
 
 const tasks = [
   { href: "/websites/new", title: "Add your first website", text: "Paste its address and we start checking straight away." },

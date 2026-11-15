@@ -321,6 +321,14 @@ CREATE INDEX idx_wa_wamid ON whatsapp_log(wamid);
     (24, """
 UPDATE plans SET sms=0, channels=REPLACE(channels, ',"sms"', '');
 """),
+    (25, """
+UPDATE workspaces SET currency='USD';
+ALTER TABLE workspaces ALTER COLUMN currency SET DEFAULT 'USD';
+UPDATE plans SET price_month_usd=12.99 WHERE id='freelance';
+UPDATE plans SET price_month_usd=29.99 WHERE id='starter';
+UPDATE plans SET price_month_usd=69.99 WHERE id='growth';
+UPDATE plans SET price_month_usd=179.99 WHERE id='scale';
+"""),
 ]
 
 

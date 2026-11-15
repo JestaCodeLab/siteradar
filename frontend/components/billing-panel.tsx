@@ -213,7 +213,7 @@ export function BillingPanel() {
             <div className="grid grid-cols-[130px_minmax(200px,2fr)_120px_90px_70px] items-center gap-4 border-y border-line bg-soft px-[22px] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-muted"><span>Date</span><span>Description</span><span>Amount</span><span>Status</span><span /></div>
             {data.invoices.map((i) => (
               <div key={i.reference} className="grid grid-cols-[130px_minmax(200px,2fr)_120px_90px_70px] items-center gap-4 border-b border-line-soft px-[22px] py-3.5 text-sm last:border-0">
-                <span className="text-[13px]">{fmtDateTs(i.date)}</span><span>{i.description} ({i.number})</span><span className="font-mono text-[13px]">GHS {i.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                <span className="text-[13px]">{fmtDateTs(i.date)}</span><span>{i.description} ({i.number})</span><span className="font-mono text-[13px]">{money(i.amount, "USD")}</span>
                 <span><span className="rounded-full bg-ok-soft px-2.5 py-[3px] text-xs font-semibold text-ok">Paid</span></span>
                 <a href={`/api/billing/invoices/${i.reference}.pdf`} className="flex min-h-11 items-center font-semibold text-brand">PDF</a>
               </div>))}

@@ -10,8 +10,8 @@ import { SITE_URL, organization, pageMeta } from "@/lib/seo";
 
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring",
-  absoluteTitle: "Website Monitoring Software & Alerts | SiteRadar",
-  description: "Monitor website uptime, speed, SSL certificates, domain expiry and DNS health. Get instant alerts, actionable insights and monthly reports with SiteRadar.",
+  absoluteTitle: "Website Monitoring for Agencies & Businesses | SiteRadar",
+  description: "Website uptime monitoring with WhatsApp alerts. Track SSL and domain expiry, DNS, SEO audits and Google click-through rate, fix WordPress issues in one click, and send clients monthly reports.",
   ogTitle: "SiteRadar — Website Monitoring & Digital Presence Intelligence",
   ogDescription: "Keep every website healthy. Monitor uptime, performance, SSL, domains and DNS while getting actionable insights and monthly reports.",
   path: "/",
@@ -19,7 +19,7 @@ export const metadata: Metadata = pageMeta({
 });
 
 const features = [
-  { Icon: Activity, title: "Uptime and speed", text: "Every site is checked every few minutes for availability and response time, with a text or email only when it really matters." },
+  { Icon: Activity, title: "Uptime and speed", text: "Every site is checked every few minutes for availability and response time, with a WhatsApp or email alert only when it really matters." },
   { Icon: ShieldCheck, title: "SSL and domain expiry", text: "See the exact expiry date of every certificate and domain, and get warned weeks ahead instead of the day it lapses." },
   { Icon: Mail, title: "DNS and email health", text: "We check SPF, DKIM and DMARC and alert you when DNS records change, so email lands in the inbox and hijacks are caught." },
   { Icon: ListChecks, title: "Daily site audit", text: "About 50 checks across SEO, speed, security and accessibility, each with a plain-language fix." },
@@ -38,7 +38,8 @@ export default function Home() {
         { "@context": "https://schema.org", "@type": "WebSite", name: "SiteRadar", url: SITE_URL },
         {
           "@context": "https://schema.org", "@type": "SoftwareApplication", name: "SiteRadar", applicationCategory: "BusinessApplication", operatingSystem: "Web",
-          url: SITE_URL, description: "Website monitoring for uptime, SSL, domain and DNS health, visitor stats and monthly reports."
+          url: SITE_URL, description: "Website monitoring for uptime, SSL, domain and DNS health, SEO audits, WordPress fixes, Google click-through rate and monthly client reports.",
+          offers: { "@type": "AggregateOffer", priceCurrency: "USD", lowPrice: "12.99", highPrice: "179.99", offerCount: 4 }
         },
       ]} />
       {/* hero */}
@@ -47,7 +48,7 @@ export default function Home() {
         <Container className="relative flex flex-wrap items-center gap-14 pb-9 pt-10 md:pb-24 md:pt-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-[18px] md:gap-6">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-medium text-[#FDBA74]`}>Digital Presence Intelligence</span>
-            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(38px,5vw,62px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Know when your websites break, expire or slow down.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(38px,5vw,62px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Website monitoring that tells you when your sites break, expire or slow down.</h1>
             <p className="max-w-[560px] text-base text-[#CBD5E1] md:text-[19px]"><span className="md:hidden">Uptime, SSL, domains, DNS, email health and visitors for every website you look after, plus a monthly report for your clients.</span><span className="hidden md:inline">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</span></p>
             <div className="mt-1 flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
             <div role="img" aria-label="Example: uptime 99.98%, response 6.1 seconds, SSL valid 74 days, audit score 81" className="mt-1.5 grid grid-cols-2 gap-2 md:hidden">

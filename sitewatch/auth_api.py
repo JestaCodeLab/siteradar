@@ -77,11 +77,9 @@ def blueprint(cfg):
     # ---- public ----------------------------------------------------------
     @bp.get("/plans")
     def public_plans():
-        """Prices in the signed-in workspace's currency; otherwise in cedis for Ghana (or an unknown country) and dollars elsewhere."""
-        cur = g.ws["currency"] if g.get("ws") else plans.currency_for_country(request_country())
-        resp = jsonify(plans.public(cur))
-        resp.headers["Cache-Control"] = "private, no-store"      # the answer depends on who is asking, so no shared cache may reuse it
-        resp.headers["Vary"] = "Cookie, X-Vercel-IP-Country, CF-IPCountry, X-Country-Code"
+        """Prices are in US dollars for everyone."""
+        resp = jsonify(plans.public("USD"))
+        resp.headers["Cache-Control"] = "public, max-age=300"
         return resp
 
     @bp.post("/contact")

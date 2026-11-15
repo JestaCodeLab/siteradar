@@ -35,8 +35,8 @@ CURRENCIES = ("GHS", "USD")
 
 
 def currency_for_country(country):
-    """Ghana pays in cedis and everywhere else, including an unknown country, in US dollars. Accepts a name ("Ghana") or a code ("GH")."""
-    return "GHS" if (country or "").strip().lower() in ("ghana", "gh") else "USD"
+    """Everyone is billed in US dollars, whatever the country. (Kept so callers that pass a country still work.)"""
+    return "USD"
 
 
 def sms_allowed(ws):
@@ -49,12 +49,12 @@ def without_sms(plan):
     return {**plan, "sms": 0, "channels": [c for c in plan["channels"] if c != "sms"]}
 
 
-def money(amount, currency="GHS"):
+def money(amount, currency="USD"):
     """Plain text amount, whole units unless there are pesewas or cents: GHS 99, USD 8."""
     return f"{currency} {amount:,.0f}" if float(amount).is_integer() else f"{currency} {amount:,.2f}"
 
 
-def price(plan, cycle, currency="GHS"):
+def price(plan, cycle, currency="USD"):
     """Amount to charge for one billing period, in whole units of the currency."""
     m = plan["price_month_usd"] if currency == "USD" else plan["price_month"]
     if cycle == "yearly":
@@ -62,14 +62,13 @@ def price(plan, cycle, currency="GHS"):
     return round(float(m), 2)
 
 
-def public(currency="GHS"):
+def public(currency="USD"):
     """The plans with their prices in one currency, as the website shows them."""
     d = yearly_discount()
     out = []
     for p in all_plans():
         yearly = price(p, "yearly", currency)
-        if currency != "GHS":
-            p = without_sms(p)
+        p = without_sms(p)
         out.append({**p, "currency": currency, "price_month": price(p, "monthly", currency), "price_year": yearly, "price_year_month": round(yearly / 12, 2)})
     return {"plans": out, "yearly_discount": d, "currency": currency}
 
