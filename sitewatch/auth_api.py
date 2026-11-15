@@ -7,7 +7,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile, whatsapp
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile, uptime_tool, whatsapp
 from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
@@ -156,6 +156,19 @@ def blueprint(cfg):
     @bp.get("/auth/providers")
     def providers():
         return jsonify(google=google_auth.configured())
+
+    @bp.post("/tools/uptime-check")
+    def uptime_check():
+        """The free uptime checker. Public, so it is rate limited per visitor and per target, and sits behind the bot check when that is on."""
+        d = body()
+        if limited("uptime_tool", 10, 8):
+            return jsonify(error="You have checked a lot of addresses. Please try again in a few minutes."), 429
+        if turnstile.enabled() and not turnstile.verify(d.get("turnstile_token"), client_ip()):
+            return jsonify(error="Please complete the security check and try again.", code="captcha"), 400
+        url = sites.normalise_url(d.get("url"))
+        if limited("uptime_tool_host", 10, 5, key=url.split("//")[-1].split("/")[0].lower()):
+            return jsonify(error="That website was checked several times just now. Please wait a few minutes."), 429
+        return jsonify(uptime_tool.run(url))
 
     @bp.get("/whatsapp/webhook")
     def whatsapp_hook_check():

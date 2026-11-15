@@ -186,13 +186,13 @@ export function MktFooter() {
             <p className="hidden text-[15px] md:block">Website monitoring, domain and DNS health, analytics and monthly reports for the people who look after websites.</p>
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[15px] md:hidden">
-            {[["/agencies", "For agencies"], ["/businesses", "For businesses"], ["/pricing", "Pricing"], ["/insights", "Insights"], ["/contact", "Contact"], ["/login", "Log in"], ["/signup", "Sign up"], ["/terms-of-service", "Terms of Service"], ["/privacy", "Privacy Policy"]].map(([h, l]) => <Link key={h} href={h} className={`${col} py-1.5`}>{l}</Link>)}
+            {[["/agencies", "For agencies"], ["/businesses", "For businesses"], ["/pricing", "Pricing"], ["/insights", "Insights"], ["/tools/uptime-checker", "Uptime checker"], ["/contact", "Contact"], ["/login", "Log in"], ["/signup", "Sign up"], ["/terms-of-service", "Terms of Service"], ["/privacy", "Privacy Policy"]].map(([h, l]) => <Link key={h} href={h} className={`${col} py-1.5`}>{l}</Link>)}
           </div>
           <div className="hidden flex-wrap gap-x-16 gap-y-10 md:flex">
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Features</span>
               <div className="grid grid-flow-col grid-rows-7 gap-x-10 gap-y-2.5">{FEATURES.map((f) => <Link key={f.slug} href={featureHref(f)} className={col}>{f.name}</Link>)}</div></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Product</span>
-              <Link href="/agencies" className={col}>For agencies</Link><Link href="/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/insights" className={col}>Insights</Link><Link href="/signup" className={col}>Get started</Link></div>
+              <Link href="/agencies" className={col}>For agencies</Link><Link href="/businesses" className={col}>For businesses</Link><Link href="/pricing" className={col}>Pricing</Link><Link href="/insights" className={col}>Insights</Link><Link href="/tools/uptime-checker" className={col}>Free uptime checker</Link><Link href="/signup" className={col}>Get started</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Company</span><Link href="/contact" className={col}>Contact</Link><Link href="/" className={col}>Home</Link><Link href="/terms-of-service" className={col}>Terms of Service</Link><Link href="/privacy" className={col}>Privacy Policy</Link></div>
             <div className="flex flex-col gap-2.5"><span className="text-sm font-bold text-white">Account</span><Link href="/login" className={col}>Log in</Link><Link href="/signup" className={col}>Sign up</Link></div>
           </div>
