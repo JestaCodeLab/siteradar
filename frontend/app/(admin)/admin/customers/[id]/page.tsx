@@ -29,7 +29,7 @@ interface Detail {
 }
 type Panel = null | "support" | "plan" | "free" | "limits" | "refund";
 const dot: Record<string, string> = { purple: "#6B4FE0", bad: "#B3261E", ok: "#0B7A4B", muted: "#5B6472" };
-const LIMIT_FIELDS: [string, string][] = [["sites", "Websites"], ["members", "Team members"], ["sms", "SMS per month"], ["interval_minutes", "Check every (min)"], ["history_months", "History (months)"], ["audit_pages", "Audit pages"], ["storage_mb", "Invoice storage (MB)"], ["ai_credits", "AI drafts per month"]];
+const LIMIT_FIELDS: [string, string][] = [["sites", "Websites"], ["members", "Team members"], ["interval_minutes", "Check every (min)"], ["history_months", "History (months)"], ["audit_pages", "Audit pages"], ["storage_mb", "Invoice storage (MB)"], ["ai_credits", "AI drafts per month"]];
 const reasons = ["Support request from the customer", "Billing or payment question", "Investigating a bug", "Other"];
 
 export default function CustomerPage() {

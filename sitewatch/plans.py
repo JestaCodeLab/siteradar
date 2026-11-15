@@ -40,8 +40,8 @@ def currency_for_country(country):
 
 
 def sms_allowed(ws):
-    """Text alerts only reach Ghanaian numbers, so only workspaces in Ghana get them."""
-    return currency_for_country(ws.get("country")) == "GHS"
+    """Text alerts were replaced by WhatsApp alerts (every plan), so nobody has SMS any more."""
+    return False
 
 
 def without_sms(plan):

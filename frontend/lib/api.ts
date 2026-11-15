@@ -62,7 +62,13 @@ export interface PageSpeedResult {
 }
 export interface PageSpeed { mobile: PageSpeedResult | null; desktop: PageSpeedResult | null }
 
+export interface SiteWhatsApp {
+  enabled: boolean; cap: number; max: number; pending: boolean;
+  numbers: { phone: string; masked: string; verified: boolean; known: boolean }[];
+}
+
 export interface SiteDetail extends SiteCard {
+  whatsapp?: SiteWhatsApp;
   audit_ts: number | null; pagespeed: PageSpeed | null; issue_counts?: { high: number; medium: number; low: number };
   /** True while the first results of a website that was just added are still on their way. */
   first_run?: { checks: boolean; audit: boolean };
@@ -185,6 +191,7 @@ export interface Workspace {
   plan: { id: string; name: string; sites: number; members: number; storage_mb?: number; interval_minutes: number; sms: number; history_months: number;
           channels: ("email" | "chat" | "sms")[]; client_access: boolean };
   plan_id: string; cycle: "monthly" | "yearly"; plan_status: "active" | "past_due" | "lapsed" | "none"; locked?: boolean; cancels?: boolean; currency?: string; plan_renews: number | null;
+  whatsapp?: boolean;
   usage: { sites: number; members: number; pending_invites: number; seats: number; sms: number }; sms_credits?: number;
 }
 

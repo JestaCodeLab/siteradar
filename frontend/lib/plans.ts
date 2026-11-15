@@ -10,10 +10,12 @@ export function usePlans() {
 }
 
 export const channelLabel = (p: Pick<PlanInfo, "channels">) =>
-  p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only";
+  p.channels.includes("chat") ? "Email, WhatsApp, Slack and Teams alerts" : "Email and WhatsApp alerts";
 
 /** Explains the AI credit line wherever a plan's features are listed. */
 export const AI_TIP = "AI credits write titles, meta descriptions and image alt text when you fix issues on a WordPress website. Shopify stores will be added when our Shopify app launches. Other websites get step-by-step fix instructions instead, which do not use credits.";
+export const WA_TIP = "WhatsApp alerts are sent when a website goes down and when it is back up, to up to 2 numbers per website. To keep costs fair, each website sends up to 2 WhatsApp alerts in any 24 hours; after that, alerts go by email. You cannot reply to these messages.";
+export const CTR_TIP = "Connect Google Search Console (read-only) to see clicks, impressions, click-through rate, search terms and countries, and have a Found on Google section in your monthly report.";
 export const aiLine = (p: Pick<PlanInfo, "ai_credits">) => (p.ai_credits ? `${p.ai_credits.toLocaleString()} AI credits a month` : "");
 
 /** Plain-language feature lines for a plan card. */
@@ -23,9 +25,9 @@ export function planFeatures(p: PlanInfo): { text: string; tip?: string }[] {
     { text: `${p.members} team member${p.members === 1 ? "" : "s"}` },
     { text: `Checks every ${p.interval_minutes === 1 ? "minute" : p.interval_minutes + " minutes"}` },
     ...(p.ai_credits ? [{ text: aiLine(p), tip: AI_TIP }] : []),
-    { text: channelLabel(p) },
+    { text: channelLabel(p), tip: WA_TIP },
+    { text: "Click-through rate from Google Search Console", tip: CTR_TIP },
   ];
-  if (p.sms) out.push({ text: `${p.sms} SMS alerts a month` });
   out.push({ text: "Monthly report with your logo" });
   if (p.client_access) out.push({ text: "Read-only viewer access for clients" });
   out.push({ text: `${p.history_months} month${p.history_months === 1 ? "" : "s"} of history` });

@@ -4,7 +4,7 @@ import { money } from "@/lib/me";
 import { usePlans } from "@/lib/plans";
 
 const LINE: Record<string, (p: { sites: number; members: number; interval_minutes: number; sms: number }) => string> = {
-  freelance: (p) => `${p.sites} website${p.sites === 1 ? "" : "s"} · email alerts`,
+  freelance: (p) => `${p.sites} website${p.sites === 1 ? "" : "s"} · email and WhatsApp alerts`,
   starter: (p) => `${p.sites} websites · ${p.members} team members`,
   growth: (p) => `${p.sites} websites · ${p.members} team members`,
   scale: (p) => `${p.sites} websites · ${p.members} team members · checks every minute`,
@@ -19,7 +19,7 @@ export function HomePlans({ ids, short = false }: { ids?: string[]; short?: bool
     <div className="flex flex-col gap-3.5 md:hidden">
       {plans.map((p) => {
         const pop = p.id === "growth";
-        const line = p.id === "freelance" ? `${p.sites} website${p.sites === 1 ? "" : "s"} · email alerts` : p.id === "starter" ? `${p.sites} websites · ${p.members} team members` : p.id === "growth" ? `${p.sites} websites · ${p.members} team members` : `${p.sites} websites · every minute`;
+        const line = p.id === "freelance" ? `${p.sites} website${p.sites === 1 ? "" : "s"} · email and WhatsApp alerts` : p.id === "starter" ? `${p.sites} websites · ${p.members} team members` : p.id === "growth" ? `${p.sites} websites · ${p.members} team members` : `${p.sites} websites · every minute`;
         return (
           <div key={p.id} className={`flex items-center justify-between gap-3 rounded-xl px-4 py-3.5 ${pop ? "border-2 border-[#F97316] bg-[#FFF7ED] !px-[15px] !py-[13px]" : "border border-[#EFE4D8]"}`}>
             <div><div className={`font-bold ${pop ? "text-[#9A3412]" : ""}`}>{p.name}</div><div className="text-[13px] text-[#475569]">{line}</div></div>

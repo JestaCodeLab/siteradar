@@ -31,7 +31,7 @@ const sections: LegalSection[] = [
     <>
       <p>SiteRadar has several plans, each with its own limits on websites, team members, checks, storage and features. The current plans and prices are on our <a href="/pricing">pricing page</a>. Prices are shown in Ghana cedis (GHS) for customers in Ghana and in US dollars (USD) elsewhere. We may change prices and plan limits; a change never applies to a period you have already paid for.</p>
       <p>Paid plans are billed in advance, monthly or yearly, as you choose. Payments are handled by Paystack, and we do not store your full card details. Plans renew automatically unless you cancel before the renewal date. Taxes may be added where the law requires.</p>
-      <p>SMS alerts use bundles of messages that you buy separately. Bundles are available for numbers in Ghana only.</p>
+      <p>WhatsApp alerts are included on every plan. To keep costs fair, each website can send a limited number of down and back-up WhatsApp alerts in any 24 hours; further alerts are sent by email. You can only add a number whose owner agrees to receive them, and you can remove a number at any time.</p>
       <p>We do not offer free trials or a free plan. Every plan includes the same features. Plans differ only in how many websites, team members and months of history they include, and in the alert channels available.</p>
     </>
   ) },
@@ -50,7 +50,7 @@ const sections: LegalSection[] = [
         <li>break the law, or upload anything unlawful, harmful or that infringes someone else&rsquo;s rights;</li>
         <li>try to get around plan limits, security or access controls, or use another person&rsquo;s account;</li>
         <li>scrape, copy, resell or reverse engineer the service, except where the law allows it;</li>
-        <li>send spam or abusive messages through our alerts, or use SMS alerts for anything other than monitoring notices;</li>
+        <li>send spam or abusive messages through our alerts, or use WhatsApp alerts for anything other than monitoring notices;</li>
         <li>interfere with the service or other customers&rsquo; use of it.</li>
       </ul>
       <p>We may pause or end accounts that break these rules, and we will tell you why where we can.</p>
@@ -64,7 +64,7 @@ const sections: LegalSection[] = [
     </>
   ) },
   { id: "third-parties", title: "Other services we rely on", body: (
-    <p>SiteRadar works with other providers, including Paystack (payments), Resend (email), FlockText (SMS), Cloudinary (file storage), Google (sign-in and PageSpeed data) and our hosting providers. Their services are governed by their own terms. If one of them has a problem, parts of SiteRadar may be slow or unavailable.</p>
+    <p>SiteRadar works with other providers, including Paystack (payments), Resend (email), Meta (WhatsApp alerts), Cloudinary (file storage), Google (sign-in and PageSpeed data) and our hosting providers. Their services are governed by their own terms. If one of them has a problem, parts of SiteRadar may be slow or unavailable.</p>
   ) },
   { id: "ours", title: "Our rights", body: (
     <p>SiteRadar, its design, software and name belong to us or our licensors. These terms give you a right to use the service while you have an account; they do not transfer any ownership to you. If you send us feedback or ideas, we may use them freely without paying you.</p>

@@ -1,16 +1,15 @@
 "use client";
 
-import { Locked } from "./locked";
 import { useNoteToast } from "@/components/toast";
 import Link from "next/link";
 import { useState } from "react";
 import useSWR from "swr";
 import { CalendarCheck, CreditCard, Sparkles, Tag, XCircle } from "lucide-react";
-import { FileText, MessageSquare } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Empty, ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type BillingData, type PlanInfo } from "@/lib/api";
 import { fmtDateTs } from "@/lib/format";
-import { ghs, money, useMe } from "@/lib/me";
+import { money, useMe } from "@/lib/me";
 import { DiscountBox } from "./discount-field";
 import { checkout, payFor } from "@/lib/paystack";
 import { AiTopUpModal, useAiCredits } from "./ai-topup";
@@ -31,7 +30,6 @@ function Bar({ label, value, pct, warn }: { label: string; value: string; pct: n
 
 const planLine = (p: PlanInfo) => {
   const parts = [`${p.sites} website${p.sites === 1 ? "" : "s"}`, `${p.members} team member${p.members === 1 ? "" : "s"}`];
-  if (p.sms) parts.push(`${p.sms} SMS a month`);
   parts.push(p.interval_minutes === 1 ? "checks every minute" : `checks every ${p.interval_minutes} minutes`);
   return parts.join(", ") + ".";
 };
@@ -42,7 +40,7 @@ function PlanLine({ p }: { p: PlanInfo }) {
 }
 
 export function BillingPanel() {
-  const { isOwner, isGhana, mutate: refreshMe } = useMe();
+  const { isOwner, mutate: refreshMe } = useMe();
   const { data: ai, mutate: refreshAi } = useAiCredits();
   const [topUp, setTopUp] = useState(false);
   const { data, error, mutate } = useSWR<BillingData>("/api/billing", fetcher);
@@ -147,7 +145,6 @@ export function BillingPanel() {
           <h2 className={h2}>Usage this period</h2>
           <Bar label="Websites" value={`${ws.usage.sites} of ${ws.plan.sites}`} pct={(ws.usage.sites / Math.max(ws.plan.sites, 1)) * 100} warn={ws.usage.sites >= ws.plan.sites} />
           <Bar label="Team members" value={`${ws.usage.seats} of ${ws.plan.members}${pendingInv ? ` (${pendingInv} invitation${pendingInv === 1 ? "" : "s"} pending)` : ""}`} pct={(ws.usage.seats / Math.max(ws.plan.members, 1)) * 100} warn={ws.usage.seats >= ws.plan.members} />
-          {ws.plan.sms > 0 && <Bar label="SMS alerts this month" value={`${ws.usage.sms} of ${ws.plan.sms}${ws.sms_credits ? ` + ${ws.sms_credits} bought` : ""}`} pct={(ws.usage.sms / ws.plan.sms) * 100} />}
           {ai?.allowed && (
             <div className="flex flex-col gap-1.5">
               <Bar label="AI drafts this month" value={`${ai.used.toLocaleString()} of ${ai.quota.toLocaleString()}${ai.bonus ? ` + ${ai.bonus.toLocaleString()} bought` : ""}`} pct={(ai.used / Math.max(ai.quota, 1)) * 100} warn={ai.left < 1} />
@@ -205,22 +202,6 @@ export function BillingPanel() {
           )}
         </section>
 
-        {isGhana && (
-          <section aria-label="SMS alerts" className={`${box} flex min-w-0 flex-[1_1_340px] flex-col gap-3`}>
-            <Locked bare feature="sms" icon={MessageSquare} title="SMS alerts" text="Get a text message the moment a website goes down, and top up bundles when you need more." chips={["Instant", "Ghana numbers"]}>
-              <div className="flex flex-col gap-3">
-                <h2 className={h2}>SMS alerts</h2>
-                <p className="text-sm leading-relaxed text-muted">{ws.plan.sms > 0 ? `Your plan includes ${ws.plan.sms} SMS a month. ${ws.usage.sms} used so far.${ws.sms_credits ? ` You also have ${ws.sms_credits} bought credits.` : ""}` : "Text alerts to Ghana numbers when a site goes down."} Need more? Top up a bundle and it is added straight away.</p>
-                <div className="flex flex-wrap gap-2.5">
-                  {data.bundles.map((b) => (
-                    <button key={b.qty} disabled={!isOwner || busy !== null} onClick={() => run("sms" + b.qty, () => payFor("/api/billing/sms-topup", { qty: b.qty }), `${b.qty} SMS added.`)}
-                      className="flex min-h-14 flex-col items-center justify-center rounded-xl border border-[#c9cfd8] px-[18px] hover:bg-soft disabled:opacity-60"><span className="text-sm font-semibold">{b.qty.toLocaleString()} SMS</span><span className="text-[13px] text-muted">{ghs(b.price)}</span></button>
-                  ))}
-                </div>
-              </div>
-            </Locked>
-          </section>
-        )}
       </div>
 
       <section aria-label="Invoices" className="overflow-hidden rounded-[14px] border border-line bg-surface">

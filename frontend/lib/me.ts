@@ -13,7 +13,7 @@ export function useMe() {
     canWrite: !!ws && ws.role !== "viewer",
     isAdmin: ws?.role === "owner" || ws?.role === "admin",
     isOwner: ws?.role === "owner",
-    /** SMS alerts go through FlockText, which only reaches Ghanaian numbers. */
+    /** Whether the workspace is in Ghana (prices in cedis). */
     isGhana: ws?.country === "Ghana",
   };
 }

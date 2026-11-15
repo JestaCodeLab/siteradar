@@ -87,7 +87,7 @@ def _handle_incidents(cfg, site, result, now):
             alerts.notify(cfg, site, f"RECOVERED: {site['name']} is back up",
                           f"{site['url']} is responding again (HTTP {result['status_code']}, "
                           f"{result['response_ms']} ms).\nDowntime: {mins:.0f} minutes.\nCause was: {incident['cause']}",
-                          sms_text=f"SiteRadar: {site['name']} is back up after {mins:.0f} min.", event="up")
+                          wa_text=f"is back up after {mins:.0f} min.", event="up")
         return
     if incident:
         return
@@ -99,7 +99,7 @@ def _handle_incidents(cfg, site, result, now):
         alerts.notify(cfg, site, f"DOWN: {site['name']}",
                       f"{site['url']} failed {n} checks in a row.\nReason: {result['error']}\n"
                       f"Dashboard: {os.environ.get('APP_URL', cfg['public_url']).rstrip('/')}/websites/{site['id']}",
-                      sms_text=f"SiteRadar: {site['name']} is DOWN. {result['error']}", event="down")
+                      wa_text=f"is DOWN. {result['error']}", event="down")
 
 
 def _handle_warnings(cfg, site, result):

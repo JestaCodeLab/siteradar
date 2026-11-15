@@ -324,28 +324,7 @@ def refund(reference, amount=None):
     return amount
 
 
-# ---- SMS top-ups and invoices ---------------------------------------------------------
-
-DEFAULT_BUNDLES = [{"qty": 100, "price": 20}, {"qty": 500, "price": 90}, {"qty": 1000, "price": 160}]
-
-
-def sms_bundles():
-    """Prices are set by a super admin (Plans and pricing). The defaults are placeholders until they are."""
-    return (db.kv_get("platform") or {}).get("sms_bundles") or DEFAULT_BUNDLES
-
-
-def checkout_sms(cfg, ws, user, qty):
-    bundle = next((b for b in sms_bundles() if b["qty"] == int(qty)), None)
-    if not bundle:
-        raise ValueError("That bundle is not available.")
-    plan = plans.limits(ws)
-    if "sms" not in plan["channels"]:
-        raise plans.LimitError("SMS alerts are part of the Growth plan and above.")
-    ref = "sw_" + secrets.token_hex(10)
-    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, f"sms{bundle['qty']}", "once", float(bundle["price"]), "GHS", "pending", "sms", time.time()))
-    return _start(cfg, ws, user, ref, float(bundle["price"]), {"workspace_id": ws["id"], "sms": bundle["qty"]})
-
+# ---- invoices ----------------------------------------------------------------------------
 
 # ---- AI draft credits ----------------------------------------------------------------
 

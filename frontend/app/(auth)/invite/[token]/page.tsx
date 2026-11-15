@@ -46,7 +46,7 @@ export default function InvitePage() {
                   <Field label="First name" htmlFor="fn"><input id="fn" name="first_name" required className={input} /></Field>
                   <Field label="Last name" htmlFor="ln"><input id="ln" name="last_name" required className={input} /></Field>
                 </div>
-                <Field label="Phone number" hint="for SMS alerts, optional" htmlFor="ph"><input id="ph" name="phone" type="tel" className={input} /></Field>
+                <Field label="Phone number" hint="optional" htmlFor="ph"><input id="ph" name="phone" type="tel" className={input} /></Field>
               </>
             )}
             <Field label={data.has_account ? "Your password" : "Create a password"} htmlFor="pw"><input id="pw" name="password" type="password" required minLength={8} autoComplete={data.has_account ? "current-password" : "new-password"} className={input} /></Field>

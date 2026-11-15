@@ -20,7 +20,7 @@ interface Health {
 }
 const ICONS: Record<string, LucideIcon> = {
   "Web app and API": Globe, "Check scheduler": Timer, "Nightly audits": ClipboardCheck, "Homepage preview worker": Camera,
-  "Email sending": Mail, "SMS gateway": MessageSquare, "Payment webhooks": Webhook, "Google PageSpeed quota": Gauge,
+  "Email sending": Mail, "WhatsApp alerts": MessageSquare, "Payment webhooks": Webhook, "Google PageSpeed quota": Gauge,
 };
 const iconTone = { ok: "bg-[#E3F4EC] text-[#0B7A4B]", warn: "bg-[#FFF1D6] text-[#8A5A00]", bad: "bg-[#FBE7E5] text-[#B3261E]" } as const;
 const dot = { ok: "#0B7A4B", warn: "#8A5A00", bad: "#B3261E" } as const;
@@ -69,7 +69,7 @@ export default function AdminHealth() {
 
       <AdminCard label="Recent errors" className="!pb-2">
         <h2 className="mb-2 text-lg font-semibold">Recent errors</h2>
-        {data.errors.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState Icon={ShieldCheck} title="No errors recorded" text="Problems with checks, email, SMS or payments will be listed here when they happen." /></div>}
+        {data.errors.length === 0 && <div className="border-t border-[#EDEFF3]"><EmptyState Icon={ShieldCheck} title="No errors recorded" text="Problems with checks, email, WhatsApp or payments will be listed here when they happen." /></div>}
         {data.errors.map((e, i) => (
           <div key={i} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#EDEFF3] py-3 text-sm">
             <span className="w-[190px] shrink-0 text-[13px] text-[#5B6472]">{fmtWhen(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}

@@ -7,7 +7,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile, whatsapp
 from .security import browser_bind, client_ip, limited, same_browser, sha
 from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
 
@@ -158,6 +158,29 @@ def blueprint(cfg):
     @bp.get("/auth/providers")
     def providers():
         return jsonify(google=google_auth.configured())
+
+    @bp.get("/whatsapp/webhook")
+    def whatsapp_hook_check():
+        """Meta calls this once when the webhook is saved in the app dashboard."""
+        want = os.environ.get("WHATSAPP_VERIFY_TOKEN")
+        if want and request.args.get("hub.mode") == "subscribe" and hmac.compare_digest(request.args.get("hub.verify_token", ""), want):
+            return request.args.get("hub.challenge", ""), 200
+        return "", 403
+
+    @bp.post("/whatsapp/webhook")
+    def whatsapp_hook():
+        """Delivery receipts only: sent, delivered, read, failed. Nobody can reply to these alerts, so nothing else is read."""
+        if not whatsapp.valid_signature(request.get_data(), request.headers.get("X-Hub-Signature-256")):
+            return "", 403
+        try:
+            for entry in (request.get_json(silent=True) or {}).get("entry", []):
+                for change in entry.get("changes", []):
+                    for st in (change.get("value") or {}).get("statuses", []):
+                        errs = st.get("errors") or [{}]
+                        whatsapp.record_status(st.get("id"), st.get("status"), (errs[0].get("title") or "")[:200] if st.get("status") == "failed" else "")
+        except Exception:
+            log.exception("WhatsApp status update failed")
+        return "", 200
 
     @bp.get("/gsc/callback")
     def gsc_callback():
@@ -490,7 +513,7 @@ def blueprint(cfg):
                         WHERE s.workspace_id=?""", (ws["id"],))["n"]
         last = db.q1("SELECT method FROM payments WHERE workspace_id=? AND status='success' AND kind IN ('subscription','renewal','retry') ORDER BY paid DESC LIMIT 1", (ws["id"],))
         return jsonify(workspace=accounts.public_workspace(ws, g.role), catalogue=plans.public(ws["currency"]),
-                       payments=billing.history(ws["id"]), invoices=billing.invoices(ws["id"]), bundles=billing.sms_bundles(),
+                       payments=billing.history(ws["id"]), invoices=billing.invoices(ws["id"]), bundles=[],
                        card=ws["paystack_card"], last_method=last["method"] if last else None, comped=ws["comped"],
                        storage={"used_mb": round(used / 1048576, 1), "limit_mb": plans.limits(ws)["storage_mb"]},
                        test_mode=billing.test_mode(), grace_days=billing.GRACE_DAYS)
@@ -518,15 +541,6 @@ def blueprint(cfg):
         row, off = discounts.check(d.get("code"), g.ws, plan["id"], cycle, price, g.ws["currency"])
         return jsonify(ok=True, code=row["code"], discount=off, total=round(price - off, 2), currency=g.ws["currency"],
                        label=discounts.describe(row), duration=discounts.duration_text(row))
-
-    @bp.post("/billing/sms-topup")
-    @workspace_required
-    @need("owner")
-    def billing_sms():
-        try:
-            return jsonify(billing.checkout_sms(cfg, g.ws, g.user, body().get("qty")))
-        except RuntimeError as e:
-            return jsonify(error=str(e)), 502
 
     @bp.post("/billing/ai-topup")
     @workspace_required

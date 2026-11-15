@@ -40,7 +40,7 @@ const sections: LegalSection[] = [
       <ul>
         <li><strong>Paystack</strong> for payments;</li>
         <li><strong>Resend</strong> to send email;</li>
-        <li><strong>FlockText</strong> to send SMS alerts to numbers in Ghana (phone number and message);</li>
+        <li><strong>Meta (WhatsApp Business Platform)</strong> to send WhatsApp alerts and verification codes to numbers you add (phone number and message);</li>
         <li><strong>Cloudinary</strong> to store invoices, reports, screenshots and logos;</li>
         <li><strong>Google</strong> for sign-in and, for speed tests, the address of the website being tested;</li>
         <li>our hosting and database providers, <strong>Railway</strong> and <strong>Vercel</strong>.</li>
@@ -69,7 +69,7 @@ const sections: LegalSection[] = [
         <li>ask us to correct information that is wrong;</li>
         <li>ask us to delete your information or close your account;</li>
         <li>object to, or ask us to limit, some uses of your information;</li>
-        <li>withdraw consent you gave earlier, for example for SMS alerts, at any time.</li>
+        <li>withdraw consent you gave earlier, for example for WhatsApp alerts, at any time.</li>
       </ul>
       <p>To use any of these rights, email {mail}. We may need to check it is really you. If you are unhappy with our answer, you can complain to the Data Protection Commission of Ghana.</p>
     </>

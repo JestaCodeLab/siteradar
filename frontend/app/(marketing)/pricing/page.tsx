@@ -8,7 +8,7 @@ import { Container, CtaBand, Rings } from "@/components/mkt";
 import { eyebrow } from "@/lib/mkt-styles";
 import type { PlanInfo } from "@/lib/api";
 import { money } from "@/lib/me";
-import { AI_TIP, aiLine, usePlans } from "@/lib/plans";
+import { AI_TIP, CTR_TIP, WA_TIP, aiLine, usePlans } from "@/lib/plans";
 import { InfoTip } from "@/components/info-tip";
 
 const TAGLINE: Record<string, string> = { freelance: "For a freelancer with a single website", starter: "For a small business or a small agency", growth: "For agencies with a client list", scale: "For larger teams and portfolios" };
@@ -20,7 +20,8 @@ function features(p: PlanInfo): { text: string; tip?: string }[] {
   const out: { text: string; tip?: string }[] = [
     { text: `${p.sites} website${p.sites === 1 ? "" : "s"}` }, { text: `${p.members} team member${p.members === 1 ? "" : "s"}` },
     { text: `Checks every ${p.interval_minutes === 1 ? "minute" : `${p.interval_minutes} minutes`}` },
-    { text: p.channels.includes("chat") ? "Email, Slack and Teams alerts" : "Email alerts only" },
+    { text: p.channels.includes("chat") ? "Email, WhatsApp, Slack and Teams alerts" : "Email and WhatsApp alerts", tip: WA_TIP },
+    { text: "Click-through rate from Google Search Console", tip: CTR_TIP },
   ];
   if (p.ai_credits) out.push({ text: aiLine(p), tip: AI_TIP });
   out.push({ text: "Domain, SSL, DNS and sitemap monitoring" }, { text: "Daily audit, " + (AUDIT_PAGES[p.id] ?? "50") + " pages crawled" },

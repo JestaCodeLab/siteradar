@@ -9,7 +9,7 @@ import { ErrorState, Skeleton } from "@/components/ui";
 import { fetcher, send, type PlanInfo } from "@/lib/api";
 
 type Plan = PlanInfo & { customers: number; audit_pages: number; storage_mb: number; priority_support: boolean; ai_credits: number };
-interface Resp { plans: Plan[]; yearly_discount: number; methods: string[]; currency: string; sms_bundles: { qty: number; price: number }[] }
+interface Resp { plans: Plan[]; yearly_discount: number; methods: string[]; currency: string }
 
 const fmtStorage = (mb: number) => (mb >= 1024 ? `${mb / 1024} GB` : `${mb} MB`);
 const fmtMonths = (n: number) => `${n} month${n === 1 ? "" : "s"}`;
@@ -22,38 +22,37 @@ const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (
   { key: "sites", label: "Websites", show: (p) => String(p.sites), read: num },
   { key: "members", label: "Team", show: (p) => String(p.members), read: num },
   { key: "interval_minutes", label: "Check every", show: (p) => `${p.interval_minutes} min`, read: num },
-  { key: "sms", label: "SMS", show: (p) => String(p.sms), read: num },
   { key: "history_months", label: "History", show: (p) => fmtMonths(p.history_months), read: num },
   { key: "audit_pages", label: "Audit pages", show: (p) => String(p.audit_pages), read: num },
   { key: "storage_mb", label: "Storage", show: (p) => fmtStorage(p.storage_mb), read: parseStorage },
   { key: "ai_credits", label: "AI drafts", show: (p) => String(p.ai_credits ?? 0), read: num },
 ];
 const USD_COL: (typeof COLS)[number] = { key: "price_month_usd", label: "USD / month", show: (p) => String(p.price_month_usd ?? 0), read: num };
-const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(8, minmax(76px,1fr)) 56px";
+const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(7, minmax(76px,1fr)) 56px";
 const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: boolean) => Partial<Plan>; fixed?: boolean }[] = [
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
   { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
-  { label: "SMS alerts", get: (p) => p.channels.includes("sms"), set: (p, v) => ({ channels: toggle(p.channels, "sms", v) }) },
+  { label: "WhatsApp alerts (every plan)", get: () => true, set: () => ({}), fixed: true },
   { label: "Company logo on reports", get: () => true, set: () => ({}), fixed: true },
   { label: "Client viewer access", get: (p) => p.client_access, set: (_p, v) => ({ client_access: v }) },
   { label: "Priority support", get: (p) => p.priority_support, set: (_p, v) => ({ priority_support: v }) },
 ];
-function toggle(list: Plan["channels"], ch: "chat" | "sms", on: boolean): Plan["channels"] {
-  const set = new Set(list); on ? set.add(ch) : set.delete(ch); if (ch === "sms" && on) set.add("chat"); if (ch === "chat" && !on) set.delete("sms"); set.add("email");
-  return (["email", "chat", "sms"] as const).filter((c) => set.has(c));
+function toggle(list: Plan["channels"], ch: "chat", on: boolean): Plan["channels"] {
+  const set = new Set(list); on ? set.add(ch) : set.delete(ch); set.add("email");
+  return (["email", "chat"] as const).filter((c) => set.has(c));
 }
 const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 });
 
 export default function AdminPlans() {
   const { data, error, mutate } = useSWR<Resp>("/api/admin/plans", fetcher);
-  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string; bundles: { qty: number; price: number }[] } | null>(null);
+  const [draft, setDraft] = useState<{ plans: Plan[]; discount: string } | null>(null);
   const [typing, setTyping] = useState<Record<string, string>>({});
   const setMsg = useNoteToast();
   const [busy, setBusy] = useState(false);
 
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
   if (!data) return <Skeleton className="h-96" />;
-  const base = { plans: data.plans, discount: String(data.yearly_discount), bundles: data.sms_bundles };
+  const base = { plans: data.plans, discount: String(data.yearly_discount) };
   const cur = draft ?? base;
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
   const edit = (patch: Partial<typeof cur>) => setDraft({ ...cur, ...patch });
@@ -65,8 +64,8 @@ export default function AdminPlans() {
     setBusy(true); setMsg(null);
     try {
       await send("PUT", "/api/admin/plans", {
-        settings: { yearly_discount: disc, sms_bundles: cur.bundles },
-        plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes, sms: p.sms,
+        settings: { yearly_discount: disc },
+        plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes,
           history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, ai_credits: p.ai_credits, channels: p.channels,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
       });
@@ -103,16 +102,6 @@ export default function AdminPlans() {
             <div className="flex flex-wrap gap-2">{data.methods.map((m) => <span key={m} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-[#E3F4EC] px-3 text-[13px] font-semibold text-[#0B7A4B]"><Check size={14} strokeWidth={3} aria-hidden="true" />{m}</span>)}</div></div>
         </AdminCard>
 
-        <AdminCard label="SMS bundles" className="flex min-w-0 flex-[1_1_320px] flex-col gap-5">
-          <div className="flex flex-col gap-1"><h2 className="text-lg font-semibold">SMS bundle prices</h2>
-            <p className="text-sm leading-relaxed text-[#5B6472]">Customers in Ghana can top up text messages on their Billing page. Prices are in cedis (GHS).</p></div>
-          <div className="flex flex-col gap-3">{cur.bundles.map((b, i) => (
-            <label key={b.qty} className="flex items-center justify-between gap-4 rounded-xl border border-[#E2E5EA] px-4 py-3">
-              <span className="flex flex-col"><span className="text-[15px] font-semibold">{b.qty.toLocaleString()} SMS</span><span className="text-[13px] text-[#5B6472]">{fmtAmt(Math.round((b.price / b.qty) * 1000) / 1000)} each</span></span>
-              <span className="flex items-center gap-2"><span className="text-sm font-medium text-[#5B6472]">GHS</span>
-                <input aria-label={`Price of ${b.qty} SMS`} type="number" min={0} step="any" value={b.price} onChange={(e) => edit({ bundles: cur.bundles.map((x, j) => (j === i ? { ...x, price: Number(e.target.value) } : x)) })} className={`${aInput} !w-28`} /></span>
-            </label>))}</div>
-        </AdminCard>
       </div>
 
       <section aria-label="Plans" className="overflow-hidden rounded-[14px] border border-[#E2E5EA] bg-white">

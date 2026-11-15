@@ -11,7 +11,7 @@ const SETS: Record<"agencies" | "businesses", { tiles: Tile[]; min: number; flex
     { id: "growth", per: " / month", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members` },
     { id: "scale", per: " / month", line: (p) => `${p.sites} websites · ${p.members} team members · checks every minute` } ] },
   businesses: { min: 200, flex: "1.6 1 560px", tiles: [
-    { id: "freelance", per: " / mo", line: (p) => `${p.sites} website${p.sites === 1 ? "" : "s"} · email alerts` },
+    { id: "freelance", per: " / mo", line: (p) => `${p.sites} website${p.sites === 1 ? "" : "s"} · email and WhatsApp alerts` },
     { id: "starter", per: " / mo", highlight: true, line: (p) => `${p.sites} websites · ${p.members} team members` },
     { id: "scale", per: " / mo", line: (p) => `${p.sites} websites · checks every minute` } ] },
 };

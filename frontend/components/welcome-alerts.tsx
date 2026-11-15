@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock, Hash, Lock, Mail, MessageSquare, Smartphone, Users, X } from "lucide-react";
+import { CalendarClock, Hash, Lock, Mail, MessageCircle, MessageSquare, Users, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { btn, input } from "./ui";
 import { ReportSchedule } from "./report-schedule";
 import { useToast } from "./toast";
 import { fetcher, send, type SettingsData } from "@/lib/api";
-import { ghanaPhone } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
 function Row({ icon: Glyph, title, sub, locked, children }: {
@@ -31,7 +30,7 @@ function Row({ icon: Glyph, title, sub, locked, children }: {
 
 /** Shown once, the first time an owner or admin reaches the dashboard. Everything here can be changed later in Settings. */
 export function WelcomeAlerts() {
-  const { me, ws, isAdmin, isGhana, mutate } = useMe();
+  const { me, ws, isAdmin, mutate } = useMe();
   const asOwner = !me?.support;        // a support agent never answers the customer's first-visit questions
   const toast = useToast();
   const dialog = useRef<HTMLDialogElement>(null);
@@ -50,7 +49,7 @@ export function WelcomeAlerts() {
 
   if (!show || !ws || !data) return null;
   const cur = sched ?? { day: String(ws.report_day ?? 1), at: ws.report_at ?? "08:00" };
-  const sms = ws.plan.channels.includes("sms"), chat = ws.plan.channels.includes("chat");
+  const chat = ws.plan.channels.includes("chat");
 
   /** Step 1: save the channels, then move on to the report date. */
   async function saveAlerts(save: FormData) {
@@ -59,12 +58,6 @@ export function WelcomeAlerts() {
       const payload: Record<string, string[]> = {};
       const emails = String(save.get("emails") ?? "").split(/[,\s]+/).filter(Boolean);
       if (emails.length) payload.alert_emails = emails;
-      if (sms && isGhana) {
-        const raw = String(save.get("phone") ?? "").trim();
-        const phone = raw ? ghanaPhone(raw) : null;
-        if (raw && !phone) { setError("Enter a Ghana number, like 024 123 4567."); setBusy(false); return; }
-        if (phone) payload.alert_phones = [phone];
-      }
       if (chat) {
         const hooks = [save.get("slack"), save.get("teams")].map((x) => String(x ?? "").trim()).filter(Boolean);
         if (hooks.some((h) => !h.startsWith("https://"))) { setError("Webhook addresses start with https://"); setBusy(false); return; }
@@ -118,10 +111,8 @@ export function WelcomeAlerts() {
           <Row icon={Mail} title="Email" sub="Always on. Separate several addresses with commas.">
             <input name="emails" aria-label="Alert emails" defaultValue={data.alerts.emails.join(", ")} placeholder="you@company.com" className={input} />
           </Row>
-          {isGhana && <Row icon={Smartphone} title="SMS" sub="Ghana numbers only." locked={sms ? undefined : "Growth plan"}>
-            {sms
-              ? <input name="phone" inputMode="tel" aria-label="Ghana phone number" placeholder="024 123 4567" className={input} />
-              : <p className="text-[13px] text-muted">SMS alerts come with the Growth plan. <Link href="/settings?tab=billing" className="font-semibold text-brand underline">See plans</Link></p>}
+          {ws.whatsapp && <Row icon={MessageCircle} title="WhatsApp" sub="Down and back-up alerts, on every plan.">
+            <p className="text-[13px] text-muted">Add a number when you add a website, or any time in its Settings tab. You confirm it with a code we send on WhatsApp.</p>
           </Row>}
           <Row icon={Hash} title="Slack" sub="Paste an incoming webhook URL." locked={chat ? undefined : "Starter plan"}>
             {chat ? <input name="slack" type="url" aria-label="Slack webhook URL" placeholder="https://hooks.slack.com/services/…" className={input} />

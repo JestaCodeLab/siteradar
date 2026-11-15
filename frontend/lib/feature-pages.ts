@@ -196,7 +196,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
       }
     ],
     "h1": "The right alert, to the right person, at the right time.",
-    "lead": "When something needs your attention, SiteRadar tells you by email, Slack or Microsoft Teams. Alerts only fire after two failed checks, so your team stops chasing false alarms.",
+    "lead": "When something needs your attention, SiteRadar tells you by email, WhatsApp, Slack or Microsoft Teams. Alerts only fire after two failed checks, so your team stops chasing false alarms.",
     "heroLabel": "Alert feed: an email saying shop.example.com is down after two failed checks, a Slack message that it is back up after 4 minutes, and an email about an SSL certificate expiring",
     "whatTitle": "Everything alerts and notifications covers.",
     "cards": [
@@ -805,6 +805,156 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
     "seoTitle": "Sitemap monitoring and sitemap checker",
     "seoDescription": "SiteRadar reads your sitemap every day, checks every page it lists and tells you when pages are added, removed or broken, so Google finds everything."
+  },
+  "click-through-rate": {
+    "group": "Performance & SEO",
+    "name": "Click-through rate",
+    "icon": [
+      {
+        "tag": "circle",
+        "attrs": {
+          "cx": "11",
+          "cy": "11",
+          "r": "7"
+        }
+      },
+      {
+        "tag": "path",
+        "attrs": {
+          "d": "m21 21-4.3-4.3"
+        }
+      }
+    ],
+    "h1": "See how often Google sends people to your website.",
+    "lead": "Connect Google Search Console in one click, read-only. SiteRadar shows your clicks, impressions and click-through rate, the searches that bring visitors, and the pages that deserve a better title.",
+    "heroLabel": "Click-through card for example.com: 4.8% click-through rate over the last 28 days, 1,920 clicks from 40,100 impressions, average position 8.4",
+    "whatTitle": "Everything click-through rate covers.",
+    "cards": [
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M3 17l6-6 4 4 8-8"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M14 7h7v7"
+            }
+          }
+        ],
+        "title": "Clicks and impressions",
+        "text": "How often your pages appeared on Google and how many people clicked, day by day."
+      },
+      {
+        "icon": [
+          {
+            "tag": "circle",
+            "attrs": {
+              "cx": "12",
+              "cy": "12",
+              "r": "9"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M12 7v5l3 2"
+            }
+          }
+        ],
+        "title": "Click-through rate",
+        "text": "The share of people who clicked after seeing you, with average position next to it."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M4 6h16M4 12h16M4 18h10"
+            }
+          }
+        ],
+        "title": "What people searched",
+        "text": "The search terms that bring visitors, and the pages they landed on."
+      },
+      {
+        "icon": [
+          {
+            "tag": "circle",
+            "attrs": {
+              "cx": "12",
+              "cy": "12",
+              "r": "9"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"
+            }
+          }
+        ],
+        "title": "Where they are",
+        "text": "Countries your search visitors come from."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M12 2v6M12 16v6M2 12h6M16 12h6"
+            }
+          }
+        ],
+        "title": "Opportunities",
+        "text": "Pages on the first page of Google that get fewer clicks than they should, so you know which titles to improve."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M5 4h14v16H5z"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M9 9h6M9 13h6"
+            }
+          }
+        ],
+        "title": "In your monthly report",
+        "text": "A Found on Google section goes into the report you send each client."
+      }
+    ],
+    "whoTitle": "Built for whoever looks after the website.",
+    "who": [
+      {
+        "href": "/agencies",
+        "label": "For agencies",
+        "text": "Show clients how Google search is doing, inside the monthly report.",
+        "link": "SiteRadar for agencies \u2192"
+      },
+      {
+        "href": "/businesses",
+        "label": "For businesses",
+        "text": "Understand how people find you on Google without learning another tool.",
+        "link": "SiteRadar for businesses \u2192"
+      }
+    ],
+    "related": [
+      "visitor-analytics",
+      "seo-audit",
+      "client-reporting"
+    ],
+    "ctaTitle": "Put your website on the radar.",
+    "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
+    "seoTitle": "Google click-through rate and search tracking",
+    "seoDescription": "Connect Google Search Console read-only and see clicks, impressions, click-through rate, search terms and countries next to your uptime and SEO audit."
   },
   "visitor-analytics": {
     "group": "Performance & SEO",

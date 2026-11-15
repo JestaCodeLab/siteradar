@@ -21,6 +21,7 @@ import {
   fetcher, send, type ActivityEvent, type AnalyticsResponse, type AuditResponse, type FixesResponse, type Issue, type ReportMonths, type SiteDetail, type SubscriptionsResponse,
 } from "@/lib/api";
 import { useMe } from "@/lib/me";
+import { WhatsAppNumbers } from "./whatsapp";
 import { daysUntil, fmtDate, fmtDateTime, fmtMs, fmtNum, fmtPct, money, splitEmails } from "@/lib/format";
 
 const delta = (now: number | null | undefined, before: number | null | undefined) =>
@@ -475,6 +476,7 @@ export function SiteSubscriptionsTab({ site }: { site: SiteDetail }) {
 // ---- Settings ---------------------------------------------------------------
 export function SettingsTab({ site }: { site: SiteDetail }) {
   const router = useRouter();
+  const { canWrite } = useMe();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -517,6 +519,15 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
           <div className="flex justify-end"><button type="submit" disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>
         </form>
       </Card>
+      {site.whatsapp?.enabled && (
+        <Card className="flex flex-col gap-3 p-5">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-base font-semibold">WhatsApp alerts</h2>
+            <p className="text-sm text-muted">Get a WhatsApp message when {site.name} goes down and when it is back up. Available on every plan.</p>
+          </div>
+          <WhatsAppNumbers siteId={site.id} status={site.whatsapp} canWrite={canWrite} onChange={() => mutate(`/api/sites/${site.id}`)} />
+        </Card>
+      )}
       <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-semibold">Stop monitoring this website</h2>

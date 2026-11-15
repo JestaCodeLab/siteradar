@@ -15,7 +15,7 @@ export const FEATURE_GROUPS: { title: string; items: Feature[] }[] = [
       blurb: "SiteRadar opens your site every few minutes and checks its status, its speed and the words you expect to see. Alerts only go out after two failed checks in a row, so a blip never wakes you up.",
       preview: { label: "example.com", chip: "Up", big: "99.98%", caption: "uptime in the last 30 days", bars: true } },
     { slug: "alerts", name: "Alerts and notifications",
-      blurb: "Hear about it the moment a site goes down, and again when it is back. Alerts reach you by email, Slack or Microsoft Teams.",
+      blurb: "Hear about it the moment a site goes down, and again when it is back. Alerts reach you by email, WhatsApp, Slack or Microsoft Teams.",
       preview: { label: "Alert · example.com", chip: "Down", big: "2 checks", caption: "failed in a row, so one alert goes out, and another when it recovers." } },
   ] },
   { title: "Performance & SEO", items: [
@@ -28,6 +28,9 @@ export const FEATURE_GROUPS: { title: string; items: Feature[] }[] = [
     { slug: "sitemap-monitoring", name: "Sitemap monitoring",
       blurb: "We find your sitemap, check every address in it, and tell you about pages that were added, removed or broken.",
       preview: { label: "sitemap.xml", chip: "Healthy", big: "14 pages", caption: "listed, all 14 checked, 0 with errors" } },
+    { slug: "click-through-rate", name: "Click-through rate",
+      blurb: "Connect Google Search Console and see how often Google shows and sends people to your pages: clicks, impressions, click-through rate, search terms and countries.",
+      preview: { label: "Google search, 28 days", big: "4.8%", caption: "click-through rate, from 1,920 clicks on 40,100 impressions" } },
     { slug: "visitor-analytics", name: "Visitor analytics",
       blurb: "A tiny cookieless script shows your visitors, where they come from, what devices they use and how fast pages load for them. No cookie banner needed.",
       preview: { label: "Last 30 days", big: "1,284", caption: "visitors, 62% from Google search" } },

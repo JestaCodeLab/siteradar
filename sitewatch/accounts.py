@@ -10,7 +10,7 @@ import time
 
 from werkzeug.security import check_password_hash, generate_password_hash as _gen
 
-from . import db, emails, mailer, netguard, plans, storage
+from . import db, emails, mailer, netguard, plans, storage, whatsapp
 
 log = logging.getLogger("sitewatch.accounts")
 CODE_MINUTES = 15
@@ -427,7 +427,7 @@ def public_workspace(ws, role=None):
                  "history_months": plan["history_months"], "channels": plan["channels"],
                  "client_access": plan["client_access"]},
         "sms_credits": ws.get("sms_bonus") or 0, "plan_id": ws["plan_id"], "cycle": ws["cycle"], "plan_status": ws["plan_status"], "locked": plans.is_locked(ws), "cancels": bool(ws.get("cancels")), "plan_renews": ws["plan_renews"],
-        "usage": u,
+        "usage": u, "whatsapp": whatsapp.configured(),
     }
 
 
