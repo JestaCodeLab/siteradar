@@ -34,15 +34,15 @@ export default async function Article({ params }: Props) {
       ]} />
       <article>
         <header className="border-b border-[#EFE4D8] bg-[#FFF7ED]">
-          <Container className="flex max-w-[820px] flex-col gap-4 pb-10 pt-8 md:pb-14 md:pt-14">
+          <Container className="flex max-w-[1200px] flex-col gap-4 pb-10 pt-8 md:pb-14 md:pt-14">
             <nav aria-label="Breadcrumb" className="text-sm text-[#64748B]"><Link href="/insights" className="hover:text-[#C2410C]">Insights</Link> <span aria-hidden="true">/</span> {a.category}</nav>
             <span className={`${eyebrow} text-[#C2410C]`}>{a.category}</span>
-            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(34px,4vw,50px)] md:leading-[1.08] md:tracking-[-0.03em]">{a.title}</h1>
+            <h1 className="max-w-[900px] text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(34px,4vw,50px)] md:leading-[1.08] md:tracking-[-0.03em]">{a.title}</h1>
             <p className="text-sm text-[#64748B]">By the {SITE_NAME} team · {dateLabel(a.published)} · {a.minutes} min read</p>
           </Container>
         </header>
-        <Container className="max-w-[820px] py-10 md:py-14">
-          <div className="flex flex-col gap-5 text-[17px] leading-[1.75] text-[#334155]">
+        <Container className="grid max-w-[1200px] gap-10 py-10 md:py-14 lg:grid-cols-[4fr_1fr] lg:gap-12">
+          <div className="flex min-w-0 flex-col gap-5 text-[17px] leading-[1.75] text-[#334155]">
             {a.intro.map((t, i) => <p key={i} className={i === 0 ? "text-[19px] text-[#0F172A]" : ""}><InsightText text={t} /></p>)}
             {a.sections.map((s) => (
               <section key={s.h} className="flex flex-col gap-4">
@@ -59,10 +59,17 @@ export default async function Article({ params }: Props) {
               </section>
             )}
           </div>
-          <aside className="mt-12 flex flex-col gap-3 rounded-2xl border border-[#FDBA74] bg-[#FFF7ED] p-6">
-            <h2 className="text-xl font-bold">{a.cta.title}</h2>
-            <p className="text-[#475569]">{a.cta.text}</p>
-            <Link href={a.cta.href} className="inline-flex w-fit items-center rounded-xl bg-[#F97316] px-5 py-3 font-bold text-white hover:bg-[#EA580C]">{a.cta.label}</Link>
+          <aside aria-label="Related" className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+            <div className="flex flex-col gap-3 rounded-2xl border border-[#FDBA74] bg-[#FFF7ED] p-5">
+              <h2 className="text-lg font-bold leading-snug">{a.cta.title}</h2>
+              <p className="text-[15px] leading-relaxed text-[#475569]">{a.cta.text}</p>
+              <Link href={a.cta.href} className="inline-flex w-fit items-center rounded-xl bg-[#F97316] px-4 py-2.5 text-[15px] font-bold text-white hover:bg-[#EA580C]">{a.cta.label}</Link>
+            </div>
+            <div className="flex flex-col gap-3 rounded-2xl border border-[#EFE4D8] bg-white p-5">
+              <h2 className="text-lg font-bold leading-snug">Is your website up right now?</h2>
+              <p className="text-[15px] leading-relaxed text-[#475569]">Check any address for free: status, speed and SSL expiry.</p>
+              <Link href="/tools/uptime-checker" className="inline-flex w-fit items-center rounded-xl border-[1.5px] border-[#0F172A] px-4 py-2.5 text-[15px] font-semibold hover:bg-[#0F172A] hover:text-white">Free uptime checker</Link>
+            </div>
           </aside>
         </Container>
       </article>
