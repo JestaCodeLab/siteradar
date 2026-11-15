@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/json-ld";
 import { CheckerCard } from "@/components/checker-card";
 import { InsightText } from "@/components/insight-text";
-import { Container, CtaBand } from "@/components/mkt";
+import { Container } from "@/components/mkt";
 import { ARTICLES, bySlug, dateLabel } from "@/lib/insights";
 import { eyebrow } from "@/lib/mkt-styles";
 import { SITE_NAME, SITE_URL, breadcrumbs, pageMeta } from "@/lib/seo";
@@ -78,7 +78,6 @@ export default async function Article({ params }: Props) {
           </ul>
         </Container>
       </section>
-      <CtaBand title="Put your website on the radar." text="Uptime, SSL, domain and SEO checks, with alerts on WhatsApp. Add your first website in about ten minutes." primary={{ href: "/signup", label: "Get started" }} secondary={{ href: "/pricing", label: "See pricing" }} />
     </>
   );
 }
