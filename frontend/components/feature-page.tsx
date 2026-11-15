@@ -6,6 +6,18 @@ import { HERO_CARDS } from "@/components/feature-heroes";
 import { FEATURE_PAGES, type FeaturePageData, type IconPart } from "@/lib/feature-pages";
 import { btnOrange, btnOutlineInk, card, eyebrow, h2, iconTile } from "@/lib/mkt-styles";
 
+/** Free tool and guides worth a click from a feature page. Gives search engines and visitors a path between related pages. */
+const READ_NEXT: Record<string, [string, string][]> = {
+  "uptime-monitoring": [["/tools/uptime-checker", "Try the free uptime checker"], ["/insights/website-uptime-explained", "What 99.9% uptime means"]],
+  "alerts": [["/tools/uptime-checker", "Try the free uptime checker"]],
+  "ssl-monitoring": [["/insights/ssl-certificate-expiry", "How to check when your SSL certificate expires"], ["/tools/uptime-checker", "Check a site's SSL now"]],
+  "domain-monitoring": [["/insights/domain-expiry-and-renewal", "What happens when a domain expires"]],
+  "wordpress-monitoring": [["/insights/wordpress-website-monitoring-checklist", "WordPress monitoring checklist"]],
+  "click-through-rate": [["/insights/click-through-rate-search-console", "CTR in Search Console explained"]],
+  "client-reporting": [["/insights/monitor-client-websites-agency", "How agencies monitor client websites"]],
+  "seo-audit": [["/insights/wordpress-website-monitoring-checklist", "WordPress monitoring checklist"]],
+};
+
 /** A small stroke icon from the design, drawn from its list of shapes. */
 function Icon({ parts, size }: { parts: IconPart[]; size: number }) {
   return (
@@ -37,6 +49,11 @@ export function FeaturePage({ slug, page }: { slug: string; page: FeaturePageDat
                 <Link href="/signup" className={btnOrange}>Get started</Link>
                 <Link href="/pricing" className={btnOutlineInk}>See plans</Link>
               </div>
+              {READ_NEXT[slug] && (
+                <p className="flex flex-wrap gap-x-5 gap-y-1 text-[15px]">
+                  {READ_NEXT[slug].map(([href, label]) => <Link key={href} href={href} className="font-semibold text-[#C2410C] underline underline-offset-2 hover:text-[#7C2D12]">{label} →</Link>)}
+                </p>
+              )}
             </div>
             <div className="min-w-0 flex-[1_1_440px]">{Hero ? <Hero /> : null}</div>
           </div>

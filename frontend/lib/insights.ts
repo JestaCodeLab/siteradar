@@ -68,7 +68,7 @@ export const ARTICLES: Article[] = [
     sections: [
       { h: "Check the expiry date in your browser",
         p: ["In Chrome, Edge or Brave, click the padlock (or the site information icon) next to the address, open the connection details and choose the certificate. The \"Valid to\" date is when it expires. In Firefox and Safari the steps are similar: open the site information, then view the certificate.",
-            "The same panel shows who issued the certificate and which names it covers, which is worth a glance. A certificate for www.example.com does not automatically cover example.com or a subdomain unless they are listed."] },
+            "Or skip the clicking: the free [uptime checker](/tools/uptime-checker) shows the expiry date and days left for any website. The same panel in your browser shows who issued the certificate and which names it covers, which is worth a glance. A certificate for www.example.com does not automatically cover example.com or a subdomain unless they are listed."] },
       { h: "Check it from the command line",
         p: ["If you are comfortable with a terminal, this prints the start and end dates for any site:"],
         list: ["`echo | openssl s_client -connect example.com:443 -servername example.com 2>/dev/null | openssl x509 -noout -dates`"],
@@ -113,7 +113,7 @@ export const ARTICLES: Article[] = [
         list: ["Put every domain in one list with the registrar, the account owner and the expiry date.", "Make sure the domain is registered to the business, with a shared mailbox as the contact, not one person's inbox.", "Turn on auto-renew, and also keep the payment card current.", "Register for several years at a time for domains you cannot afford to lose.", "Get warnings 60, 30, 14, 7, 3 and 1 days before expiry, sent to more than one person."],
         after: ["[SiteRadar domain monitoring](/features/domain-monitoring) reads the expiry date of each website's domain and sends exactly those reminders. The [subscriptions tracker](/features/subscriptions-tracker) keeps hosting, tools and other renewals with their invoices in the same place."] },
       { h: "If your domain has already expired",
-        p: ["Contact your registrar straight away and ask what the options and fees are. Renew as soon as you can, since the price rises in the redemption stage. After it is back, check your DNS records, your SSL certificate and your email, because some of these may need to be restored."] },
+        p: ["If your site suddenly stopped loading, run it through the free [uptime checker](/tools/uptime-checker) first to see whether the domain no longer resolves. Then contact your registrar straight away and ask what the options and fees are. Renew as soon as you can, since the price rises in the redemption stage. After it is back, check your DNS records, your SSL certificate and your email, because some of these may need to be restored."] },
     ],
     faq: [
       ["Can someone else buy my domain when it expires?", "Only after it has passed through the grace, redemption and deletion stages and been released. Before that, you can normally still renew it, but the fee grows as time passes."],
@@ -134,7 +134,7 @@ export const ARTICLES: Article[] = [
     ],
     sections: [
       { h: "1. Is the site up and working?",
-        p: ["Start with availability. Check the homepage on a schedule from outside your server, and check for a piece of text you expect to see, so a blank page or an error screen that still returns a 200 status is caught. Alerts should go to a channel you actually read, and fire only after two failed checks to avoid false alarms. See [website uptime explained](/insights/website-uptime-explained) for how much downtime is acceptable."] },
+        p: ["Start with availability. Check the homepage on a schedule from outside your server (the free [uptime checker](/tools/uptime-checker) gives you a one-off look right now), and check for a piece of text you expect to see, so a blank page or an error screen that still returns a 200 status is caught. Alerts should go to a channel you actually read, and fire only after two failed checks to avoid false alarms. See [website uptime explained](/insights/website-uptime-explained) for how much downtime is acceptable."] },
       { h: "2. SSL, domain and DNS",
         p: ["Three renewals sit underneath every WordPress site and none of them is part of WordPress itself: the SSL certificate, the domain registration and the DNS records. Watch the expiry dates of the first two, and watch the DNS records for unexpected changes, including your mail records such as SPF and DMARC. Read more in [how to check when your SSL certificate expires](/insights/ssl-certificate-expiry) and [domain expiry and renewal](/insights/domain-expiry-and-renewal)."] },
       { h: "3. Speed on real phones",
@@ -200,7 +200,7 @@ export const ARTICLES: Article[] = [
     ],
     sections: [
       { h: "What to watch on every client site",
-        p: ["The same short list covers most of the damage you will ever see:"],
+        p: ["The same short list covers most of the damage you will ever see. If a client says the site is down, the free [uptime checker](/tools/uptime-checker) tells you in seconds whether it is down for everyone:"],
         list: ["**Uptime and response time,** checked every few minutes.", "**SSL certificate expiry,** so \"Not secure\" never greets a client's customers.", "**Domain expiry,** especially when the domain is registered under an old account.", "**DNS changes,** including mail records, which quietly break email delivery.", "**A daily SEO and technical audit,** which finds missing titles, broken links and pages blocked from Google.", "**Search visibility,** using click-through data from Search Console."] },
       { h: "Decide who is told, and how",
         p: ["An alert that reaches nobody is worth nothing. For each client, decide who is told when the site is down, and through what. Many agency owners prefer WhatsApp for outages because they see it quickly, and email for everything else. Keep the number of alerts low, so they stay meaningful: require two failed checks in a row before an outage alert, and send routine warnings, such as an expiring certificate, as a single message.",
