@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { mutate } from "swr";
-import { Globe, X } from "lucide-react";
+import { Globe, MessageCircle, X } from "lucide-react";
 import { btn, input } from "./ui";
 import { useToast } from "./toast";
-import { ApiError, send, type SiteCard } from "@/lib/api";
+import { ApiError, fetcher, send, type SiteCard, type SiteWhatsApp } from "@/lib/api";
+import { WhatsAppNumbers, WhatsAppRules, WA_CONSENT, WA_FALLBACK } from "./whatsapp";
 
-type NewSite = SiteCard & { snippet: string };
+type NewSite = SiteCard & { snippet: string; whatsapp?: SiteWhatsApp; whatsapp_problems?: string[] };
 import { splitEmails } from "@/lib/format";
 import { useMe } from "@/lib/me";
 import { TrackingInstall } from "./tracking-install";
@@ -45,6 +46,7 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<NewSite | null>(null);      // step 2: install the tracking snippet
   const [verifiedAt, setVerifiedAt] = useState<number | null>(null);
+  const [wa, setWa] = useState<SiteWhatsApp | null>(null);          // the WhatsApp number added in step 1, while it waits for its code
   const verified = verifiedAt !== null;
   const used = ws?.usage.sites ?? 0, limit = ws?.plan.sites ?? 1;
   const atLimit = !!ws && used >= limit;
@@ -60,9 +62,12 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
     try {
       const site = await send<NewSite>("POST", "/api/sites", {
         name: f.get("name"), url: f.get("url"), keyword: f.get("keyword"), report_to: splitEmails(f.get("report_to")),
+        ...(String(f.get("whatsapp") ?? "").trim() ? { whatsapp: [String(f.get("whatsapp")).trim()], whatsapp_consent: f.get("whatsapp_consent") === "on" } : {}),
       });
       await Promise.all([mutate("/api/sites"), refreshMe()]);
       toast.success("Website added.", "SiteRadar has started checking it.");
+      setWa(site.whatsapp ?? null);
+      if (site.whatsapp_problems?.length) toast.error("WhatsApp number not saved.", site.whatsapp_problems[0]);
       setCreated(site); setBusy(false);
     } catch (err) {
       setError({ text: err instanceof Error ? err.message : "Could not add the website.", limit: err instanceof ApiError && err.code === "limit" });
@@ -81,7 +86,13 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
             <h2 id="aw-title" className="text-xl font-bold">Step 2 of 2: install the tracking snippet</h2>
             <p className="mt-0.5 text-[15px] text-muted">{created.name} is being checked. The snippet is required: without it there are no visitor numbers and the monthly report is held.</p>
           </div>
-          <div className="overflow-y-auto px-6 pb-2">
+          <div className="flex flex-col gap-4 overflow-y-auto px-6 pb-2">
+            {wa && wa.numbers.length > 0 && (
+              <section aria-label="WhatsApp alerts" className="flex flex-col gap-3 rounded-xl border border-line p-4">
+                <h3 className="flex items-center gap-2 text-[15px] font-semibold"><MessageCircle aria-hidden="true" size={17} />WhatsApp alerts</h3>
+                <WhatsAppNumbers siteId={created.id} status={wa} onChange={async () => setWa(await fetcher<SiteWhatsApp>(`/api/sites/${created.id}/whatsapp`))} />
+              </section>
+            )}
             <TrackingInstall bare site={{ id: created.id, host: created.host, snippet: created.snippet, tracking_live: false, tracking: { verified_at: verifiedAt, last_hit: null } }}
               onChange={() => mutate("/api/sites")} onVerified={() => setVerifiedAt(Date.now() / 1000)} />
           </div>
@@ -124,6 +135,15 @@ function AddWebsiteDialog({ onClose }: { onClose: () => void }) {
           <div className="flex flex-col gap-2"><label htmlFor="aw-url" className={label}>Address</label><input id="aw-url" name="url" required disabled={locked} placeholder="https://www.example.com" className={input} /></div>
           <div className="flex flex-col gap-2"><label htmlFor="aw-kw" className={label}>Text the page must contain <span className="font-normal text-muted">(optional, catches blank pages)</span></label><input id="aw-kw" name="keyword" disabled={locked} className={input} /></div>
           <div className="flex flex-col gap-2"><label htmlFor="aw-rep" className={label}>Send the monthly report to <span className="font-normal text-muted">(separate emails with commas)</span></label><input id="aw-rep" name="report_to" disabled={locked} placeholder="client@example.com" className={input} /></div>
+          {ws?.whatsapp && (
+            <fieldset disabled={locked} className="flex flex-col gap-2.5 rounded-xl border border-line p-4">
+              <legend className="flex items-center gap-1.5 px-1.5 text-sm font-medium"><MessageCircle aria-hidden="true" size={16} />WhatsApp alerts <span className="font-normal text-muted">(optional)</span></legend>
+              <input id="aw-wa" name="whatsapp" inputMode="tel" aria-label="WhatsApp number" placeholder="024 123 4567 or +44 7700 900123" className={input} />
+              <label className="flex items-start gap-2.5 text-[13px]"><input type="checkbox" name="whatsapp_consent" className="mt-0.5 size-4" /><span>{WA_CONSENT}</span></label>
+              <p className="rounded-lg bg-warn-soft px-3 py-2 text-[13px] font-medium text-warn">We send a 6-digit code to this number on WhatsApp. {WA_FALLBACK}</p>
+              <WhatsAppRules cap={2} />
+            </fieldset>
+          )}
           {error && <p role="alert" className="rounded-lg bg-bad-soft px-3.5 py-2.5 text-sm text-bad">{error.text} {error.limit && <Link href="/settings?tab=billing" onClick={() => dialog.current?.close()} className="font-semibold underline">See plans</Link>}</p>}
         </div>
 

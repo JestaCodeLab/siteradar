@@ -13,15 +13,15 @@ export function useMe() {
     canWrite: !!ws && ws.role !== "viewer",
     isAdmin: ws?.role === "owner" || ws?.role === "admin",
     isOwner: ws?.role === "owner",
-    /** SMS alerts go through FlockText, which only reaches Ghanaian numbers. */
+    /** Whether the workspace is in Ghana (prices in cedis). */
     isGhana: ws?.country === "Ghana",
   };
 }
 
 export const ghs = (n: number) => `GHS ${n.toLocaleString("en-GH", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 })}`;
 
-/** An amount in the plan's currency: "GHS 99" for cedis, "$8" for dollars. Whole units unless there are pesewas or cents. */
-export const money = (n: number, currency = "GHS") =>
+/** An amount in the plan's currency: "$8" for dollars (everyone is billed in USD; GHS only shows on old records). Whole units unless there are pesewas or cents. */
+export const money = (n: number, currency = "USD") =>
   currency === "USD" ? `$${n.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: n % 1 ? 2 : 0 })}` : ghs(n);
 
 

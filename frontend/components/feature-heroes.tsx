@@ -389,6 +389,39 @@ export const HERO_CARDS: Record<string, () => ReactElement> = {
         </div>
       </div>
   ),
+  "wordpress-monitoring": () => (
+      <div role="img" aria-label="WordPress card for example.com: plugin connected, 12 issues fixed, 3 AI drafts waiting for review" className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-6 text-[#0F172A]">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-mono font-medium">{"example.com"}</span>
+          <span className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-xs font-bold text-[#166534]">{"Plugin connected"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="font-mono text-[44px] font-semibold leading-tight tracking-[-0.03em]">{"12 fixed"}</span>
+          <span className="text-[#475569]">{"issues fixed by the plugin"}</span>
+        </div>
+        <div className="flex flex-col gap-2 text-sm">
+          <div className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-3 py-2"><span>{"Images load lazily"}</span><b className="text-[#166534]">{"Fixed"}</b></div>
+          <div className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-3 py-2"><span>{"Missing meta descriptions"}</span><b className="text-[#C2410C]">{"3 drafts to review"}</b></div>
+        </div>
+      </div>
+  ),
+  "click-through-rate": () => (
+      <div role="img" aria-label="Click-through card for example.com: 4.8% click-through rate over the last 28 days, 1,920 clicks from 40,100 impressions, average position 8.4" className="flex flex-col gap-4 rounded-2xl border border-[#E2E8F0] bg-white p-6 text-[#0F172A]">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-mono font-medium">{"example.com"}</span>
+          <span className="rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-xs font-bold text-[#166534]">{"Connected"}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="font-mono text-[44px] font-semibold leading-tight tracking-[-0.03em]">{"4.8%"}</span>
+          <span className="text-[#475569]">{"click-through rate, last 28 days"}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-sm">
+          <div className="rounded-lg bg-[#F8FAFC] p-3"><b className="block text-lg">{"1,920"}</b><span className="text-[#475569]">{"clicks"}</span></div>
+          <div className="rounded-lg bg-[#F8FAFC] p-3"><b className="block text-lg">{"40.1k"}</b><span className="text-[#475569]">{"impressions"}</span></div>
+          <div className="rounded-lg bg-[#F8FAFC] p-3"><b className="block text-lg">{"8.4"}</b><span className="text-[#475569]">{"avg position"}</span></div>
+        </div>
+      </div>
+  ),
   "visitor-analytics": () => (
       <div role="img" aria-label="Visitor analytics card: 4,212 visits this month, 62 percent from Google, 71 percent on phones, and the most viewed pages" className="bg-[#FFFFFF] [border-width:1px] [border-style:solid] border-[#EFE4D8] [border-radius:20px] [padding:24px] shadow-[0_24px_60px_rgba(124,45,18,0.14)] flex [flex-direction:column] [gap:12px]">
         <div className="flex [justify-content:space-between] [align-items:center] [gap:12px] [font-size:14px]">
@@ -851,13 +884,13 @@ export const HERO_CARDS: Record<string, () => ReactElement> = {
       </div>
   ),
   "subscriptions-tracker": () => (
-      <div role="img" aria-label="Subscriptions card: upcoming renewals for a domain, hosting and Google Workspace with amounts in Ghana cedis and invoice PDFs, and a monthly spend of GHS 1,240" className="bg-[#FFFFFF] [border-width:1px] [border-style:solid] border-[#EFE4D8] [border-radius:20px] [padding:24px] shadow-[0_24px_60px_rgba(124,45,18,0.14)] flex [flex-direction:column] [gap:12px]">
+      <div role="img" aria-label="Subscriptions card: upcoming renewals for a domain, hosting and Google Workspace with amounts in US dollars and invoice PDFs, and a monthly spend of $1,240" className="bg-[#FFFFFF] [border-width:1px] [border-style:solid] border-[#EFE4D8] [border-radius:20px] [padding:24px] shadow-[0_24px_60px_rgba(124,45,18,0.14)] flex [flex-direction:column] [gap:12px]">
         <div className="flex [justify-content:space-between] [align-items:center] [gap:12px] [font-size:14px]">
           <span className="[font-weight:700]">
             {"Upcoming renewals"}
           </span>
           <span className="font-mono text-[#475569]">
-            {"GHS 1,240 / month"}
+            {"$1,240 / month"}
           </span>
         </div>
         <div className="flex [align-items:center] [justify-content:space-between] [gap:12px] [padding:12px_14px] [border-width:1px] [border-style:solid] border-[#EFE4D8] [border-radius:12px]">
@@ -866,7 +899,7 @@ export const HERO_CARDS: Record<string, () => ReactElement> = {
               {"Domain \u00b7 client-site.com.gh"}
             </div>
             <div className="[font-size:13px] text-[#475569] font-mono">
-              {"GHS 180 / year \u00b7 invoice.pdf"}
+              {"$180 / year \u00b7 invoice.pdf"}
             </div>
           </div>
           <span className="[flex:none] [font-size:12px] [font-weight:700] text-[#92400E] bg-[#FEF3C7] [padding:3px_10px] [border-radius:999px]">
@@ -879,7 +912,7 @@ export const HERO_CARDS: Record<string, () => ReactElement> = {
               {"Hosting \u00b7 Shop"}
             </div>
             <div className="[font-size:13px] text-[#475569] font-mono">
-              {"GHS 450 / month \u00b7 invoice.pdf"}
+              {"$450 / month \u00b7 invoice.pdf"}
             </div>
           </div>
           <span className="[flex:none] [font-size:12px] [font-weight:700] text-[#1E40AF] bg-[#DBEAFE] [padding:3px_10px] [border-radius:999px]">
@@ -892,7 +925,7 @@ export const HERO_CARDS: Record<string, () => ReactElement> = {
               {"Google Workspace \u00b7 5 users"}
             </div>
             <div className="[font-size:13px] text-[#475569] font-mono">
-              {"GHS 610 / month \u00b7 invoice.pdf"}
+              {"$610 / month \u00b7 invoice.pdf"}
             </div>
           </div>
           <span className="[flex:none] [font-size:12px] [font-weight:700] text-[#166534] bg-[#DCFCE7] [padding:3px_10px] [border-radius:999px]">

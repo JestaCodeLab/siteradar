@@ -9,7 +9,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, send_file
 
-from . import accounts, ai, alerts, analytics, auditor, billing, connector, db, edits, events, fixes, gsc, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions
+from . import accounts, ai, alerts, analytics, auditor, billing, connector, db, edits, events, fixes, gsc, health, invoice_parse, monitor, netguard, plans, report, screenshot, security, sites, stack, storage, sub_report, subscriptions, whatsapp
 from .ctx import need, workspace_required
 
 log = logging.getLogger("sitewatch.api")
@@ -265,7 +265,15 @@ def blueprint(cfg):
 
     @bp.post("/sites")
     def add_site():
-        site = sites.create(cfg, g.ws, body())
+        data = body()
+        site = sites.create(cfg, g.ws, data)
+        wa_problems = []
+        if data.get("whatsapp"):          # optional: the website is already saved, so a bad number never blocks it
+            try:
+                wa_problems = whatsapp.set_site_numbers(cfg, g.ws, g.user, site, data["whatsapp"], bool(data.get("whatsapp_consent")))
+            except ValueError as e:
+                wa_problems = [str(e)]
+            site = sites.get(g.ws["id"], site["id"]) or site
         if g.site_access is not None:                 # people limited to selected websites keep access to ones they add
             db.exec("UPDATE memberships SET site_access=? WHERE workspace_id=? AND user_id=?",
                     (json.dumps([*g.site_access, site["id"]]), g.ws["id"], g.user["id"]))
@@ -275,7 +283,8 @@ def blueprint(cfg):
         threading.Thread(target=stack.auto_detect, args=(site,), daemon=True).start()      # what it is built with, so the right connector is offered
         if site.get("audit", True):
             start_audit(site)         # Google PageSpeed and the page audit, so the first results are not a night away
-        return jsonify({**site_card(site), "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site["id"]}"></script>'}), 201
+        return jsonify({**site_card(site), "whatsapp": whatsapp.site_status(g.ws["id"], site), "whatsapp_problems": wa_problems,
+                        "snippet": f'<script defer src="{cfg["public_url"]}/t.js" data-site="{site["id"]}"></script>'}), 201
 
     def fresh(site_id, now):
         """True for the first 15 minutes after a website's first check, while its first audit can still be on its way."""
@@ -313,6 +322,7 @@ def blueprint(cfg):
             "audit_running": site_id in running_audits,
             "audit_runs_left": audit_runs_left(site_id),
             # still waiting on the first results of a website that was only just added
+            "whatsapp": whatsapp.site_status(g.ws["id"], s),
             "first_run": {"checks": not db.q1("SELECT 1 FROM checks WHERE site_id=? LIMIT 1", (site_id,)),
                           "audit": bool(s.get("audit", True)) and au is None and (site_id in running_audits or fresh(site_id, now))},
             "preview": {"desktop": screenshot.captured_at(cfg, site_id, "desktop"),
@@ -325,6 +335,36 @@ def blueprint(cfg):
         site_or_404(site_id)
         sites.update(cfg, site_id, body())
         return jsonify(site_card(site_or_404(site_id)))
+
+    @bp.get("/sites/<site_id>/whatsapp")
+    def site_whatsapp(site_id):
+        return jsonify(whatsapp.site_status(g.ws["id"], site_or_404(site_id)))
+
+    @bp.put("/sites/<site_id>/whatsapp")
+    def set_site_whatsapp(site_id):
+        s = site_or_404(site_id)
+        data = body()
+        problems = whatsapp.set_site_numbers(cfg, g.ws, g.user, s, data.get("phones") or [], bool(data.get("consent")))
+        events.record(site_id, "whatsapp", "WhatsApp alert numbers changed", ", ".join(whatsapp.mask(x) for x in data.get("phones") or []), g.user.get("email") or "")
+        return jsonify({**whatsapp.site_status(g.ws["id"], site_or_404(site_id)), "problems": problems})
+
+    @bp.post("/whatsapp/verify")
+    def whatsapp_verify():
+        data = body()
+        phone = whatsapp.normalise(data.get("phone"))
+        try:
+            whatsapp.confirm(g.ws["id"], phone, data.get("code"))
+        except whatsapp.WhatsAppError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(ok=True)
+
+    @bp.post("/whatsapp/resend")
+    def whatsapp_resend():
+        try:
+            whatsapp.send_code(g.ws["id"], whatsapp.normalise(body().get("phone")))
+        except whatsapp.WhatsAppError as e:
+            return jsonify(error=str(e)), 400
+        return jsonify(ok=True)
 
     @bp.delete("/sites/<site_id>")
     def remove_site(site_id):

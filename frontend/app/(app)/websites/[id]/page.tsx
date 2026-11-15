@@ -8,6 +8,7 @@ import { Download, RefreshCw } from "lucide-react";
 import useSWR, { useSWRConfig } from "swr";
 import { DnsTab, DomainTab, SitemapTab } from "@/components/health-tabs";
 import { PluginTab } from "@/components/plugin-tab";
+import { WhatsAppBanner } from "@/components/whatsapp";
 import { useAuditWatch } from "@/components/audit-watch";
 import { AnalyticsTab, AuditTab, OverviewTab, ReportsTab, SettingsTab, SiteSubscriptionsTab } from "@/components/site-tabs";
 import { btn, Crumbs, ErrorState, PlatformBadge, Skeleton, StatusChip } from "@/components/ui";
@@ -96,6 +97,8 @@ function SiteView() {
           </a>
         </div>
       </header>
+
+      <WhatsAppBanner siteId={site.id} status={site.whatsapp} />
 
       <div role="tablist" aria-label="Website sections" className="flex gap-1 overflow-x-auto overflow-y-hidden whitespace-nowrap border-b border-[#d9dde4] [scrollbar-width:none] lg:flex-wrap lg:overflow-visible [&::-webkit-scrollbar]:hidden">
         {TABS.filter(([k]) => k !== "plugin" || site.platform?.platform === "wordpress").map(([key, label]) => (

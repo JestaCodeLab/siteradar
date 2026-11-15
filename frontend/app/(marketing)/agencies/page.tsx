@@ -11,7 +11,7 @@ import { btnOrange, btnOutlineInk, card, eyebrow, h2, h2Small, iconTile, monoLab
 export const metadata: Metadata = pageMeta({
   title: "Client monitoring for agencies",
   absoluteTitle: "Client Monitoring & Reporting for Agencies | SiteRadar",
-  description: "Monitor client websites, track social media campaigns and post performance, and generate professional reports with SiteRadar for agencies.",
+  description: "Monitor every client website from one dashboard: uptime, SSL, domains and SEO. Get WhatsApp alerts when a site goes down and send clients a branded monthly report with your logo.",
   ogTitle: "Smart Client Monitoring for Digital Agencies | SiteRadar",
   ogDescription: "Manage client websites, monitor performance, catch issues early and deliver professional reports with SiteRadar.",
   path: "/agencies",
@@ -22,11 +22,11 @@ const clients = [["Shop", "shop.example.com", "Up"], ["Jesta Digital Solutions",
 const who = [
   ["Digital marketing agencies", "#F97316", "Show results every month. Cookieless visitor analytics, an SEO and speed audit, and a client-ready PDF that explains what changed and what to do next.", "Analytics, SEO audit and a client-ready monthly PDF."],
   ["Web development agencies", "#FBA23C", "Care plans that run themselves after launch. Uptime, SSL, domain and DNS change alerts, plus a daily audit of about 50 checks for every site you build.", "Care plans that run themselves after launch."],
-  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on email, Slack or Teams.", "Look after clients like a full team would."],
+  ["Consultants", "#7C2D12", "Look after a handful of clients like a full team would. Reports carry your logo, and alerts reach you on WhatsApp, email, Slack or Teams.", "Look after clients like a full team would."],
 ];
 const grid = [
   { Icon: CalendarDays, short: "Renewals and invoices tracked", t: "Renewals on autopilot", d: "Every client’s domains, hosting and tools with renewal dates, reminders, invoice PDFs and a monthly spend report." },
-  { Icon: Bell, short: "Alerts before the client calls", t: "Alerts before the client calls", d: "Email, Slack or Teams, only after two failed checks, so your team is not chasing blips." },
+  { Icon: Bell, short: "Alerts before the client calls", t: "Alerts before the client calls", d: "WhatsApp, email, Slack or Teams, only after two failed checks, so your team is not chasing blips." },
   { Icon: SearchCheck, short: "Daily audit with a fix list", t: "Upsell with evidence", d: "The daily audit turns about 50 checks into a prioritised fix list, a ready-made scope for your next piece of work." },
   { Icon: Users, short: "Team and client access", t: "The right access for everyone", d: "Full admins, team members and read-only client viewers, each seeing exactly what they should." },
 ];
@@ -41,7 +41,7 @@ export default function Agencies() {
         <Container className="relative flex flex-wrap items-center gap-14 py-10 md:py-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 md:gap-5">
             <span className={`${eyebrow} self-start rounded-full bg-[#FFEDD5] px-3 py-1.5 text-[#9A3412]`}>Solutions for agencies</span>
-            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Every client website and campaign, on one radar.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Client website monitoring for agencies, on one radar.</h1>
             <p className="text-base text-[#475569] md:text-[19px]">For digital marketing agencies, web development agencies and consultants managing multiple clients.<span className="hidden md:inline"> Catch problems before your clients call, and prove the value of your work every month.</span></p>
             <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineInk}>Talk to us</Link></div>
           </div>

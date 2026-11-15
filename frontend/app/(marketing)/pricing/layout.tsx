@@ -1,9 +1,11 @@
 import { JsonLd } from "@/components/json-ld";
+import { FAQ } from "@/lib/pricing-faq";
 import { SITE_URL, breadcrumbs, pageMeta } from "@/lib/seo";
 
 export const metadata = pageMeta({
-  title: "Pricing in cedis and dollars",
-  description: "Clear monthly pricing in Ghana cedis for Ghana and US dollars everywhere else. Choose the plan that fits the websites you look after, and move up as you grow.",
+  title: "Pricing",
+  absoluteTitle: "Website Monitoring Pricing: Plans from $12.99/month | SiteRadar",
+  description: "Website monitoring plans from $12.99 a month: uptime, SSL, domain and DNS checks, daily SEO audits, WhatsApp alerts and monthly client reports. Pay in US dollars, cancel any time.",
   path: "/pricing",
   image: "/og/og-pricing.png",
 });
@@ -16,7 +18,7 @@ async function offers() {
     const res = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/plans`, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
     const { plans } = (await res.json()) as { plans: Plan[] };
-    return plans.map((p) => ({ "@type": "Offer", name: p.name, price: p.price_month, priceCurrency: p.currency ?? "USD", description: p.tagline, url: `${SITE_URL}/pricing` }));
+    return plans.map((p) => ({ "@type": "Offer", name: p.name, price: p.price_month, priceCurrency: "USD", description: p.tagline, url: `${SITE_URL}/pricing`, availability: "https://schema.org/InStock" }));
   } catch { return []; }
 }
 
@@ -26,6 +28,7 @@ export default async function PricingLayout({ children }: { children: React.Reac
     <>
       <JsonLd data={[
         breadcrumbs([["Home", "/"], ["Pricing", "/pricing"]]),
+        { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: FAQ.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
         ...(list.length ? [{ "@context": "https://schema.org", "@type": "SoftwareApplication", name: "SiteRadar", applicationCategory: "BusinessApplication", operatingSystem: "Web", offers: list }] : []),
       ]} />
       {children}

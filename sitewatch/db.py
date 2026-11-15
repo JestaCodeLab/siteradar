@@ -302,6 +302,33 @@ UPDATE workspaces SET ai_eligible=0;
     (22, """
 UPDATE plans SET one_click_fix=1, ai_credits=200, price_month_usd=14.99, price_month=175 WHERE id='freelance';
 """),
+    (23, """
+ALTER TABLE sites ADD COLUMN whatsapp TEXT;
+CREATE TABLE whatsapp_numbers (
+    workspace_id BIGINT NOT NULL, phone TEXT NOT NULL, consent_user BIGINT, consent_at DOUBLE PRECISION,
+    code_hash TEXT, code_expires DOUBLE PRECISION, attempts INTEGER NOT NULL DEFAULT 0, code_sent DOUBLE PRECISION,
+    verified_at DOUBLE PRECISION, last_error TEXT,
+    PRIMARY KEY (workspace_id, phone)
+);
+CREATE TABLE whatsapp_log (
+    id BIGSERIAL PRIMARY KEY, workspace_id BIGINT, site_id TEXT, ts DOUBLE PRECISION NOT NULL, phone TEXT, kind TEXT NOT NULL,
+    ok INTEGER NOT NULL DEFAULT 1, error TEXT, wamid TEXT, status TEXT
+);
+CREATE INDEX idx_wa_site_ts ON whatsapp_log(site_id, ts);
+CREATE INDEX idx_wa_ws_ts ON whatsapp_log(workspace_id, ts);
+CREATE INDEX idx_wa_wamid ON whatsapp_log(wamid);
+"""),
+    (24, """
+UPDATE plans SET sms=0, channels=REPLACE(channels, ',"sms"', '');
+"""),
+    (25, """
+UPDATE workspaces SET currency='USD';
+ALTER TABLE workspaces ALTER COLUMN currency SET DEFAULT 'USD';
+UPDATE plans SET price_month_usd=12.99 WHERE id='freelance';
+UPDATE plans SET price_month_usd=29.99 WHERE id='starter';
+UPDATE plans SET price_month_usd=69.99 WHERE id='growth';
+UPDATE plans SET price_month_usd=179.99 WHERE id='scale';
+"""),
 ]
 
 

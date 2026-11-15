@@ -6,7 +6,7 @@ from email.message import EmailMessage
 
 import requests
 
-from . import accounts, emails, mailer, netguard, plans, push, sms
+from . import accounts, emails, mailer, netguard, plans, push, whatsapp
 
 log = logging.getLogger("sitewatch.alerts")
 
@@ -65,10 +65,10 @@ def send_webhook(url, text):
         return False
 
 
-def notify(cfg, site, subject, text, sms_text=None, event=None, mail=None):
-    """Tell the site's workspace about it: email always, chat webhooks and SMS when the plan includes them.
+def notify(cfg, site, subject, text, wa_text=None, event=None, mail=None):
+    """Tell the site's workspace about it: email always, WhatsApp for outages and recoveries, chat webhooks when the plan includes them.
 
-    `sms_text` is only passed for outages and recoveries, so text messages are kept for what matters.
+    `wa_text` is only passed for outages and recoveries. Each website gets at most whatsapp.DAILY_CAP of them a day; the email says so when one is held back.
     `mail` is a ready-made emails.Mail for alerts with their own layout (expiry warnings); every other alert gets the general one.
     """
     ws = accounts.workspace(site.get("workspace_id"))
@@ -78,14 +78,16 @@ def notify(cfg, site, subject, text, sms_text=None, event=None, mail=None):
     plan = plans.limits(ws)
     to = accounts.filter_emails(list(dict.fromkeys(ws["alert_emails"] + list(site.get("alert_to") or []))), event)
     sent = False
+    wa_sent, held = whatsapp.alert(ws, site, event, wa_text) if wa_text else (0, "")
+    if held == "limit" and not mail:
+        text += f"\n\nWe did not send this on WhatsApp: {site['name']} has reached its limit of {whatsapp.DAILY_CAP} WhatsApp alerts in 24 hours."
+    sent |= bool(wa_sent)
     if to:
         mail = mail or emails.alert(ws["name"], subject, text, event, site)
         sent |= send_email(cfg, to, mail.subject, mail.text, mail.html)
     if "chat" in plan["channels"]:
         for url in ws["alert_webhooks"]:
             sent |= send_webhook(url, f"*{subject}*\n{text}")
-    if sms_text and "sms" in plan["channels"]:
-        sent |= bool(sms.send({**ws, "alert_phones": accounts.filter_phones(ws["alert_phones"], event)}, sms_text))
     sent |= bool(_browser(ws, site, event, subject, text))
     log.warning("ALERT %s | %s", subject, text.replace("\n", " "))
     return sent

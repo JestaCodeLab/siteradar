@@ -12,7 +12,6 @@ type Shape = Pick<PlanInfo, "members" | "channels" | "client_access" | "sms">;
 const has = {
   team: (p: Shape) => p.members > 1,
   chat: (p: Shape) => p.channels.includes("chat"),
-  sms: (p: Shape) => p.channels.includes("sms") || p.sms > 0,
   clients: (p: Shape) => p.client_access,
 } as const;
 export type Feature = keyof typeof has;

@@ -11,7 +11,7 @@ import { btnOrange, btnOutlineDark, card, eyebrow, h2, h2Small, iconTile, monoLa
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring for businesses",
   absoluteTitle: "Website Monitoring for Businesses | SiteRadar",
-  description: "Monitor your business website, uptime, speed, SSL, domains and email health. Get alerts, actionable insights and monthly reports with SiteRadar.",
+  description: "Know when your business website goes down, slows or its SSL or domain is about to expire. WhatsApp alerts, plain-language fixes and a clear monthly report, from $12.99 a month.",
   ogTitle: "Protect and Monitor Your Business’s Digital Presence | SiteRadar",
   ogDescription: "Keep your business website healthy. Monitor uptime, performance, SSL, domain expiry and email health with timely alerts and clear reports.",
   path: "/businesses",
@@ -19,9 +19,9 @@ export const metadata: Metadata = pageMeta({
 });
 
 const who = [
-  ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and plans from GHS 175 a month.", "Peace of mind without an IT team."],
+  ["SMEs", "#F97316", "Peace of mind without an IT team. Plain-language alerts and fixes, and plans from $12.99 a month.", "Peace of mind without an IT team."],
   ["E-commerce brands", "#FBA23C", "When the shop is down, sales stop. Uptime and speed checks, email and Slack alerts, and checks every minute on Scale.", "When the shop is down, sales stop."],
-  ["Enterprises", "#7C2D12", "Many sites and domains in one view, alerts in Slack or Teams, and team roles for every department.", "Many sites and domains in one view."],
+  ["Enterprises", "#7C2D12", "Many sites and domains in one view, alerts on WhatsApp, Slack or Teams, and team roles for every department.", "Many sites and domains in one view."],
   ["Organisations", "#0F172A", "NGOs, churches and schools: keep certificates, domains and email trusted, with no specialist needed.", "Keep certificates, domains and email trusted."],
 ];
 const manage = [
@@ -40,7 +40,7 @@ export default function Businesses() {
         <Container className="relative flex flex-wrap items-center gap-14 py-10 md:py-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 md:gap-5">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 text-[#FDBA74]`}>Solutions for businesses</span>
-            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Your digital presence, watched around the clock.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(36px,4.6vw,58px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Website monitoring for your business, around the clock.</h1>
             <p className="text-base text-[#CBD5E1] md:text-[19px]">For SMEs, enterprises, e-commerce brands and organisations managing their own digital presence.<span className="hidden md:inline"> Know about problems before your customers do, and get a plain-language list of what to fix.</span></p>
             <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/contact" className={btnOutlineDark}>Talk to us</Link></div>
           </div>

@@ -44,7 +44,7 @@ def app_url():
     return os.environ.get("APP_URL", "http://localhost:3000").rstrip("/")
 
 
-def quote(plan_id, cycle, currency="GHS"):
+def quote(plan_id, cycle, currency="USD"):
     plan = plans.get(plan_id)
     if not plan or not plan["active"]:
         raise ValueError("That plan is not available.")
@@ -59,7 +59,7 @@ def switch_plan(cfg, ws, plan_id, cycle="monthly", renews=None):
     sites.enforce_limit(cfg, accounts.workspace(ws["id"]))
 
 
-def _start(cfg, ws, user, ref, amount, metadata, currency="GHS"):
+def _start(cfg, ws, user, ref, amount, metadata, currency="USD"):
     """Open a Paystack transaction (or finish at once in test mode) for a payment row that already exists."""
     if test_mode():
         confirm(cfg, ref)
@@ -272,7 +272,7 @@ def _notify_owner(ws, tone):
     amount = None
     if tone != "ended":
         try:
-            amount = plans.money(renewal_quote(ws)[1], ws["currency"] or "GHS")
+            amount = plans.money(renewal_quote(ws)[1], ws["currency"] or "USD")
         except Exception:
             pass
     mail = emails.billing_notice(tone, owner["first_name"], ws["name"], plan["name"], renews, amount, GRACE_DAYS)
@@ -324,28 +324,7 @@ def refund(reference, amount=None):
     return amount
 
 
-# ---- SMS top-ups and invoices ---------------------------------------------------------
-
-DEFAULT_BUNDLES = [{"qty": 100, "price": 20}, {"qty": 500, "price": 90}, {"qty": 1000, "price": 160}]
-
-
-def sms_bundles():
-    """Prices are set by a super admin (Plans and pricing). The defaults are placeholders until they are."""
-    return (db.kv_get("platform") or {}).get("sms_bundles") or DEFAULT_BUNDLES
-
-
-def checkout_sms(cfg, ws, user, qty):
-    bundle = next((b for b in sms_bundles() if b["qty"] == int(qty)), None)
-    if not bundle:
-        raise ValueError("That bundle is not available.")
-    plan = plans.limits(ws)
-    if "sms" not in plan["channels"]:
-        raise plans.LimitError("SMS alerts are part of the Growth plan and above.")
-    ref = "sw_" + secrets.token_hex(10)
-    db.run("INSERT INTO payments(workspace_id, reference, plan_id, cycle, amount, currency, status, kind, created) VALUES (?,?,?,?,?,?,?,?,?)",
-           (ws["id"], ref, f"sms{bundle['qty']}", "once", float(bundle["price"]), "GHS", "pending", "sms", time.time()))
-    return _start(cfg, ws, user, ref, float(bundle["price"]), {"workspace_id": ws["id"], "sms": bundle["qty"]})
-
+# ---- invoices ----------------------------------------------------------------------------
 
 # ---- AI draft credits ----------------------------------------------------------------
 

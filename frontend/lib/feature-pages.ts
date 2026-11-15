@@ -175,7 +175,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Website uptime monitoring and downtime alerts",
+    "seoTitle": "Website Uptime Monitoring & Downtime Alerts",
     "seoDescription": "Know the moment your website goes down. SiteRadar checks status, speed and expected text every few minutes and alerts you only after two failed checks."
   },
   "alerts": {
@@ -196,7 +196,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
       }
     ],
     "h1": "The right alert, to the right person, at the right time.",
-    "lead": "When something needs your attention, SiteRadar tells you by email, Slack or Microsoft Teams. Alerts only fire after two failed checks, so your team stops chasing false alarms.",
+    "lead": "When something needs your attention, SiteRadar tells you by email, WhatsApp, Slack or Microsoft Teams. Alerts only fire after two failed checks, so your team stops chasing false alarms.",
     "heroLabel": "Alert feed: an email saying shop.example.com is down after two failed checks, a Slack message that it is back up after 4 minutes, and an email about an SSL certificate expiring",
     "whatTitle": "Everything alerts and notifications covers.",
     "cards": [
@@ -331,8 +331,8 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Website downtime alerts by email, Slack and Teams",
-    "seoDescription": "Get alerted by email, Slack or Microsoft Teams when your website goes down, and again when it is back. Alerts fire only after two failed checks."
+    "seoTitle": "Website Downtime Alerts on WhatsApp & Email",
+    "seoDescription": "Get website down alerts on WhatsApp, email, Slack or Microsoft Teams, and again when it is back. Alerts fire only after two failed checks, so no false alarms."
   },
   "performance-monitoring": {
     "group": "Performance & SEO",
@@ -513,7 +513,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Website performance monitoring for phone and desktop",
+    "seoTitle": "Website Speed & Core Web Vitals Monitoring",
     "seoDescription": "Track how fast your website feels on phones and computers. See main content load time, server response and the images and caching slowing pages down."
   },
   "seo-audit": {
@@ -657,7 +657,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Daily SEO and website audit with a health score",
+    "seoTitle": "Website SEO Audit Tool with Health Score",
     "seoDescription": "A daily audit with about 50 checks across SEO, speed, security and accessibility. Get one health score and a fix list sorted by what matters most."
   },
   "sitemap-monitoring": {
@@ -803,8 +803,298 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Sitemap monitoring and sitemap checker",
+    "seoTitle": "Sitemap Checker & Sitemap Monitoring",
     "seoDescription": "SiteRadar reads your sitemap every day, checks every page it lists and tells you when pages are added, removed or broken, so Google finds everything."
+  },
+  "wordpress-monitoring": {
+    "group": "Performance & SEO",
+    "name": "WordPress monitoring and fixes",
+    "icon": [
+      {
+        "tag": "circle",
+        "attrs": {
+          "cx": "12",
+          "cy": "12",
+          "r": "9"
+        }
+      },
+      {
+        "tag": "path",
+        "attrs": {
+          "d": "M8 8l4 9 4-9"
+        }
+      }
+    ],
+    "h1": "WordPress monitoring that also fixes what it finds.",
+    "lead": "Connect your WordPress site with the SiteRadar plugin. We watch uptime and run a daily SEO audit, then fix common issues in one click and draft titles, meta descriptions and image alt text for you to approve.",
+    "heroLabel": "WordPress card for example.com: plugin connected, 12 issues fixed, 3 AI drafts waiting for review",
+    "whatTitle": "Everything WordPress monitoring and fixes covers.",
+    "cards": [
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M13 2L4 14h7l-1 8 9-12h-7z"
+            }
+          }
+        ],
+        "title": "One-click fixes",
+        "text": "Turn on fixes such as lazy-loading images, secure links, form labels, one main heading and the page language, without editing a theme."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M12 20h9"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"
+            }
+          }
+        ],
+        "title": "AI drafts you approve",
+        "text": "Draft page titles, meta descriptions and image alt text with AI, read each one, and apply only what you like. Every change can be undone."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M4 6h16M4 12h16M4 18h10"
+            }
+          }
+        ],
+        "title": "Works with your SEO plugin",
+        "text": "Titles and descriptions are written through Yoast SEO, Rank Math or SEOPress when you use one, so nothing fights your setup."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M9 11l3 3 8-8"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h9"
+            }
+          }
+        ],
+        "title": "See what was changed",
+        "text": "A Fixes page inside WordPress and a Fixed tab in SiteRadar list every fix and text change, so clients and teammates can see the work."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M3 12h4l3-8 4 16 3-8h4"
+            }
+          }
+        ],
+        "title": "Uptime and WhatsApp alerts",
+        "text": "The same site is checked every few minutes, with alerts on WhatsApp, email, Slack or Teams when it goes down."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M5 4h14v16H5z"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M9 9h6M9 13h6"
+            }
+          }
+        ],
+        "title": "Proof in the monthly report",
+        "text": "Results go into the monthly PDF you send clients, with the issues found and fixed."
+      }
+    ],
+    "whoTitle": "Built for whoever looks after the website.",
+    "who": [
+      {
+        "href": "/agencies",
+        "label": "For agencies",
+        "text": "Fix the same common problems across every client WordPress site, and show the work in the report.",
+        "link": "SiteRadar for agencies \u2192"
+      },
+      {
+        "href": "/businesses",
+        "label": "For businesses",
+        "text": "Improve your own WordPress site without learning code or hiring a developer.",
+        "link": "SiteRadar for businesses \u2192"
+      }
+    ],
+    "related": [
+      "seo-audit",
+      "click-through-rate",
+      "client-reporting"
+    ],
+    "ctaTitle": "Put your website on the radar.",
+    "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
+    "seoTitle": "WordPress Monitoring & One-Click SEO Fixes",
+    "seoDescription": "WordPress website monitoring with a plugin that fixes common SEO issues in one click and drafts titles, meta descriptions and alt text for you to approve. Works with Yoast and Rank Math."
+  },
+  "click-through-rate": {
+    "group": "Performance & SEO",
+    "name": "Click-through rate",
+    "icon": [
+      {
+        "tag": "circle",
+        "attrs": {
+          "cx": "11",
+          "cy": "11",
+          "r": "7"
+        }
+      },
+      {
+        "tag": "path",
+        "attrs": {
+          "d": "m21 21-4.3-4.3"
+        }
+      }
+    ],
+    "h1": "See how often Google sends people to your website.",
+    "lead": "Connect Google Search Console in one click, read-only. SiteRadar shows your clicks, impressions and click-through rate, the searches that bring visitors, and the pages that deserve a better title.",
+    "heroLabel": "Click-through card for example.com: 4.8% click-through rate over the last 28 days, 1,920 clicks from 40,100 impressions, average position 8.4",
+    "whatTitle": "Everything click-through rate covers.",
+    "cards": [
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M3 17l6-6 4 4 8-8"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M14 7h7v7"
+            }
+          }
+        ],
+        "title": "Clicks and impressions",
+        "text": "How often your pages appeared on Google and how many people clicked, day by day."
+      },
+      {
+        "icon": [
+          {
+            "tag": "circle",
+            "attrs": {
+              "cx": "12",
+              "cy": "12",
+              "r": "9"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M12 7v5l3 2"
+            }
+          }
+        ],
+        "title": "Click-through rate",
+        "text": "The share of people who clicked after seeing you, with average position next to it."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M4 6h16M4 12h16M4 18h10"
+            }
+          }
+        ],
+        "title": "What people searched",
+        "text": "The search terms that bring visitors, and the pages they landed on."
+      },
+      {
+        "icon": [
+          {
+            "tag": "circle",
+            "attrs": {
+              "cx": "12",
+              "cy": "12",
+              "r": "9"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"
+            }
+          }
+        ],
+        "title": "Where they are",
+        "text": "Countries your search visitors come from."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M12 2v6M12 16v6M2 12h6M16 12h6"
+            }
+          }
+        ],
+        "title": "Opportunities",
+        "text": "Pages on the first page of Google that get fewer clicks than they should, so you know which titles to improve."
+      },
+      {
+        "icon": [
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M5 4h14v16H5z"
+            }
+          },
+          {
+            "tag": "path",
+            "attrs": {
+              "d": "M9 9h6M9 13h6"
+            }
+          }
+        ],
+        "title": "In your monthly report",
+        "text": "A Found on Google section goes into the report you send each client."
+      }
+    ],
+    "whoTitle": "Built for whoever looks after the website.",
+    "who": [
+      {
+        "href": "/agencies",
+        "label": "For agencies",
+        "text": "Show clients how Google search is doing, inside the monthly report.",
+        "link": "SiteRadar for agencies \u2192"
+      },
+      {
+        "href": "/businesses",
+        "label": "For businesses",
+        "text": "Understand how people find you on Google without learning another tool.",
+        "link": "SiteRadar for businesses \u2192"
+      }
+    ],
+    "related": [
+      "visitor-analytics",
+      "seo-audit",
+      "client-reporting"
+    ],
+    "ctaTitle": "Put your website on the radar.",
+    "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
+    "seoTitle": "Google Search Console CTR Tracker",
+    "seoDescription": "Connect Google Search Console read-only and see clicks, impressions, click-through rate, search terms and countries next to your uptime and SEO audit."
   },
   "visitor-analytics": {
     "group": "Performance & SEO",
@@ -987,7 +1277,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Cookieless website visitor analytics",
+    "seoTitle": "Cookieless Website Analytics, No Cookie Banner",
     "seoDescription": "Privacy-friendly visitor analytics with no cookie banner. See visits, sources, devices, top pages and real page speed next to your website monitoring."
   },
   "ssl-monitoring": {
@@ -1147,7 +1437,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "SSL certificate expiry monitoring and reminders",
+    "seoTitle": "SSL Certificate Expiry Monitoring & Alerts",
     "seoDescription": "Never let an expired SSL certificate scare customers away. SiteRadar tracks the expiry date, reminds you weeks ahead and alerts you if it stops working."
   },
   "broken-links": {
@@ -1311,7 +1601,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Broken link checker and monitoring",
+    "seoTitle": "Broken Link Checker & Monitoring",
     "seoDescription": "Find broken internal and outbound links before visitors do. SiteRadar crawls your website every day and shows each broken link and the page it sits on."
   },
   "mixed-content": {
@@ -1457,7 +1747,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Mixed content checker for HTTPS websites",
+    "seoTitle": "Mixed Content Checker for HTTPS Websites",
     "seoDescription": "Find insecure http:// images, scripts and files loading on secure pages. SiteRadar shows each mixed content issue and where it is used."
   },
   "dns-monitoring": {
@@ -1643,7 +1933,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "DNS record monitoring and email security checks",
+    "seoTitle": "DNS Monitoring: SPF, DKIM & DMARC Checks",
     "seoDescription": "Check your DNS and email records every day: A, MX, SPF, DKIM, DMARC, name servers and CAA, with a health score and a history of every change."
   },
   "domain-monitoring": {
@@ -1829,7 +2119,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Domain expiry monitoring and renewal reminders",
+    "seoTitle": "Domain Expiry Monitoring & Renewal Reminders",
     "seoDescription": "Never lose a domain to a missed renewal. SiteRadar tracks expiry dates, registrar and name servers, and reminds you before renewal."
   },
   "client-reporting": {
@@ -1991,7 +2281,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Automated monthly website reports for clients",
+    "seoTitle": "Automated Monthly Website Reports for Clients",
     "seoDescription": "Send clients a clear monthly PDF with your logo: a plain-language summary and to-do list first, technical detail last. Created and sent automatically."
   },
   "subscriptions-tracker": {
@@ -2159,7 +2449,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Domain, hosting and subscription renewal tracker",
+    "seoTitle": "Domain, Hosting & Subscription Renewal Tracker",
     "seoDescription": "Track the domains, hosting and tools behind each website. Get renewal reminders, invoice PDFs and a monthly spend report in any currency, including cedis."
   },
   "team-access": {
@@ -2321,7 +2611,7 @@ export const FEATURE_PAGES: Record<string, FeaturePageData> = {
     ],
     "ctaTitle": "Put your website on the radar.",
     "ctaText": "Add your first website in about ten minutes. Every feature on this page works from day one.",
-    "seoTitle": "Team and client access for website monitoring",
+    "seoTitle": "Team & Client Access for Website Monitoring",
     "seoDescription": "Invite your team and give clients read-only access to their own websites and reports. Admins, team members and client viewers each see only what they should."
   }
 };

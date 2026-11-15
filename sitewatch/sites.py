@@ -14,6 +14,7 @@ def _row(r):
     site = dict(r)
     for f in LIST_FIELDS:
         site[f] = json.loads(site[f]) if site.get(f) else []
+    site["whatsapp"] = json.loads(site["whatsapp"]) if site.get("whatsapp") else []
     site["track_analytics"] = bool(site["track_analytics"])
     site["audit"] = bool(site["audit"])
     site["paused"] = bool(site.get("paused"))

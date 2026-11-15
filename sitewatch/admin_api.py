@@ -8,7 +8,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, session
 
-from . import accounts, ai, billing, db, discounts, mailer, plans, sites, sms, storage
+from . import accounts, ai, billing, db, discounts, mailer, plans, sites, storage, whatsapp
 from .ctx import SUPPORT_MINUTES, super_required
 
 PLAN_COLORS = {"freelance": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
@@ -110,16 +110,12 @@ def blueprint(cfg):
         codes = db.q1("SELECT COUNT(*) n FROM email_codes WHERE created>?", (now - 86400,))["n"]
         out.append({"name": "Email sending", "status": "Operational" if mailer.configured() else "Not configured", "tone": "ok" if mailer.configured() else "warn",
                     "detail": f"{codes} verification codes sent in the last 24 hours." if mailer.configured() else "Set RESEND_API_KEY to send email."})
-        bal = sms.balance()
-        if not sms.configured():
-            out.append({"name": "SMS gateway", "status": "Not configured", "tone": "warn", "detail": "Set FLOCKTEXT_API_KEY to send text messages."})
-        elif bal is None:
-            out.append({"name": "SMS gateway", "status": "Unreachable", "tone": "bad", "detail": "FlockText did not answer. Check the API key."})
+        if not whatsapp.configured():
+            out.append({"name": "WhatsApp alerts", "status": "Not configured", "tone": "warn", "detail": "Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID to send WhatsApp alerts."})
         else:
-            per_day = db.q1("SELECT COUNT(*) n FROM sms_log WHERE ok=1 AND ts>?", (now - 7 * 86400,))["n"] / 7
-            days = f"about {int(bal / per_day)} days at the current rate" if per_day else "no recent sending"
-            out.append({"name": "SMS gateway", "status": "Low credit" if bal < 200 else "Operational", "tone": "warn" if bal < 200 else "ok",
-                        "detail": f"FlockText balance {bal:,} credits, {days}."})
+            day = db.q1("SELECT COUNT(*) n, COALESCE(SUM(CASE WHEN ok=0 OR status='failed' THEN 1 ELSE 0 END),0) bad FROM whatsapp_log WHERE ts>?", (now - 86400,))
+            out.append({"name": "WhatsApp alerts", "status": "Operational" if day["bad"] <= max(2, day["n"] // 5) else "Failing", "tone": "ok" if day["bad"] <= max(2, day["n"] // 5) else "bad",
+                        "detail": f"{day['n']} messages in the last 24 hours, {day['bad']} failed."})
         hook = db.kv_get("last_webhook") or {}
         if not billing.configured():
             out.append({"name": "Payment webhooks", "status": "Not configured", "tone": "warn", "detail": "Set PAYSTACK_SECRET_KEY and add the webhook in Paystack."})
@@ -143,7 +139,7 @@ def blueprint(cfg):
         services, bal = health_services()
         for s in services:
             if s["tone"] != "ok" and s["status"] != "Not configured":
-                items.append({"tag": "SMS" if "SMS" in s["name"] else "System", "tone": "warn" if s["tone"] == "warn" else "bad",
+                items.append({"tag": "WhatsApp" if "WhatsApp" in s["name"] else "System", "tone": "warn" if s["tone"] == "warn" else "bad",
                               "title": f"{s['name']}: {s['status'].lower()}", "sub": s["detail"], "href": "/admin/health"})
         susp = db.q1("SELECT COUNT(*) n FROM workspaces WHERE suspended=1 AND name != '[deleted]'")["n"]
         if susp:
@@ -460,7 +456,7 @@ def blueprint(cfg):
     def plans_payload():
         counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces WHERE name != '[deleted]' GROUP BY plan_id")}
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
-                "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES), "sms_bundles": billing.sms_bundles()}
+                "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES)}
 
     @bp.get("/plans")
     def plans_list():
@@ -497,8 +493,6 @@ def blueprint(cfg):
                 db.run(f"UPDATE plans SET {', '.join(sets)} WHERE id=?", (*args, p["id"]))
         if s:
             cur = db.kv_get("platform") or {}
-            if "sms_bundles" in s:
-                cur["sms_bundles"] = [{"qty": int(b["qty"]), "price": float(b["price"])} for b in s["sms_bundles"] if int(b["qty"]) > 0 and float(b["price"]) >= 0]
             if "yearly_discount" in s:
                 cur["yearly_discount"] = float(s["yearly_discount"])
             db.kv_set("platform", cur)
@@ -748,11 +742,11 @@ def blueprint(cfg):
                     {"label": "Audits queued", "value": f"{audits_queued:,}", "pct": min(100, audits_queued)},
                     {"label": "Database size", "value": f"{db_bytes / 1073741824:.1f} GB of {cap_gb:g} GB", "pct": min(100, db_bytes / 1073741824 / cap_gb * 100)}],
             messages=[{"k": "Alert emails", "v": str(db.q1("SELECT COUNT(*) n FROM incidents WHERE started>?", (today0,))["n"] + db.q1("SELECT COUNT(*) n FROM alerts_sent WHERE ts>?", (today0,))["n"])},
-                      {"k": "SMS alerts", "v": str(db.q1("SELECT COUNT(*) n FROM sms_log WHERE ok=1 AND ts>?", (today0,))["n"])},
+                      {"k": "WhatsApp alerts", "v": str(db.q1("SELECT COUNT(*) n FROM whatsapp_log WHERE ok=1 AND kind IN ('down','up') AND ts>?", (today0,))["n"])},
                       {"k": "Verification codes sent", "v": str(db.q1("SELECT COUNT(*) n FROM email_codes WHERE created>?", (today0,))["n"])},
                       {"k": "Monthly reports queued", "v": f"0 (next run {nxt.strftime('%-d %b')})"}],
             errors=db.q("SELECT ts, source, text FROM error_log ORDER BY ts DESC LIMIT 8"),
-            announcement=db.kv_get("announcement"), sms_wallet=bal)
+            announcement=db.kv_get("announcement"), sms_wallet=None)
 
     @bp.post("/announcement")
     def announce():
