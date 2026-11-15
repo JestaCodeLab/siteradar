@@ -10,8 +10,8 @@ import { SITE_URL, organization, pageMeta } from "@/lib/seo";
 
 export const metadata: Metadata = pageMeta({
   title: "Website monitoring",
-  absoluteTitle: "Website Monitoring for Agencies & Businesses | SiteRadar",
-  description: "Website uptime monitoring with WhatsApp alerts. Track SSL and domain expiry, DNS, SEO audits and Google click-through rate, fix WordPress issues in one click, and send clients monthly reports.",
+  absoluteTitle: "Website Monitoring Software | SiteRadar",
+  description: "Website monitoring for agencies and businesses: uptime with WhatsApp alerts, SSL and domain expiry, SEO audits, WordPress fixes and monthly client reports.",
   ogTitle: "SiteRadar — Website Monitoring & Digital Presence Intelligence",
   ogDescription: "Keep every website healthy. Monitor uptime, performance, SSL, domains and DNS while getting actionable insights and monthly reports.",
   path: "/",
@@ -48,7 +48,7 @@ export default function Home() {
         <Container className="relative flex flex-wrap items-center gap-14 pb-9 pt-10 md:pb-24 md:pt-[88px]">
           <div className="flex min-w-0 flex-[1_1_460px] flex-col gap-[18px] md:gap-6">
             <span className={`${eyebrow} self-start rounded-full border border-[#FDBA74]/40 px-3 py-1.5 font-medium text-[#FDBA74]`}>Digital Presence Intelligence</span>
-            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(38px,5vw,62px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Website monitoring that tells you when your sites break, expire or slow down.</h1>
+            <h1 className="text-[28px] font-bold leading-[1.12] tracking-[-0.025em] md:text-[clamp(38px,5vw,62px)] md:font-bold md:leading-[1.05] md:tracking-[-0.035em]">Website monitoring that warns you first.</h1>
             <p className="max-w-[560px] text-base text-[#CBD5E1] md:text-[19px]"><span className="md:hidden">Uptime, SSL, domains, DNS, email health and visitors for every website you look after, plus a monthly report for your clients.</span><span className="hidden md:inline">Uptime, SSL and domain expiry, DNS and email health, speed and visitors for every website you look after. Plus a clear monthly report you can send straight to your clients.</span></p>
             <div className="mt-1 flex flex-col gap-2.5 md:flex-row md:flex-wrap md:gap-3"><Link href="/signup" className={btnOrange}>Get started</Link><Link href="/pricing" className={btnOutlineDark}>See pricing</Link></div>
             <div role="img" aria-label="Example: uptime 99.98%, response 6.1 seconds, SSL valid 74 days, audit score 81" className="mt-1.5 grid grid-cols-2 gap-2 md:hidden">
