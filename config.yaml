@@ -1,8 +1,8 @@
 # SiteRadar platform config. Secrets and per-environment values come from environment variables (see .env.example).
-public_url: https://api.monitor.upplauseconsulting.com     # where this API is reachable (tracking script, logo URLs)
+public_url: https://api.monitor.upplauseconsulting.com # where this API is reachable (tracking script, logo URLs)
 
 data_dir: data
-database_url: ${DATABASE_URL}     # Railway Postgres
+database_url: ${DATABASE_URL} # Railway Postgres
 
 # Defaults used by the scheduler. Check frequency per customer comes from their plan.
 failures_before_alert: 2
@@ -21,4 +21,4 @@ report:
 pagespeed_api_key: ${PAGESPEED_API_KEY}
 
 health:
-  daily_at: "03:30"              # domain expiry, DNS and sitemap checks
+  daily_at: "03:30" # domain expiry, DNS and sitemap checks
