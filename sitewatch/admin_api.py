@@ -127,7 +127,7 @@ def blueprint(cfg):
                     "detail": "Sign-ups are checked with Cloudflare Turnstile." if turnstile.enabled() else "Set TURNSTILE_SECRET on the API and NEXT_PUBLIC_TURNSTILE_SITE_KEY on the website to switch it on."})
         out.append({"name": "Google PageSpeed quota", "status": "Operational" if cfg.get("pagespeed_api_key") else "No API key", "tone": "ok" if cfg.get("pagespeed_api_key") else "warn",
                     "detail": "API key connected." if cfg.get("pagespeed_api_key") else "Add PAGESPEED_API_KEY to show Core Web Vitals."})
-        return out, bal
+        return out
 
     def attention():
         now = time.time()
@@ -136,7 +136,7 @@ def blueprint(cfg):
         if failed:
             items.append({"tag": "Payment", "tone": "bad", "title": f"{len(failed)} failed payment{'s' if len(failed) != 1 else ''}",
                           "sub": f"GHS {sum(f['amount'] for f in failed if (f['currency'] or 'GHS') == 'GHS'):,.0f} at risk. Retry or email the customers.", "href": "/admin/payments"})
-        services, bal = health_services()
+        services = health_services()
         for s in services:
             if s["tone"] != "ok" and s["status"] != "Not configured":
                 items.append({"tag": "WhatsApp" if "WhatsApp" in s["name"] else "System", "tone": "warn" if s["tone"] == "warn" else "bad",
@@ -723,7 +723,7 @@ def blueprint(cfg):
     @bp.get("/health")
     def platform_health():
         now = time.time()
-        services, bal = health_services()
+        services = health_services()
         sites_live = db.q1("SELECT COUNT(*) n FROM sites WHERE paused=0")["n"]
         per_min = db.q1("SELECT COUNT(*) n FROM checks WHERE ts>?", (now - 600,))["n"] / 10
         failed_hour = db.q1("SELECT COUNT(*) n FROM checks WHERE ts>? AND ok=0", (now - 3600,))["n"]
