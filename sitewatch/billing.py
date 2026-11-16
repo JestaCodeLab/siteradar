@@ -135,8 +135,10 @@ def confirm(cfg, reference):
     now = time.time()
     base = ws["plan_renews"] if ws["plan_id"] == pay["plan_id"] and ws["plan_renews"] and ws["plan_renews"] > now else now
     auth = data.get("authorization") or {}
-    db.exec("UPDATE payments SET status='success', paid=?, channel=?, method=? WHERE id=?",
-            (now, data.get("channel") or "test", method_label(data.get("channel"), auth), pay["id"]))
+    # Claim the payment: the callback and the webhook often arrive together, and only the one that flips the status applies it.
+    if not db.q1("UPDATE payments SET status='success', paid=?, channel=?, method=? WHERE id=? AND status IN ('pending','failed','abandoned') RETURNING id",
+                 (now, data.get("channel") or "test", method_label(data.get("channel"), auth), pay["id"])):
+        return db.q1("SELECT * FROM payments WHERE id=?", (pay["id"],))
     if auth.get("reusable") and auth.get("channel") == "card":
         db.exec("UPDATE workspaces SET paystack_auth=?, paystack_email=?, paystack_card=? WHERE id=?",
                 (auth["authorization_code"], (data.get("customer") or {}).get("email"),

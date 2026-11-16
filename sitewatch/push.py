@@ -10,7 +10,7 @@ import time
 
 from flask import Blueprint, g, jsonify, request
 
-from . import accounts, db, security
+from . import accounts, db, netguard, security
 from .ctx import workspace_required
 
 log = logging.getLogger("sitewatch.push")
@@ -40,7 +40,7 @@ def save(user, ws_id, sub, agent):
     """Remember a device. `sub` is the browser's PushSubscription as JSON."""
     endpoint = str(sub.get("endpoint") or "")
     keys = sub.get("keys") or {}
-    if not endpoint.startswith("https://") or len(endpoint) > 1000 or not keys.get("p256dh") or not keys.get("auth"):
+    if not netguard.push_endpoint_ok(endpoint) or len(endpoint) > 1000 or not keys.get("p256dh") or not keys.get("auth"):
         raise ValueError("That notification setup was not valid. Please try again.")
     db.exec("""INSERT INTO push_subscriptions(user_id, workspace_id, endpoint, p256dh, auth, agent, created)
                VALUES (?,?,?,?,?,?,?)
@@ -55,6 +55,9 @@ def remove(user_id, endpoint):
 
 def _send(row, payload):
     from pywebpush import WebPushException, webpush
+    if not netguard.push_endpoint_ok(row["endpoint"]):       # saved before the allowlist existed
+        db.exec("DELETE FROM push_subscriptions WHERE id=?", (row["id"],))
+        return False
     try:
         webpush(subscription_info={"endpoint": row["endpoint"], "keys": {"p256dh": row["p256dh"], "auth": row["auth"]}},
                 data=json.dumps(payload), vapid_private_key=_keys()[1],

@@ -27,6 +27,7 @@ DAILY_CAP = 2                 # down and recovery messages per website in any 24
 MAX_PER_SITE = 2              # numbers per website
 CODE_MINUTES = 10
 TRIES = 5
+CODES_PER_NUMBER = 3          # codes any one number may be sent in 24 hours, from all workspaces together
 CODES_PER_DAY = 6             # verification codes a workspace may request in 24 hours
 
 
@@ -104,6 +105,8 @@ def send_code(ws_id, phone):
         raise WhatsAppError("A code was sent a moment ago. Wait a minute before asking for another.")
     if db.q1("SELECT COUNT(*) n FROM whatsapp_log WHERE workspace_id=? AND kind='code' AND ts>?", (ws_id, now - 86400))["n"] >= CODES_PER_DAY:
         raise WhatsAppError("Too many codes were requested today. Try again tomorrow.")
+    if db.q1("SELECT COUNT(*) n FROM whatsapp_log WHERE phone=? AND kind='code' AND ts>?", (phone, now - 86400))["n"] >= CODES_PER_NUMBER:
+        raise WhatsAppError("That number has been sent several codes today. Try again tomorrow.")
     code = f"{secrets.randbelow(10 ** 6):06d}"
     wamid, err = _post(phone, os.environ.get("WHATSAPP_CODE_TEMPLATE", "siteradar_code"),
                        [{"type": "body", "parameters": [{"type": "text", "text": code}]},
@@ -127,9 +130,9 @@ def confirm(ws_id, phone, code):
     code = re.sub(r"\D", "", code or "")
     if not row["code_hash"] or time.time() > (row["code_expires"] or 0):
         raise WhatsAppError("That code has expired. Ask for a new one.")
-    if row["attempts"] >= TRIES:
+    # Counting the try and checking the limit is one statement, so parallel guesses cannot all slip under the limit.
+    if not db.q1("UPDATE whatsapp_numbers SET attempts=attempts+1 WHERE workspace_id=? AND phone=? AND attempts<? RETURNING attempts", (ws_id, phone, TRIES)):
         raise WhatsAppError("Too many wrong tries. Ask for a new code.")
-    db.run("UPDATE whatsapp_numbers SET attempts=attempts+1 WHERE workspace_id=? AND phone=?", (ws_id, phone))
     if not hmac.compare_digest(row["code_hash"], _hash(phone, code)):
         raise WhatsAppError("That code is not right.")
     db.run("UPDATE whatsapp_numbers SET verified_at=?, code_hash=NULL WHERE workspace_id=? AND phone=?", (time.time(), ws_id, phone))

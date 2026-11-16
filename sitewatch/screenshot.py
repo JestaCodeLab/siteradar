@@ -7,7 +7,7 @@ import threading
 import time
 from urllib.parse import urlparse
 
-from . import storage
+from . import netguard, storage
 
 log = logging.getLogger("sitewatch.screenshot")
 DEVICES = {
@@ -43,18 +43,29 @@ def _public(url):
     return True
 
 
-_seen = {}
+MAX_BODY = 25 * 1024 * 1024
+_DROP = {"content-encoding", "content-length", "transfer-encoding", "connection"}
 
 
-def _only_public(route):
-    """Lets a browser request through only when its host resolves to public addresses."""
-    url = route.request.url
-    if url.startswith(("data:", "blob:", "about:")):
+def _guarded(route):
+    """Every request the page makes is sent by us, through netguard, instead of by the browser. The address is checked and
+    connected to in one step, so a host that changes its DNS answer between a check and a connection cannot reach our network.
+    Redirects come back to the browser, which asks for the next address through here again."""
+    req = route.request
+    if req.url.startswith(("data:", "blob:", "about:")):
         return route.continue_()
-    host = urlparse(url).hostname or ""
-    if host not in _seen:
-        _seen[host] = _public(url)
-    return route.continue_() if _seen[host] else route.abort()
+    if not req.url.startswith(("http://", "https://")):
+        return route.abort()
+    try:
+        headers = {k: v for k, v in req.headers.items() if k.lower() not in ("host", "content-length", "cookie")}
+        r = netguard.request(req.method, req.url, headers=headers, data=req.post_data_buffer, allow_redirects=False, stream=True, timeout=20)
+        body = r.raw.read(MAX_BODY + 1, decode_content=True)
+        r.close()
+        if len(body) > MAX_BODY:
+            return route.abort()
+        return route.fulfill(status=r.status_code, headers={k: v for k, v in r.headers.items() if k.lower() not in _DROP}, body=body)
+    except Exception:
+        return route.abort()
 
 
 def capture(cfg, site):
@@ -63,15 +74,15 @@ def capture(cfg, site):
         raise ValueError("That address points to a private network, so no preview was taken.")
     from playwright.sync_api import sync_playwright
     with _lock, sync_playwright() as p:
-        browser = p.chromium.launch(args=["--no-sandbox"])
+        browser = p.chromium.launch(args=["--no-sandbox"])   # the container runs as an unprivileged user, see the Dockerfile
         try:
             for device, opts in DEVICES.items():
                 ctx = browser.new_context(
-                    viewport=opts["viewport"], is_mobile=opts["mobile"], has_touch=opts["mobile"], device_scale_factor=1,
+                    viewport=opts["viewport"], is_mobile=opts["mobile"], has_touch=opts["mobile"], device_scale_factor=1, service_workers="block",
                     user_agent=("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148"
                                 if opts["mobile"] else None))
                 page = ctx.new_page()
-                page.route("**/*", _only_public)   # redirects and page resources must not lead into our network either
+                page.route("**/*", _guarded)   # redirects and page resources must not lead into our network either
                 try:
                     resp = page.goto(site["url"], wait_until="domcontentloaded", timeout=45000)
                     if resp is None or resp.status >= 400:

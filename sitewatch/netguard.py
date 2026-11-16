@@ -8,9 +8,13 @@ is repeated for each redirect.
 """
 import ipaddress
 import socket
+import threading
+import time
 from urllib.parse import urlparse
 
 import requests
+import urllib3.util.connection
+from requests.adapters import HTTPAdapter
 
 PORTS = {80, 443, 8080, 8443}
 
@@ -59,12 +63,80 @@ def is_public_url(url):
     return True
 
 
+_local = threading.local()
+_original_create_connection = urllib3.util.connection.create_connection
+
+
+def _guarded_create_connection(address, *args, **kwargs):
+    """While a SafeSession request is being sent, connect to an address that was checked at this moment, not to whatever a second
+    lookup returns. This closes the gap a DNS rebinding attack uses (public answer for the check, private answer for the connection).
+    TLS still verifies the certificate against the real host name, because only the socket address changes."""
+    if not getattr(_local, "depth", 0):
+        return _original_create_connection(address, *args, **kwargs)
+    host, port = address
+    last = None
+    for ip in _public_ips(host.strip("[]"), port):
+        try:
+            return _original_create_connection((ip, port), *args, **kwargs)
+        except OSError as e:
+            last = e
+    raise last or Blocked("That address did not resolve.")
+
+
+urllib3.util.connection.create_connection = _guarded_create_connection
+
+
+MAX_BODY = 8 * 1024 * 1024        # the most we read of any one response
+MAX_READ_SECONDS = 60             # and the longest we spend reading it, so a slow trickle cannot hold a worker
+
+
+class _Capped:
+    """Stands in for a response's body stream and ends it after MAX_BODY bytes or MAX_READ_SECONDS, so one hostile website cannot
+    use up the memory or the threads that monitor everyone else's. What was read is kept; the rest is simply not read."""
+
+    def __init__(self, raw):
+        self._raw, self._left, self._until = raw, MAX_BODY, time.monotonic() + MAX_READ_SECONDS
+
+    def __getattr__(self, name):
+        return getattr(self._raw, name)
+
+    def read(self, amt=None, *args, **kwargs):
+        if self._left <= 0 or time.monotonic() > self._until:
+            return b""
+        data = self._raw.read(self._left if amt is None else min(amt, self._left), *args, **kwargs)
+        self._left -= len(data)
+        return data
+
+    def stream(self, amt=2 ** 16, *args, **kwargs):
+        while True:
+            chunk = self.read(amt, *args, **kwargs)
+            if not chunk:
+                return
+            yield chunk
+
+
+class _CappedAdapter(HTTPAdapter):
+    def build_response(self, req, resp):
+        r = super().build_response(req, resp)
+        r.raw = _Capped(r.raw)
+        return r
+
+
 class SafeSession(requests.Session):
-    """A Session that checks every request it sends, including each hop of a redirect chain."""
+    """A Session that checks every request it sends, including each hop of a redirect chain, and connects only to the checked address."""
+
+    def __init__(self):
+        super().__init__()
+        for scheme in ("http://", "https://"):
+            self.mount(scheme, _CappedAdapter())
 
     def send(self, request, **kwargs):
         check_url(request.url)
-        return super().send(request, **kwargs)
+        _local.depth = getattr(_local, "depth", 0) + 1
+        try:
+            return super().send(request, **kwargs)
+        finally:
+            _local.depth -= 1
 
 
 def request(method, url, **kwargs):
@@ -93,6 +165,17 @@ def connect_tls(host, port, timeout=10):
 
 # Where alert messages may be posted. A webhook anywhere else would let a customer aim our servers at any site.
 CHAT_HOSTS = ("hooks.slack.com", ".webhook.office.com", ".office.com", ".logic.azure.com", ".api.powerplatform.com", ".powerplatform.com")
+
+
+# Where browser push messages may be sent: the push services the major browsers use. An endpoint anywhere else would let a
+# customer aim our servers at any address.
+PUSH_HOSTS = ("fcm.googleapis.com", "android.googleapis.com", ".push.services.mozilla.com", ".push.apple.com", ".notify.windows.com")
+
+
+def push_endpoint_ok(url):
+    p = urlparse(url or "")
+    h = (p.hostname or "").lower()
+    return p.scheme == "https" and not p.port and not p.username and any(h == d or (d.startswith(".") and h.endswith(d)) for d in PUSH_HOSTS)
 
 
 def chat_webhook_ok(url):

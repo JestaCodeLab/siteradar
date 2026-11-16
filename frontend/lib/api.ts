@@ -201,6 +201,8 @@ export interface Me {
   authenticated: boolean; user: User | null;
   workspaces: { id: number; name: string; role: Role; logo_url: string | null }[];
   workspace: Workspace | null;
+  /** A super admin who still has to give a two-factor code: "setup" the first time, "verify" after that. */
+  mfa_pending?: "setup" | "verify" | null;
   support: { until: number; reason: string; mode: "view" | "edit" } | null;
   announcement: string | null;
   session_seconds_left?: number | null;

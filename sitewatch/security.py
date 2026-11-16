@@ -31,13 +31,13 @@ def limited(bucket, per_minutes, maximum, key=None):
     """True when `key` (the caller's address unless given) has used up its attempts in this window. Counted in the database,
     so it holds across restarts and across several web processes."""
     k, now = key or client_ip(), time.time()
-    n = db.q1("SELECT COUNT(*) n FROM rate_hits WHERE bucket=? AND key=? AND ts>?", (bucket, k, now - per_minutes * 60))["n"]
-    if n >= maximum:
-        return True
+    # Record the attempt first, then count: requests that arrive together each see the others, so no more than `maximum` get through.
+    # (Refused attempts are counted too, so hammering a blocked endpoint keeps it blocked.)
     db.exec("INSERT INTO rate_hits(bucket, key, ts) VALUES (?,?,?)", (bucket, k, now))
+    n = db.q1("SELECT COUNT(*) n FROM rate_hits WHERE bucket=? AND key=? AND ts>?", (bucket, k, now - per_minutes * 60))["n"]
     if int(now) % 50 == 0:
         db.exec("DELETE FROM rate_hits WHERE ts<?", (now - 86400,))
-    return False
+    return n > maximum
 
 
 def _origin(url):

@@ -36,6 +36,8 @@ def main(argv=None):
     r.add_argument("--email", action="store_true", help="email to the site's report_to list")
     sub.add_parser("snippet")
     sub.add_parser("test-alert")
+    r2 = sub.add_parser("reset-2fa")    # a super admin lost their authenticator: they enrol a new one at their next sign-in
+    r2.add_argument("email")
     sub.add_parser("vapid")            # make the key pair for browser notifications
     args = p.parse_args(argv)
 
@@ -108,6 +110,12 @@ def main(argv=None):
     elif args.cmd == "snippet":
         for site in cfg["sites"]:
             print(f"{site['name']}:\n  <script defer src=\"{cfg['public_url']}/t.js\" data-site=\"{site['id']}\"></script>\n")
+    elif args.cmd == "reset-2fa":
+        user = accounts.user_by_email(args.email)
+        if not user:
+            sys.exit(f"No account with the address {args.email}.")
+        db.exec("UPDATE users SET totp_secret=NULL, totp_enabled=0, totp_last=0, session_ver=session_ver+1 WHERE id=?", (user["id"],))
+        print(f"Two-factor sign-in reset for {user['email']}. They set up a new authenticator at their next sign-in.")
     elif args.cmd == "test-alert":
         ok = alerts.notify(cfg, cfg["sites"][0] if cfg["sites"] else {}, "SiteRadar test alert",
                            "If you can read this, alerts are working.")

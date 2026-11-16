@@ -42,7 +42,7 @@ const nextConfig: NextConfig = {
   // Signed-in and one-off pages stay out of search results.
   async headers() {
     const paths = ["/admin/:path*", "/overview/:path*", "/websites/:path*", "/reports/:path*", "/subscriptions/:path*", "/settings/:path*", "/activity/:path*", "/billing/:path*", "/team/:path*",
-      "/onboarding/:path*", "/verify", "/forgot", "/invite/:path*", "/auth/:path*"];
+      "/onboarding/:path*", "/verify", "/forgot", "/2fa", "/invite/:path*", "/auth/:path*"];
     return [
       { source: "/:path*", headers: securityHeaders },
       // The service worker must always be fetched fresh, or a new version never reaches installed apps.

@@ -68,6 +68,8 @@ def create_app(cfg):
         if not site or site.get("paused"):
             return Response("", 404, cors)
         ip = security.client_ip()
+        if security.limited("collect", 1, 120, key=ip):          # a real visitor sends a handful a minute
+            return Response("", 429, cors)
         analytics.record_hit(cfg["data_dir"], site, payload, ip, request.headers.get("User-Agent", ""))
         return Response("", 204, cors)
 
