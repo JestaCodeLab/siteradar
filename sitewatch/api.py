@@ -31,6 +31,29 @@ def blueprint(cfg):
             abort(404, "Unknown website")
         return s
 
+    def sub_or_404(sub_id):
+        """A subscription of this workspace. People limited to selected websites only get the ones tied to those websites."""
+        sub = subscriptions.get(g.ws["id"], sub_id)
+        if not sub or (g.site_access is not None and sub["site_id"] not in g.site_access):
+            abort(404, "Unknown subscription")
+        return sub
+
+    def invoice_or_404(invoice_id):
+        row = db.q1("""SELECT s.site_id FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id
+                       WHERE i.id=? AND s.workspace_id=?""", (invoice_id, g.ws["id"]))
+        if not row or (g.site_access is not None and row["site_id"] not in g.site_access):
+            abort(404, "Invoice not found")
+
+    def whole_workspace_only():
+        """Spending totals and reports cover every website, so people limited to selected websites do not get them."""
+        if g.site_access is not None:
+            abort(403, "This is only available to people with access to all websites.")
+
+    def check_site_choice(data):
+        """People limited to selected websites can only attach a subscription to one of those websites."""
+        if g.site_access is not None and "site_id" in data and (data.get("site_id") or None) not in g.site_access:
+            abort(403, "You do not have access to that website.")
+
     @bp.before_request
     def guard():
         """Everything in this blueprint needs a signed-in member of a workspace; viewers can only read."""
@@ -175,6 +198,8 @@ def blueprint(cfg):
     @bp.post("/settings/test-alert")
     @need("admin")
     def test_alert():
+        if security.limited("test-alert", 60, 5, key=str(g.ws["id"])):
+            return jsonify(error="You have sent several test alerts. Try again in an hour.", code="rate"), 429
         ok = alerts.notify(cfg, {"workspace_id": g.ws["id"]}, "SiteRadar test alert", "If you can read this, alerts are working.")
         return jsonify(sent=ok, to=g.ws["alert_emails"]), (200 if ok else 502)
 
@@ -773,11 +798,16 @@ def blueprint(cfg):
         items = subscriptions.list_all(g.ws["id"], request.args.get("site") or None)
         if g.site_access is not None:
             items = [i for i in items if i["site_id"] in g.site_access]
+            return jsonify(subscriptions=items, summary=subscriptions.summary(g.ws["id"], [i for i in subscriptions.list_all(g.ws["id"]) if i["site_id"] in g.site_access]),
+                           categories=subscriptions.CATEGORIES)
         return jsonify(subscriptions=items, summary=subscriptions.summary(g.ws["id"]), categories=subscriptions.CATEGORIES)
 
     @bp.post("/subscriptions")
     def add_subscription():
         data = form_or_json()
+        if g.site_access is not None:
+            data["site_id"] = data.get("site_id") or None
+        check_site_choice(data)
         sub_id = subscriptions.create(g.ws["id"], data)
         f = request.files.get("invoice")
         if f and f.filename:
@@ -790,23 +820,25 @@ def blueprint(cfg):
 
     @bp.get("/subscriptions/<int:sub_id>")
     def get_subscription(sub_id):
-        return jsonify(subscriptions.get(g.ws["id"], sub_id) or abort(404, "Unknown subscription"))
+        return jsonify(sub_or_404(sub_id))
 
     @bp.patch("/subscriptions/<int:sub_id>")
     def edit_subscription(sub_id):
-        subscriptions.get(g.ws["id"], sub_id) or abort(404, "Unknown subscription")
-        subscriptions.update(g.ws["id"], sub_id, form_or_json())
+        sub_or_404(sub_id)
+        data = form_or_json()
+        check_site_choice(data)
+        subscriptions.update(g.ws["id"], sub_id, data)
         return jsonify(subscriptions.get(g.ws["id"], sub_id))
 
     @bp.delete("/subscriptions/<int:sub_id>")
     def remove_subscription(sub_id):
-        subscriptions.get(g.ws["id"], sub_id) or abort(404, "Unknown subscription")
+        sub_or_404(sub_id)
         subscriptions.delete(cfg, sub_id)
         return jsonify(ok=True)
 
     @bp.post("/subscriptions/<int:sub_id>/invoices")
     def upload_invoice(sub_id):
-        subscriptions.get(g.ws["id"], sub_id) or abort(404, "Unknown subscription")
+        sub_or_404(sub_id)
         f = request.files.get("invoice")
         if not f or not f.filename:
             raise ValueError("Choose a PDF to upload.")
@@ -825,6 +857,7 @@ def blueprint(cfg):
 
     @bp.get("/invoices/<int:invoice_id>/file")
     def invoice_file(invoice_id):
+        invoice_or_404(invoice_id)
         inv, data = subscriptions.invoice_file(cfg, g.ws["id"], invoice_id)
         if not inv or data is None:
             abort(404, "Invoice not found")
@@ -833,6 +866,7 @@ def blueprint(cfg):
 
     @bp.delete("/invoices/<int:invoice_id>")
     def remove_invoice(invoice_id):
+        invoice_or_404(invoice_id)
         subscriptions.delete_invoice(cfg, g.ws["id"], invoice_id)
         return jsonify(ok=True)
 
@@ -847,6 +881,7 @@ def blueprint(cfg):
 
     @bp.get("/subscription-reports")
     def subscription_report_list():
+        whole_workspace_only()
         out = []
         for p in subscriptions.available_months(g.ws["id"]):
             y, m = parse_period(p)
@@ -856,10 +891,12 @@ def blueprint(cfg):
 
     @bp.get("/subscription-reports/<period>")
     def subscription_report(period):
+        whole_workspace_only()
         return jsonify(subscriptions.build_report(g.ws["id"], *parse_period(period)))
 
     @bp.get("/subscription-reports/<period>.<fmt>")
     def subscription_report_file(period, fmt):
+        whole_workspace_only()
         if fmt not in ("html", "pdf"):
             abort(404)
         year, month = parse_period(period)
@@ -869,6 +906,9 @@ def blueprint(cfg):
 
     @bp.post("/subscription-reports/<period>/email")
     def subscription_report_email(period):
+        whole_workspace_only()
+        if security.limited("sub-report-email", 60, 5, key=str(g.ws["id"])):
+            return jsonify(error="That report was sent several times. Try again in an hour.", code="rate"), 429
         year, month = parse_period(period)
         to = g.ws["alert_emails"]
         ok = sub_report.email(cfg, g.ws, year, month) if to else False

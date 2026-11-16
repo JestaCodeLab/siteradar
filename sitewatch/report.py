@@ -550,7 +550,7 @@ def publish(key, html, pdf=False, workspace_id=None):
 def to_pdf(html_path, pdf_path):
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = p.chromium.launch(args=["--no-sandbox"])      # the container user is unprivileged and has no user namespaces for the sandbox
         page = b.new_page()
         page.goto("file://" + os.path.abspath(html_path))
         page.emulate_media(media="print")

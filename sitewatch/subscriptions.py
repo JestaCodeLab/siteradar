@@ -111,8 +111,8 @@ def totals(items):
             "yearly": {k: round(v, 2) for k, v in year.items()}}
 
 
-def summary(ws_id):
-    items = list_all(ws_id)
+def summary(ws_id, items=None):
+    items = list_all(ws_id) if items is None else items
     live = [s for s in items if s["status"] != "cancelled"]
     today = dt.date.today()
     soon = [s for s in live if s["status"] == "soon"]

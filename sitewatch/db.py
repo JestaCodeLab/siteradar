@@ -329,6 +329,11 @@ UPDATE plans SET price_month_usd=29.99 WHERE id='starter';
 UPDATE plans SET price_month_usd=69.99 WHERE id='growth';
 UPDATE plans SET price_month_usd=179.99 WHERE id='scale';
 """),
+    (26, """
+ALTER TABLE users ADD COLUMN totp_secret TEXT;
+ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN totp_last BIGINT NOT NULL DEFAULT 0;
+"""),
 ]
 
 

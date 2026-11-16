@@ -126,12 +126,14 @@ def check_code(user, purpose, code):
     code = re.sub(r"\D", "", code or "")
     if not row or row["expires"] < time.time():
         raise AuthError("That code has expired. Ask for a new one.", "expired", 400)
-    if row["attempts"] >= 5:
+    # Counting the attempt and checking the limit is one statement, so parallel guesses cannot all slip under the limit.
+    if not db.q1("UPDATE email_codes SET attempts=attempts+1 WHERE id=? AND attempts<5 RETURNING id", (row["id"],)):
         raise AuthError("Too many wrong attempts. Ask for a new code.", "locked", 429)
-    db.exec("UPDATE email_codes SET attempts=attempts+1 WHERE id=?", (row["id"],))
     if not hmac.compare_digest(row["code_hash"], _hash_code(user["id"], purpose, code)):
         raise AuthError("That code is not right. Check it and try again.", "bad_code", 400)
-    db.exec("UPDATE email_codes SET used=1 WHERE id=?", (row["id"],))
+    # A right code works once, even if it was sent twice at the same moment.
+    if not db.q1("UPDATE email_codes SET used=1 WHERE id=? AND used=0 RETURNING id", (row["id"],)):
+        raise AuthError("That code has expired. Ask for a new one.", "expired", 400)
 
 
 def send_welcome(user):
@@ -218,14 +220,17 @@ def reset_password(email, code, new_password):
     user = user_by_email((email or "").strip()) or raise_(AuthError("That code is not right.", "bad_code", 400))
     _validate_password(new_password)
     check_code(user, "reset", code)
-    db.exec("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(new_password), user["id"]))
+    # Every signed-in browser is signed out: whoever may have had access with the old password loses it.
+    db.exec("UPDATE users SET password_hash=?, session_ver=session_ver+1 WHERE id=?", (generate_password_hash(new_password), user["id"]))
 
 
 def change_password(user, current, new):
+    """Sets the new password and signs every other browser out. Returns the new session version for the browser that asked."""
     if not check_password_hash(user["password_hash"], current or ""):
         raise ValueError("Your current password is not right.")
     _validate_password(new)
-    db.exec("UPDATE users SET password_hash=? WHERE id=?", (generate_password_hash(new), user["id"]))
+    db.exec("UPDATE users SET password_hash=?, session_ver=session_ver+1 WHERE id=?", (generate_password_hash(new), user["id"]))
+    return user_by_id(user["id"])["session_ver"]
 
 
 def request_email_change(user, new_email, password):
@@ -535,7 +540,9 @@ def cancel_invite(ws_id, invite_id):
     db.exec("DELETE FROM invitations WHERE id=? AND workspace_id=?", (invite_id, ws_id))
 
 
-def set_role(ws, actor_id, user_id, role, site_ids=False):
+def set_role(ws, actor_role, user_id, role, site_ids=False):
+    """Change someone's role. `actor_role` is the role of the person asking (their role in this workspace). Nobody can change
+    a role equal to or above their own, or grant one: an admin manages members and viewers, only the owner manages admins."""
     if role not in ("admin", "member", "viewer"):
         raise ValueError("Choose a role: Admin, Member or Viewer.")
     target = role_in(user_id, ws["id"])
@@ -543,6 +550,8 @@ def set_role(ws, actor_id, user_id, role, site_ids=False):
         raise ValueError("That person is not on your team.")
     if target == "owner":
         raise AuthError("The owner's role can't be changed.", "forbidden", 403)
+    if RANK.get(actor_role, -1) <= RANK[target] or RANK.get(actor_role, -1) <= RANK[role]:
+        raise AuthError("You can only manage people, and grant roles, below your own.", "forbidden", 403)
     if role == "viewer" and not plans.limits(ws)["client_access"]:
         raise plans.LimitError("Client viewer access is part of the Growth plan and above.")
     db.exec("UPDATE memberships SET role=? WHERE workspace_id=? AND user_id=?", (role, ws["id"], user_id))
@@ -550,14 +559,14 @@ def set_role(ws, actor_id, user_id, role, site_ids=False):
         db.exec("UPDATE memberships SET site_access=? WHERE workspace_id=? AND user_id=?", (clean_access(ws["id"], site_ids), ws["id"], user_id))
 
 
-def remove_member(ws, actor_id, user_id):
+def remove_member(ws, actor_role, user_id):
     target = role_in(user_id, ws["id"])
     if target == "owner":
         raise AuthError("The owner can't be removed.", "forbidden", 403)
     if target is None:
         raise ValueError("That person is not on your team.")
-    if target == "admin" and role_in(actor_id, ws["id"]) != "owner":
-        raise AuthError("Only the owner can remove an admin.", "forbidden", 403)
+    if RANK.get(actor_role, -1) <= RANK[target]:
+        raise AuthError("You can only remove people below your own role. Only the owner can remove an admin.", "forbidden", 403)
     db.exec("DELETE FROM memberships WHERE workspace_id=? AND user_id=?", (ws["id"], user_id))
 
 

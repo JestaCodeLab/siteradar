@@ -27,6 +27,7 @@ export const money = (n: number, currency = "USD") =>
 
 /** Where a person belongs right after signing in. */
 export function homeFor(me: Me): string {
+  if (me.mfa_pending) return "/2fa";          // a super admin's second step comes before anything else
   if (!me.workspace) return me.user?.is_super ? "/admin" : "/onboarding/company";
   if (!me.workspace.onboarded) return "/onboarding/plan";      // the company is saved with the workspace, so only the plan is left
   return "/overview";

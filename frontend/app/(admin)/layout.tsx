@@ -33,6 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (isLoading || !me) return;
     if (!me.authenticated) router.replace("/login");
+    else if (me.mfa_pending) router.replace("/2fa");
     else if (!me.user?.is_super) router.replace("/overview");
   }, [me, isLoading, router]);
 

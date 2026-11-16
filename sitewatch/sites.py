@@ -5,7 +5,7 @@ import secrets
 import time
 from urllib.parse import urlparse
 
-from . import db, netguard, plans
+from . import accounts, db, netguard, plans
 
 LIST_FIELDS = ("report_to", "alert_to")
 
@@ -38,11 +38,20 @@ def normalise_url(url):
     return url.rstrip("/") or url
 
 
+def clean_emails(value):
+    """A list of real email addresses, at most ten. Anything else is refused, so a website cannot be set up to send email to strangers by accident or on purpose."""
+    if not value:
+        return []
+    if not isinstance(value, (list, tuple)):
+        raise ValueError("Enter email addresses as a list.")
+    return list(dict.fromkeys(accounts.norm_email(str(e)) for e in value))[:10]
+
+
 def _insert(site):
     db.run("""INSERT INTO sites(id, name, url, keyword, owner, report_to, alert_to, track_analytics, audit, created, workspace_id)
               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
            (site["id"], site["name"], site["url"], site.get("keyword"), site.get("owner", ""),
-            json.dumps(site.get("report_to") or []), json.dumps(site.get("alert_to") or []),
+            json.dumps(clean_emails(site.get("report_to"))), json.dumps(clean_emails(site.get("alert_to"))),
             int(site.get("track_analytics", True)), int(site.get("audit", True)), time.time(), site.get("workspace_id")))
 
 
@@ -100,7 +109,7 @@ def update(cfg, site_id, data):
             sets.append(f"{f}=?"); args.append(data[f] or None if f == "keyword" else data[f] or "")
     for f in LIST_FIELDS:
         if f in data:
-            sets.append(f"{f}=?"); args.append(json.dumps(list(data[f] or [])))
+            sets.append(f"{f}=?"); args.append(json.dumps(clean_emails(data[f])))
     for f in ("audit",):          # visitor tracking is required, so it can no longer be switched off
         if f in data:
             sets.append(f"{f}=?"); args.append(int(bool(data[f])))

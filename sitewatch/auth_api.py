@@ -7,9 +7,9 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, turnstile, uptime_tool, whatsapp
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, totp, turnstile, uptime_tool, vault, whatsapp
 from .security import browser_bind, client_ip, limited, same_browser, sha
-from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, need, workspace_required
+from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, mfa_state, need, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
 LOGO_MAX = 1536 * 1024
@@ -54,6 +54,10 @@ def blueprint(cfg):
         if chosen:
             session["ws"] = chosen["id"]
 
+    def discount_limited():
+        """Discount codes are tried at checkout as well as in the check box, so all of them share one allowance."""
+        return limited("discount", 10, 20) or limited("discount-ws", 10, 20, key=str(g.ws["id"]))
+
     def announcement():
         a = db.kv_get("announcement")
         if not a or not g.ws:
@@ -63,9 +67,11 @@ def blueprint(cfg):
 
     def me_payload():
         mine = accounts.memberships(g.user["id"]) if g.user else []
+        pending = mfa_state(g.user) if g.user else None
         return {
             "authenticated": bool(g.user),
-            "user": accounts.public_user(g.user) if g.user else None,
+            "user": {**accounts.public_user(g.user), **({"is_super": False} if pending else {})} if g.user else None,
+            "mfa_pending": pending,
             "workspaces": [{"id": w["id"], "name": w["name"], "role": w["role"], "logo_url": w["logo_url"]} for w in mine],
             "workspace": accounts.public_workspace(g.ws, g.role) if g.ws else None,
             "announcement": announcement(),
@@ -276,6 +282,62 @@ def blueprint(cfg):
         load_workspace(user, row["ws_id"])
         return jsonify(me_payload())
 
+    # ---- two-factor sign-in for super admins ---------------------------------------------------
+    def super_user():
+        user = accounts.user_by_id(session.get("uid")) if session.get("uid") else None
+        if not user or not user["is_super"] or user["disabled"]:
+            abort(404)
+        return user
+
+    def spent_code(user, code):
+        """True for a right code that has not been used before. The step is claimed in the same statement that checks it."""
+        secret = vault.unseal(user["totp_secret"]) if user["totp_secret"] else None
+        step = totp.verify(secret, code, user["totp_last"]) if secret else None
+        return step is not None and bool(db.q1("UPDATE users SET totp_last=? WHERE id=? AND totp_last<? RETURNING id", (step, user["id"], step)))
+
+    def mfa_done(user):
+        session["mfa"] = True
+        g.user = accounts.user_by_id(user["id"])
+        return jsonify(me_payload())
+
+    @bp.post("/auth/2fa/setup")
+    @login_required
+    def mfa_setup():
+        """Start enrolling an authenticator app: a new secret to add to it. Nothing is switched on until a code from it is confirmed."""
+        user = super_user()
+        if user["totp_enabled"]:
+            raise ValueError("Two-factor sign-in is already on for this account.")
+        secret = totp.new_secret()
+        db.exec("UPDATE users SET totp_secret=?, totp_last=0 WHERE id=?", (vault.seal(secret), user["id"]))
+        return jsonify(secret=secret, uri=totp.uri(secret, user["email"]))
+
+    @bp.post("/auth/2fa/enable")
+    @login_required
+    def mfa_enable():
+        user = super_user()
+        if limited("2fa", 15, 10, key=str(user["id"])):
+            return jsonify(error="Too many attempts. Try again in 15 minutes.", code="rate"), 429
+        if user["totp_enabled"] or not user["totp_secret"]:
+            raise ValueError("Start the setup first.")
+        if not spent_code(user, body().get("code")):
+            return jsonify(error="That code is not right. Check the code in your app and try again.", code="bad_code"), 400
+        db.exec("UPDATE users SET totp_enabled=1 WHERE id=?", (user["id"],))
+        db.exec("INSERT INTO admin_audit(ts, admin_id, action, detail) VALUES (?,?,?,?)", (time.time(), user["id"], "2fa.enable", "Two-factor sign-in switched on"))
+        return mfa_done(user)
+
+    @bp.post("/auth/2fa/verify")
+    @login_required
+    def mfa_verify():
+        user = super_user()
+        if limited("2fa", 15, 10, key=str(user["id"])):
+            return jsonify(error="Too many attempts. Try again in 15 minutes.", code="rate"), 429
+        if not user["totp_enabled"]:
+            raise ValueError("Set up two-factor sign-in first.")
+        if not spent_code(user, body().get("code")):
+            db.exec("INSERT INTO admin_audit(ts, admin_id, action, detail) VALUES (?,?,?,?)", (time.time(), user["id"], "2fa.fail", "Wrong two-factor code"))
+            return jsonify(error="That code is not right. Wait for a new one in your app and try again.", code="bad_code"), 400
+        return mfa_done(user)
+
     @bp.post("/auth/extend")
     @login_required
     def extend_session():
@@ -353,7 +415,7 @@ def blueprint(cfg):
     @bp.post("/account/password")
     @login_required
     def password():
-        accounts.change_password(g.user, body().get("current"), body().get("password"))
+        session["ver"] = accounts.change_password(g.user, body().get("current"), body().get("password"))      # this browser stays signed in
         return jsonify(ok=True)
 
     # ---- invitations -------------------------------------------------------
@@ -414,6 +476,8 @@ def blueprint(cfg):
     @need("owner")
     def onboarding_plan():
         d = body()
+        if d.get("code") and discount_limited():
+            return jsonify(error="Too many tries. Wait a few minutes and try again."), 429
         try:
             if not d.get("plan"):
                 return jsonify(error="Choose a plan to continue."), 400
@@ -476,6 +540,8 @@ def blueprint(cfg):
     @workspace_required
     @need("admin")
     def team_invite():
+        if limited("invite", 60, 20, key=str(g.ws["id"])):
+            return jsonify(error="You have sent many invitations. Try again in an hour.", code="rate"), 429
         accounts.invite(g.ws, g.user, body().get("email"), body().get("role") or "member", body().get("site_ids"))
         return jsonify(accounts.team(g.ws["id"])), 201
 
@@ -483,6 +549,8 @@ def blueprint(cfg):
     @workspace_required
     @need("admin")
     def team_resend(invite_id):
+        if limited("invite", 60, 20, key=str(g.ws["id"])):
+            return jsonify(error="You have sent many invitations. Try again in an hour.", code="rate"), 429
         accounts.resend_invite(g.ws, g.user, invite_id)
         return jsonify(ok=True)
 
@@ -497,7 +565,7 @@ def blueprint(cfg):
     @workspace_required
     @need("admin")
     def team_role(user_id):
-        accounts.set_role(g.ws, g.user["id"], user_id, body().get("role"), body().get("site_ids") if "site_ids" in body() else False)
+        accounts.set_role(g.ws, g.role, user_id, body().get("role"), body().get("site_ids") if "site_ids" in body() else False)
         return jsonify(ok=True)
 
     @bp.delete("/team/members/<int:user_id>")
@@ -511,7 +579,7 @@ def blueprint(cfg):
             db.exec("DELETE FROM memberships WHERE workspace_id=? AND user_id=?", (g.ws["id"], user_id))
             session.pop("ws", None)
         else:
-            accounts.remove_member(g.ws, g.user["id"], user_id)
+            accounts.remove_member(g.ws, g.role, user_id)
         return jsonify(ok=True)
 
     # ---- billing ------------------------------------------------------------
@@ -534,6 +602,8 @@ def blueprint(cfg):
     @need("owner")
     def billing_checkout():
         d = body()
+        if d.get("code") and discount_limited():
+            return jsonify(error="Too many tries. Wait a few minutes and try again."), 429
         try:
             return jsonify(billing.checkout(cfg, g.ws, g.user, d.get("plan"), d.get("cycle") or "monthly", code=d.get("code")))
         except RuntimeError as e:
@@ -544,7 +614,7 @@ def blueprint(cfg):
     @need("owner")
     def billing_discount():
         """Check a discount code for a plan before paying: what it takes off and what is left to pay."""
-        if limited("discount", 10, 20) or limited("discount-ws", 10, 20, key=str(g.ws["id"])):
+        if discount_limited():
             return jsonify(error="Too many tries. Wait a few minutes and try again."), 429
         d = body()
         cycle = d.get("cycle") or "monthly"

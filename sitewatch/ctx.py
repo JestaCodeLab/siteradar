@@ -8,14 +8,22 @@ import time
 
 from flask import g, jsonify, session
 
-from . import accounts, plans
+from . import accounts, plans, totp
 
 SUPPORT_MINUTES = 30
 SESSION_SECONDS = int(float(os.environ.get("SESSION_MINUTES", "60")) * 60)      # a login lasts this long unless the person chooses to stay
 
 
+def mfa_state(user):
+    """None when nothing more is needed. For a super admin who has not given a code in this sign-in: 'setup' (no authenticator yet) or 'verify'."""
+    if not user or not user["is_super"] or not totp.required() or session.get("mfa"):
+        return None
+    return "verify" if user.get("totp_enabled") else "setup"
+
+
 def load():
     g.user = g.ws = g.role = None
+    g.mfa_pending = None
     g.impersonating = None
     g.site_access = None
     uid = session.get("uid")
@@ -29,6 +37,9 @@ def load():
     if session.get("ver", 0) != user["session_ver"]:      # signed out from another device
         session.clear()
         return
+    g.mfa_pending = mfa_state(user)
+    if g.mfa_pending:          # until the code is given, a super admin is an ordinary person: no admin area, no support sessions
+        user = {**user, "is_super": 0}
     g.user = user
     session.setdefault("exp", time.time() + SESSION_SECONDS)      # sessions from before this rule get a full hour
     imp = session.get("imp")
