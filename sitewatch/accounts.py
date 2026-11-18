@@ -143,6 +143,23 @@ def send_welcome(user):
         mailer.send(user["email"], mail.subject, mail.text, mail.html)
     except Exception:
         log.exception("Welcome email failed for user %s", user["id"])
+    notify_admin_signup(user)
+
+
+def notify_admin_signup(user):
+    """Tell the platform owner a new customer has confirmed their email. Plain text, and never lets a mail problem get in the way."""
+    try:
+        to = os.environ.get("SIGNUP_NOTIFY_TO") or os.environ.get("ADMIN_EMAIL")
+        if not to:
+            return
+        clean = lambda v: " ".join(str(v or "").split())[:120]
+        name = clean(f"{user['first_name']} {user['last_name']}") or "(no name)"
+        how = "Google" if user.get("google_sub") else "email and password"
+        rows = [("Name", name), ("Email", clean(user["email"])), ("Country", clean(user.get("country")) or "unknown"), ("Signed up with", how),
+                ("Admin", (os.environ.get("APP_URL") or "").rstrip("/") + "/admin/customers")]
+        mailer.send(to, f"New SiteRadar signup: {name}", "A new customer has joined SiteRadar.\n\n" + "\n".join(f"{k}: {v}" for k, v in rows))
+    except Exception:
+        log.exception("Signup notification failed for user %s", user["id"])
 
 
 def verify_email(email, code):

@@ -227,6 +227,29 @@ def alert(ws, site, event, text):
     return sent, ""
 
 
+def send_test(phone, template="alert", text=""):
+    """Admin-only: one real template message to any number, to check the setup. Returns a dict with what Meta answered.
+    Logged as kind 'test' with no workspace, so it never counts toward a customer's limits."""
+    if not configured():
+        raise WhatsAppError("Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID first.")
+    phone = normalise(phone)
+    if not phone:
+        raise WhatsAppError("Enter the number with its country code, for example +233241234567.")
+    if template == "code":
+        name = os.environ.get("WHATSAPP_CODE_TEMPLATE", "siteradar_code")
+        code = f"{secrets.randbelow(10 ** 6):06d}"     # a throwaway code, not stored: it only proves the template works
+        comps = [{"type": "body", "parameters": [{"type": "text", "text": code}]},
+                 {"type": "button", "sub_type": "url", "index": "0", "parameters": [{"type": "text", "text": code}]}]
+    else:
+        name = os.environ.get("WHATSAPP_ALERT_TEMPLATE", "siteradar_alert")
+        comps = [{"type": "body", "parameters": [{"type": "text", "text": "Test website"},
+                                                 {"type": "text", "text": _clean(text, 200) if text else "This is a test alert from SiteRadar. Your WhatsApp setup works."}]}]
+    wamid, err = _post(phone, name, comps)
+    db.run("INSERT INTO whatsapp_log(workspace_id, ts, phone, kind, ok, error, wamid) VALUES (?,?,?,?,?,?,?)",
+           (None, time.time(), phone, "test", int(wamid is not None), err or None, wamid))
+    return {"ok": wamid is not None, "error": err, "template": name, "phone": phone, "wamid": wamid}
+
+
 def record_status(wamid, status, error=""):
     """Meta tells us afterwards whether a message was delivered, read or failed."""
     if wamid and status:
