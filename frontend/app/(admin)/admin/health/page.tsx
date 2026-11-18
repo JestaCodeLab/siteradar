@@ -75,6 +75,8 @@ export default function AdminHealth() {
             <span className="w-[190px] shrink-0 text-[13px] text-[#5B6472]">{fmtWhen(e.ts)}</span><span className="w-[110px] shrink-0 font-semibold capitalize">{e.source}</span><span className="min-w-0 flex-1 leading-snug">{e.text}</span></div>))}
       </AdminCard>
 
+      <WhatsAppTest />
+
       <AdminCard label="Announcement" className="flex flex-col gap-3.5">
         <h2 className="text-lg font-semibold">Message all customers</h2>
         <p className="text-sm text-[#5B6472]">Shows as a banner at the top of every dashboard. Use it for planned maintenance or news.</p>
@@ -90,5 +92,42 @@ export default function AdminHealth() {
 
       <p className="text-sm text-[#5B6472]">Also: <Link href="/admin/activity" className="font-semibold text-[#4A33B0]">Activity logs</Link></p>
     </>
+  );
+}
+
+interface WaTests { configured: boolean; tests: { ts: number; phone: string; ok: number; error: string | null; status: string | null }[] }
+
+function WhatsAppTest() {
+  const { data, mutate } = useSWR<WaTests>("/api/admin/whatsapp/tests", fetcher);
+  const setNote = useNoteToast();
+  const [busy, setBusy] = useState(false);
+  async function test(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = new FormData(e.currentTarget); setNote(null); setBusy(true);
+    try {
+      const r = await send<{ ok: boolean; error: string; template: string }>("POST", "/api/admin/whatsapp/test", { phone: f.get("phone"), template: f.get("template") });
+      setNote(r.ok ? { ok: true, text: `Meta accepted the "${r.template}" message. Delivery status appears below if the webhook is set up.` } : { ok: false, text: `Meta refused it: ${r.error}` });
+    } catch (err) { setNote({ ok: false, text: err instanceof Error ? err.message : "Could not send." }); }
+    setBusy(false); mutate();
+  }
+  return (
+    <AdminCard label="WhatsApp test" className="flex flex-col gap-3.5">
+      <h2 className="text-lg font-semibold">Send a test WhatsApp message</h2>
+      <p className="text-sm text-[#5B6472]">Sends one real message through Meta to check your token, number and templates. Each test is billed like any other message. While you are on Meta&apos;s test number, the recipient must be added in Meta&apos;s API Setup first.</p>
+      {data && !data.configured && <p className="rounded-lg bg-[#FFF1D6] px-4 py-3 text-sm text-[#8A5A00]">WhatsApp is not configured. Set WHATSAPP_TOKEN and WHATSAPP_PHONE_ID on the API service.</p>}
+      <form onSubmit={test} className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-[2_1_240px] flex-col gap-2"><label htmlFor="wa-phone" className="text-sm font-medium">Phone number</label><input id="wa-phone" name="phone" required placeholder="+233241234567" inputMode="tel" className={aInput} /></div>
+        <div className="flex flex-[1_1_200px] flex-col gap-2"><label htmlFor="wa-tpl" className="text-sm font-medium">Message</label><Select id="wa-tpl" name="template" defaultValue="alert" options={[{ value: "alert", label: "Down alert (siteradar_alert)" }, { value: "code", label: "Verification code (siteradar_code)" }]} /></div>
+        <button className={aBtn.primary} disabled={busy || (data ? !data.configured : false)}>{busy ? "Sending…" : "Send test"}</button>
+      </form>
+      {data && data.tests.length > 0 && (
+        <div className="border-t border-[#EDEFF3]">
+          {data.tests.map((t, i) => (
+            <div key={i} className="flex flex-wrap gap-x-4 gap-y-1 border-t border-[#EDEFF3] py-2.5 text-sm first:border-0">
+              <span className="w-[190px] shrink-0 text-[13px] text-[#5B6472]">{fmtWhen(t.ts)}</span><span className="w-[140px] shrink-0 font-mono">{t.phone}</span>
+              <span className={`font-semibold ${t.ok && t.status !== "failed" ? "text-[#0B7A4B]" : "text-[#B3261E]"}`}>{!t.ok ? "Refused" : t.status ? t.status[0].toUpperCase() + t.status.slice(1) : "Accepted"}</span>
+              {t.error && <span className="min-w-0 flex-1 leading-snug text-[#5B6472]">{t.error}</span>}
+            </div>))}
+        </div>)}
+    </AdminCard>
   );
 }

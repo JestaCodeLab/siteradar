@@ -8,7 +8,7 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, request, session
 
-from . import accounts, ai, billing, db, discounts, mailer, plans, sites, storage, whatsapp
+from . import accounts, ai, billing, db, discounts, mailer, plans, security, sites, storage, whatsapp
 from .ctx import SUPPORT_MINUTES, super_required
 
 PLAN_COLORS = {"freelance": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
@@ -747,6 +747,25 @@ def blueprint(cfg):
                       {"k": "Monthly reports queued", "v": f"0 (next run {nxt.strftime('%-d %b')})"}],
             errors=db.q("SELECT ts, source, text FROM error_log ORDER BY ts DESC LIMIT 8"),
             announcement=db.kv_get("announcement"), sms_wallet=None)
+
+    @bp.get("/whatsapp/tests")
+    def whatsapp_tests():
+        rows = db.q("SELECT ts, phone, ok, error, status FROM whatsapp_log WHERE kind='test' ORDER BY ts DESC LIMIT 10")
+        return jsonify(configured=whatsapp.configured(), tests=[{**r, "phone": whatsapp.mask(r["phone"] or "")} for r in rows])
+
+    @bp.post("/whatsapp/test")
+    def whatsapp_test():
+        """Send one real WhatsApp template message to any number, to test the Meta setup. Costs one message each time."""
+        if security.limited("wa_test", 60, 20, key=str(g.user["id"])):
+            return jsonify(error="Too many test messages this hour. Try again later."), 429
+        data = body()
+        template = "code" if data.get("template") == "code" else "alert"
+        try:
+            out = whatsapp.send_test(data.get("phone"), template, data.get("text"))
+        except whatsapp.WhatsAppError as e:
+            return jsonify(error=str(e)), 400
+        audit("whatsapp.test", None, f"{whatsapp.mask(out['phone'])} {template} {'sent' if out['ok'] else 'failed: ' + (out['error'] or '')}")
+        return jsonify(out)
 
     @bp.post("/announcement")
     def announce():

@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import { PageLoader } from "@/components/page-loader";
 import { homeFor, useMe } from "@/lib/me";
 
-/** Pages that stay open to signed-in people: the Google return page and invitation links. */
-const OPEN = ["/auth/done", "/invite"];
+/** Pages that stay open to signed-in people: the Google return page, invitation links and a super admin's two-factor step. */
+const OPEN = ["/auth/done", "/invite", "/2fa"];
 
 /**
  * Keeps signed-in people out of the log in, sign up and password pages. Someone who is signed in and
