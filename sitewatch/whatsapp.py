@@ -6,7 +6,8 @@ WHATSAPP_API_VERSION (default v21.0), WHATSAPP_VERIFY_TOKEN and WHATSAPP_APP_SEC
 
 The two templates must be approved in Meta Business Manager first:
   siteradar_alert (Utility), body:
-    SiteRadar alert for {{1}}: {{2}} Manage these alerts in your SiteRadar settings. This number does not receive replies.
+    You asked SiteRadar to notify you about {{1}}. Update: {{2}} This is an automated message, so replies are not monitored.
+    ({{1}} is the website name, {{2}} the alert text. Meta rejected the earlier wording as Utility, and a link or button also tripped it.)
   siteradar_code (Authentication), the standard one-time-password template with the copy-code button.
 Without a token nothing is sent and the settings screens say WhatsApp is not switched on yet.
 """
