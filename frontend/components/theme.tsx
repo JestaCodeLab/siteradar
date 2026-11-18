@@ -6,8 +6,8 @@ import { Moon, Sun } from "lucide-react";
 
 const KEY = "sitewatch.theme";
 const EVENT = "sitewatch-theme";
-/** Pages that stay light: sign-in, sign-up and onboarding. Everything else follows the theme, including addresses that do not exist (the 404 page). */
-export const LIGHT_ONLY = /^\/(login|signup|verify|forgot|invite|auth|onboarding)(\/|$)/;
+/** Pages that stay light: sign-in, sign-up, the two-factor step and onboarding. Everything else follows the theme, including addresses that do not exist (the 404 page). */
+export const LIGHT_ONLY = /^\/(login|signup|verify|forgot|invite|auth|onboarding|2fa)(\/|$)/;
 
 /** The signed-in app and the admin area. Their dark theme is navy; every other themed page (the public website) uses neutral black and grey. */
 export const APP_PAGES = /^\/(overview|websites|reports|subscriptions|settings|activity|billing|team|admin)(\/|$)/;

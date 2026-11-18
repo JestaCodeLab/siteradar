@@ -67,7 +67,9 @@ def blueprint(cfg):
 
     def me_payload():
         mine = accounts.memberships(g.user["id"]) if g.user else []
-        pending = mfa_state(g.user) if g.user else None
+        # Worked out from the stored account, not g.user: while a code is still owed, ctx.load() hands out a copy with is_super turned off,
+        # and asking mfa_state about that copy would answer "nothing owed".
+        pending = mfa_state(accounts.user_by_id(g.user["id"])) if g.user else None
         return {
             "authenticated": bool(g.user),
             "user": {**accounts.public_user(g.user), **({"is_super": False} if pending else {})} if g.user else None,
