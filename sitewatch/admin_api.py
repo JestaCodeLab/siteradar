@@ -63,11 +63,11 @@ def blueprint(cfg):
     def mrr_of(w, cat=None, currency=None):
         """Monthly recurring revenue of one workspace in its own currency, or 0 when `currency` asks for the other one."""
         cat = cat or catalogue()
-        if currency and (w.get("currency") or "GHS") != currency:
+        if currency and (w.get("currency") or "USD") != currency:
             return 0.0
         if w["comped"] or w["plan_status"] not in ("active", "past_due") or w["plan_id"] not in cat:
             return 0.0
-        return plans.price(cat[w["plan_id"]], w["cycle"], w.get("currency") or "GHS") / (12 if w["cycle"] == "yearly" else 1)
+        return plans.price(cat[w["plan_id"]], w["cycle"], w.get("currency") or "USD") / (12 if w["cycle"] == "yearly" else 1)
 
     def owner_of(w):
         return accounts.user_by_id(w["owner_id"]) if w["owner_id"] else None
@@ -78,7 +78,7 @@ def blueprint(cfg):
         return {"id": w["id"], "name": w["name"], "plan_id": w["plan_id"], "plan_name": (plans.get(w["plan_id"]) or {}).get("name", w["plan_id"]),
                 "plan_status": w["plan_status"], "cycle": w["cycle"], "suspended": w["suspended"], "comped": w["comped"],
                 "status": _status(w), "created": w["created"], "sites": u["sites"], "sites_limit": plan["sites"],
-                "members": u["members"], "members_limit": plan["members"], "mrr": round(mrr_of(w, cat), 2), "currency": w.get("currency") or "GHS", "renews": w["plan_renews"],
+                "members": u["members"], "members_limit": plan["members"], "mrr": round(mrr_of(w, cat), 2), "currency": w.get("currency") or "USD", "renews": w["plan_renews"],
                 "owner": {"name": f"{owner['first_name']} {owner['last_name']}".strip(), "email": owner["email"], "phone": owner["phone"],
                           "last_login": owner["last_login"]} if owner else None}
 
@@ -135,7 +135,7 @@ def blueprint(cfg):
         failed = db.q("SELECT amount, currency FROM payments WHERE status IN ('failed','abandoned') AND created>?", (now - 14 * 86400,))
         if failed:
             items.append({"tag": "Payment", "tone": "bad", "title": f"{len(failed)} failed payment{'s' if len(failed) != 1 else ''}",
-                          "sub": f"GHS {sum(f['amount'] for f in failed if (f['currency'] or 'GHS') == 'GHS'):,.0f} at risk. Retry or email the customers.", "href": "/admin/payments"})
+                          "sub": f"${sum(f['amount'] for f in failed if (f['currency'] or 'USD') == 'USD'):,.0f} at risk. Retry or email the customers.", "href": "/admin/payments"})
         services = health_services()
         for s in services:
             if s["tone"] != "ok" and s["status"] != "Not configured":
@@ -162,7 +162,7 @@ def blueprint(cfg):
             events.append({"ts": w["created"], "tag": "Signup", "tone": "ok", "title": f"{w['name']} signed up", "sub": f"{w['plan_id'].title()} plan", "href": f"/admin/customers/{w['id']}"})
         for p in db.q("""SELECT p.created, p.amount, p.workspace_id, w.name FROM payments p JOIN workspaces w ON w.id=p.workspace_id
                          WHERE p.status IN ('failed','abandoned') AND p.created>? ORDER BY p.created DESC LIMIT 10""", (week,)):
-            events.append({"ts": p["created"], "tag": "Payment", "tone": "bad", "title": f"Payment from {p['name']} failed", "sub": f"GHS {p['amount']:,.2f}", "href": f"/admin/customers/{p['workspace_id']}"})
+            events.append({"ts": p["created"], "tag": "Payment", "tone": "bad", "title": f"Payment from {p['name']} failed", "sub": f"${p['amount']:,.2f}", "href": f"/admin/customers/{p['workspace_id']}"})
         for m in db.q("SELECT ts, detail FROM admin_audit WHERE action='contact' AND ts>? ORDER BY ts DESC LIMIT 10", (week,)):
             first = (m["detail"] or "").splitlines()[0].replace("From:", "").strip()
             events.append({"ts": m["ts"], "tag": "Message", "tone": "purple", "title": f"New message from {first.split('<')[0].strip() or 'a visitor'}", "sub": "Contact form", "href": "/admin/activity?tab=messages"})
@@ -195,14 +195,13 @@ def blueprint(cfg):
         cat = catalogue()
         ws_list = all_workspaces()
         paying = [w for w in ws_list if mrr_of(w, cat) > 0]
-        mrr = sum(mrr_of(w, cat, "GHS") for w in paying)
-        mrr_usd = sum(mrr_of(w, cat, "USD") for w in paying)
+        mrr = sum(mrr_of(w, cat, "USD") for w in paying)
         by = {}
         for w in ws_list:
-            b = by.setdefault(w["plan_id"], {"count": 0, "mrr": 0.0, "usd": 0.0}); b["count"] += 1
-            b["mrr"] += mrr_of(w, cat, "GHS"); b["usd"] += mrr_of(w, cat, "USD")
+            b = by.setdefault(w["plan_id"], {"count": 0, "mrr": 0.0}); b["count"] += 1
+            b["mrr"] += mrr_of(w, cat, "USD")
         total = max(1, len(ws_list))
-        by_plan = [{"id": p["id"], "name": p["name"], "count": by.get(p["id"], {}).get("count", 0), "mrr": round(by.get(p["id"], {}).get("mrr", 0), 2), "mrr_usd": round(by.get(p["id"], {}).get("usd", 0), 2),
+        by_plan = [{"id": p["id"], "name": p["name"], "count": by.get(p["id"], {}).get("count", 0), "mrr": round(by.get(p["id"], {}).get("mrr", 0), 2),
                     "pct": round(100 * by.get(p["id"], {}).get("count", 0) / total, 1), "color": PLAN_COLORS.get(p["id"], "#9DB4F5")} for p in cat.values()]
         days = max(1, int((now - start) / 86400) + 1)
         series = {r["d"]: r["n"] for r in db.q("""SELECT to_char(to_timestamp(created) AT TIME ZONE ?, 'YYYY-MM-DD') d, COUNT(*) n FROM workspaces
@@ -218,8 +217,8 @@ def blueprint(cfg):
                            "owner": f"{o['first_name']} {o['last_name']}".strip() + f" · {o['email']}" if o else ""})
         new_in_period = sum(1 for w in ws_list if w["created"] >= start)
         return jsonify(period=period, label=label, customers=len(ws_list), new=new_in_period, paying=len(paying), paying_pct=round(100 * len(paying) / total),
-                       mrr=round(mrr, 2), mrr_usd=round(mrr_usd, 2), cancellations=cancellations, failed=len(failed), failed_amount=round(sum(f["amount"] for f in failed if (f["currency"] or "GHS") == "GHS"), 2),
-                       signups=signups, by_plan=by_plan, recent=recent, attention=attention(), currency="GHS", first_day=signups[0]["d"] if signups else None)
+                       mrr=round(mrr, 2), cancellations=cancellations, failed=len(failed), failed_amount=round(sum(f["amount"] for f in failed if (f["currency"] or "USD") == "USD"), 2),
+                       signups=signups, by_plan=by_plan, recent=recent, attention=attention(), currency="USD", first_day=signups[0]["d"] if signups else None)
 
     # ---- customers ----------------------------------------------------------------------
     def filtered_customers():
@@ -248,7 +247,7 @@ def blueprint(cfg):
     @bp.get("/customers.csv")
     def customers_csv():
         rows, _ = filtered_customers()
-        return csv_response("customers", ["Workspace", "Owner", "Email", "Plan", "Websites", "Team", "Status", "MRR (GHS)", "Joined"],
+        return csv_response("customers", ["Workspace", "Owner", "Email", "Plan", "Websites", "Team", "Status", "MRR (USD)", "Joined"],
                             [[r["name"], r["owner"]["name"] if r["owner"] else "", r["owner"]["email"] if r["owner"] else "", r["plan_name"], r["sites"], r["members"],
                               r["status"], r["mrr"], dt.date.fromtimestamp(r["created"]).isoformat()] for r in rows])
 
@@ -262,14 +261,14 @@ def blueprint(cfg):
             text = {"support.start": f"{who} viewed the workspace as owner. {a['detail']}", "support.stop": f"{who} ended the support session",
                     "support.mode": f"{who} changed the support session: {a['detail']}", "note": f"{who} added an internal note",
                     "customer.update": f"{who} updated the account: {a['detail']}", "payment.link": f"{who} sent a payment link to the owner",
-                    "payment.retry": f"{who} retried the payment ({a['detail']})", "payment.refund": f"{who} refunded GHS {a['detail']}",
+                    "payment.retry": f"{who} retried the payment ({a['detail']})", "payment.refund": f"{who} refunded ${a['detail']}",
                     "ai.credits": f"{who} changed AI credits: {a['detail']}", "plan.cancel": a["detail"], "plan.lapsed": a["detail"]}.get(a["action"], f"{who}: {a['action']} {a['detail']}")
             events.append({"ts": a["ts"], "text": text, "tone": "bad" if a["action"] == "plan.lapsed" else "purple" if a["action"] != "plan.cancel" else "muted"})
         for p in db.q("SELECT * FROM payments WHERE workspace_id=? AND status IN ('success','failed','abandoned','refunded') ORDER BY created DESC LIMIT 10", (ws["id"],)):
             ok = p["status"] in ("success", "refunded")
             events.append({"ts": p["paid"] or p["created"], "tone": "ok" if ok else "bad",
-                           "text": (f"Owner chose the {p['plan_id'].title()} plan and paid GHS {p['amount']:,.0f}" if p["kind"] == "subscription" else f"Renewal of GHS {p['amount']:,.0f} paid")
-                           if ok else f"Payment of GHS {p['amount']:,.0f} failed"})
+                           "text": (f"Owner chose the {p['plan_id'].title()} plan and paid ${p['amount']:,.0f}" if p["kind"] == "subscription" else f"Renewal of ${p['amount']:,.0f} paid")
+                           if ok else f"Payment of ${p['amount']:,.0f} failed"})
         for s in db.q("SELECT name, url, created FROM sites WHERE workspace_id=? ORDER BY created DESC LIMIT 5", (ws["id"],)):
             events.append({"ts": s["created"], "tone": "ok", "text": f"Owner added website {s['url'].split('//')[-1]}"})
         events.append({"ts": ws["created"], "tone": "muted", "text": "Workspace created"})
@@ -305,9 +304,9 @@ def blueprint(cfg):
             customer=row, limits_override=w["limits_override"], base_limits={k: base[k] for k in plans.OVERRIDABLE} if base else {},
             owner=row["owner"], billing=[
                 {"k": "Plan", "v": f"{plan['name']}, billed {w['cycle']}"},
-                {"k": "Price", "v": "Complimentary" if w["comped"] else "—" if not base or base["price_month"] == 0 else f"{plans.money(plans.price(base, w['cycle'], w.get('currency') or 'GHS'), w.get('currency') or 'GHS')} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
+                {"k": "Price", "v": "Complimentary" if w["comped"] else "—" if not base or base["price_month"] == 0 else f"{plans.money(plans.price(base, w['cycle'], w.get('currency') or 'USD'), w.get('currency') or 'USD')} / {'year' if w['cycle'] == 'yearly' else 'month'}"},
                 {"k": "Next renewal", "v": nxt}, {"k": "Payment method", "v": w["paystack_card"] or ("No card saved" if not w["comped"] and w["plan_status"] in ("active", "past_due") else "None")},
-                {"k": "Revenue so far", "v": plans.money(revenue, w.get("currency") or "GHS")},
+                {"k": "Revenue so far", "v": plans.money(revenue, w.get("currency") or "USD")},
                 {"k": "Discount or override", "v": "Complimentary" if w["comped"] else ("Custom limits" if w["limits_override"] else "None")}],
             usage=[{"label": "Websites", "text": f"{row['sites']} of {plan['sites']}", "pct": row["sites"] / max(plan["sites"], 1)},
                    {"label": "Team members", "text": f"{team['members'].__len__()} of {plan['members']}", "pct": len(team["members"]) / max(plan["members"], 1)},
@@ -456,7 +455,7 @@ def blueprint(cfg):
     def plans_payload():
         counts = {r["plan_id"]: r["n"] for r in db.q("SELECT plan_id, COUNT(*) n FROM workspaces WHERE name != '[deleted]' GROUP BY plan_id")}
         return {"plans": [{**p, "customers": counts.get(p["id"], 0)} for p in plans.all_plans(False)], "yearly_discount": plans.yearly_discount(),
-                "methods": METHODS, "currency": "GHS", "currencies": list(plans.CURRENCIES)}
+                "methods": METHODS, "currency": "USD"}
 
     @bp.get("/plans")
     def plans_list():
@@ -470,14 +469,17 @@ def blueprint(cfg):
             v = float(s["yearly_discount"])
             if not 0 <= v <= 60:
                 raise ValueError("The yearly discount must be between 0 and 60 percent.")
+        site_limit_before = {p["id"]: p["sites"] for p in plans.all_plans(False)}
         for p in d.get("plans") or []:
             plans.get(p.get("id")) or abort(400, "Unknown plan")
             sets, args = [], []
-            for f in ("price_month", "price_month_usd"):
+            for f in ("price_month_usd",):
                 if f in p:
                     v = float(p[f])
                     if v < 0: raise ValueError("Prices can't be negative.")
                     sets.append(f"{f}=?"); args.append(v)
+                    if f == "price_month_usd":          # the old price column only tells free from paid plans now, so it follows the dollar price
+                        sets.append("price_month=?"); args.append(v)
             for f in ("sites", "members", "interval_minutes", "sms", "history_months", "audit_pages", "storage_mb", "ai_credits"):
                 if f in p:
                     v = int(float(p[f]))
@@ -496,6 +498,11 @@ def blueprint(cfg):
             if "yearly_discount" in s:
                 cur["yearly_discount"] = float(s["yearly_discount"])
             db.kv_set("platform", cur)
+        # a lower website limit takes effect now: each affected customer keeps its oldest sites running and the rest are paused
+        lowered = {p["id"] for p in plans.all_plans(False) if p["sites"] < site_limit_before.get(p["id"], 0)}
+        if lowered:
+            for w in db.q("SELECT id FROM workspaces WHERE plan_id = ANY(?)", (list(lowered),)):
+                sites.enforce_limit(cfg, accounts.workspace(w["id"]))
         audit("plans.save", None, json.dumps(d)[:900])
         return jsonify(plans_payload())
 
@@ -550,8 +557,8 @@ def blueprint(cfg):
                 raise ValueError("The budget can't be negative.")
             cur["ai_budget_usd"] = v
         if "bundles" in d:
-            out = [{"credits": int(b["credits"]), "price_ghs": float(b["price_ghs"]), "price_usd": float(b["price_usd"])} for b in d["bundles"]
-                   if int(b["credits"]) > 0 and float(b["price_ghs"]) >= 0 and float(b["price_usd"]) >= 0]
+            out = [{"credits": int(b["credits"]), "price_ghs": float(b.get("price_ghs") or 0), "price_usd": float(b["price_usd"])} for b in d["bundles"]
+                   if int(b["credits"]) > 0 and float(b["price_usd"]) >= 0]
             if not out:
                 raise ValueError("Keep at least one package.")
             cur["ai_bundles"] = sorted(out, key=lambda b: b["credits"])
@@ -606,15 +613,15 @@ def blueprint(cfg):
         if db.q1("SELECT 1 FROM discount_codes WHERE code=?", (code,)):
             raise ValueError("That code already exists.")
         kind = "fixed" if d.get("kind") == "fixed" else "percent"
-        percent = ghs = usd = 0.0
+        percent = ghs = usd = 0.0      # ghs stays 0: codes are in dollars only
         if kind == "percent":
             percent = float(d.get("percent") or 0)
             if not 0 < percent <= 100:
                 raise ValueError("A percentage must be between 1 and 100.")
         else:
-            ghs, usd = float(d.get("amount_ghs") or 0), float(d.get("amount_usd") or 0)
-            if ghs < 0 or usd < 0 or (ghs == 0 and usd == 0):
-                raise ValueError("Enter an amount in cedis, dollars or both.")
+            usd = float(d.get("amount_usd") or 0)
+            if usd <= 0:
+                raise ValueError("Enter an amount in dollars.")
         paid = {p["id"] for p in plans.all_plans() if p["price_month"] > 0}
         chosen = [p for p in (d.get("plan_ids") or []) if p in paid]
         cycles = d.get("cycles") if d.get("cycles") in ("monthly", "yearly") else "both"
@@ -682,18 +689,17 @@ def blueprint(cfg):
         now = time.time()
         month = _month_start()
         allp = payment_rows()
-        ghs = lambda p: (p["currency"] or "GHS") == "GHS"        # cedi totals leave out dollar payments, which are shown on their own
+        usd = lambda p: (p["currency"] or "USD") == "USD"        # old payments taken in cedis are left out of the dollar totals
         ok = [p for p in allp if p["status"] in ("success", "refunded") and (p["paid"] or p["created"]) >= month]
-        usd_collected = sum(p["amount"] - (p["refunded"] or 0) for p in ok if not ghs(p))
-        ok = [p for p in ok if ghs(p)]
+        ok = [p for p in ok if usd(p)]
         failed_all = [p for p in allp if p["status"] in ("failed", "abandoned")]
-        recent_failed = [p for p in failed_all if p["created"] > now - 14 * 86400 and ghs(p)]
-        refunds = sum((p["refunded"] or 0) for p in allp if (p["refunded"] or 0) and (p["paid"] or p["created"]) >= month and (p["currency"] or "GHS") == "GHS")
+        recent_failed = [p for p in failed_all if p["created"] > now - 14 * 86400 and usd(p)]
+        refunds = sum((p["refunded"] or 0) for p in allp if (p["refunded"] or 0) and (p["paid"] or p["created"]) >= month and (p["currency"] or "USD") == "USD")
         counts = {k: sum(1 for p in allp if p["label"].lower() == k) for k in ("paid", "failed", "pending", "refunded")}
         status = request.args.get("status", "all")
         return jsonify(
             tiles={"collected": round(sum(p["amount"] - (p["refunded"] or 0) for p in ok), 2), "successful": len(ok), "failed": len(recent_failed),
-                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2), "usd_collected": round(usd_collected, 2)},
+                   "at_risk": round(sum(p["amount"] for p in recent_failed), 2), "refunds": round(refunds, 2)},
             counts=counts, followup=[{"reference": p["reference"], "workspace_id": p["workspace_id"], "workspace": p["workspace"], "plan": p["plan_id"],
                                       "method": p["method"], "amount": p["amount"], "created": p["created"], "status": p["status"]} for p in recent_failed[:10]],
             payments=[{k: p[k] for k in ("reference", "workspace", "workspace_id", "plan_id", "cycle", "amount", "currency", "method", "label", "created", "paid")}
@@ -701,7 +707,7 @@ def blueprint(cfg):
 
     @bp.get("/payments.csv")
     def payments_csv():
-        return csv_response("payments", ["Date", "Customer", "Plan", "Amount (GHS)", "Method", "Status", "Reference"],
+        return csv_response("payments", ["Date", "Customer", "Plan", "Amount (USD)", "Method", "Status", "Reference"],
                             [[dt.datetime.fromtimestamp(p["paid"] or p["created"]).strftime("%Y-%m-%d %H:%M"), p["workspace"], p["plan_id"], p["amount"],
                               p["method"], p["label"], p["reference"]] for p in payment_rows(request.args.get("status"))])
 
@@ -807,7 +813,7 @@ def blueprint(cfg):
             for p in db.q("""SELECT p.*, w.name wname FROM payments p JOIN workspaces w ON w.id=p.workspace_id WHERE COALESCE(p.paid,p.created)<? ORDER BY COALESCE(p.paid,p.created) DESC LIMIT ?""", (before, limit)):
                 ok = p["status"] in ("success", "refunded")
                 add(p["paid"] or p["created"], "billing", "ok" if ok else "bad" if p["status"] in ("failed", "abandoned") else "warn",
-                    f"{'Payment of' if ok else 'Payment attempt of'} GHS {p['amount']:,.2f} {'received' if ok else p['status']}", f"{p['plan_id'].title()} plan, {p['cycle']}", p["workspace_id"], p["wname"])
+                    f"{'Payment of' if ok else 'Payment attempt of'} ${p['amount']:,.2f} {'received' if ok else p['status']}", f"{p['plan_id'].title()} plan, {p['cycle']}", p["workspace_id"], p["wname"])
             for a in db.q("""SELECT a.*, w.name wname FROM admin_audit a LEFT JOIN workspaces w ON w.id=a.workspace_id
                              WHERE a.action IN ('plan.cancel','plan.lapsed') AND a.ts<? ORDER BY a.ts DESC LIMIT ?""", (before, limit)):
                 add(a["ts"], "billing", "bad" if a["action"] == "plan.lapsed" else "warn", a["detail"], "", a["workspace_id"], a["wname"])

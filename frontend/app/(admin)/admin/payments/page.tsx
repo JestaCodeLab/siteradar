@@ -34,7 +34,7 @@ export default function AdminPayments() {
   }
 
   const tiles = [
-    { label: "Collected this month", value: money(t.collected), note: `${t.successful} successful payment${t.successful === 1 ? "" : "s"}${t.usd_collected ? `, plus $${Math.round(t.usd_collected).toLocaleString("en-US")} in USD` : ""}`, c: "#0B7A4B" },
+    { label: "Collected this month", value: money(t.collected), note: `${t.successful} successful payment${t.successful === 1 ? "" : "s"}`, c: "#0B7A4B" },
     { label: "Failed payments", value: String(t.failed), note: `${money(t.at_risk)} at risk`, c: t.failed ? "#B3261E" : "#5B6472" },
     { label: "Refunds", value: money(t.refunds), note: t.refunds ? "This month" : "None this month", c: "#5B6472" },
   ];
@@ -61,7 +61,7 @@ export default function AdminPayments() {
             <div key={f.reference} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#EDEFF3] py-3.5">
               <span className="min-w-0 flex-1"><Link href={`/admin/customers/${f.workspace_id}`} className="block text-[15px] font-semibold text-[#4A33B0]">{f.workspace}</Link>
                 <span className="block text-[13px] capitalize text-[#5B6472]">{f.plan} · {f.method} · {shortDate(f.created)}</span></span>
-              <span className="font-mono text-sm">GHS {f.amount.toFixed(2)}</span>
+              <span className="font-mono text-sm">${f.amount.toFixed(2)}</span>
               <span className="flex gap-2">
                 <button onClick={() => act(`/api/admin/payments/${f.reference}/email`, (r) => `Payment link sent to ${r.sent_to}.`)} className={aBtn.small}>Email customer</button>
                 <button onClick={() => act(`/api/admin/payments/${f.reference}/retry`, (r) => (r.result === "charged" ? "Payment collected." : r.result === "link" ? "No saved card, so a payment link was emailed instead." : "The charge failed again."))} className={aBtn.small}>Retry</button></span>
@@ -78,7 +78,7 @@ export default function AdminPayments() {
             <div key={r.reference} style={{ display: "grid", gridTemplateColumns: GRID }} className="min-h-12 items-center gap-4 border-b border-[#EDEFF3] px-5 py-3 text-sm">
               <span className="text-[13px] text-[#5B6472]">{shortDate(r.paid ?? r.created)}</span>
               <Link href={`/admin/customers/${r.workspace_id}`} className="truncate font-semibold text-[#4A33B0]">{r.workspace}</Link>
-              <span className="capitalize">{r.plan_id}</span><span className="font-mono text-[13px]">{r.currency === "USD" ? "$" : "GHS "}{r.amount.toLocaleString("en-US", { minimumFractionDigits: r.currency === "USD" ? 2 : 0 })}</span>
+              <span className="capitalize">{r.plan_id}</span><span className="font-mono text-[13px]">{r.currency === "GHS" ? "GHS " : "$"}{r.amount.toLocaleString("en-US", { minimumFractionDigits: r.currency === "GHS" ? 0 : 2 })}</span>
               <span>{r.method}</span><span><Pill tone={tone[r.label] ?? "muted"}>{r.label}</Pill></span>
               <span className="truncate font-mono text-xs text-[#5B6472]">{r.reference}</span>
             </div>))}

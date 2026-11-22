@@ -507,18 +507,21 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
   }
 
   return (
-    <div className="flex max-w-2xl flex-col gap-5">
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
       <Card className="p-5">
-        <form onSubmit={save} className="flex flex-col gap-5">
+        <form onSubmit={save} className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
           <Field label="Name" htmlFor="name"><input id="name" name="name" required defaultValue={site.name} className={input} /></Field>
           <Field label="Address" htmlFor="url"><input id="url" name="url" required defaultValue={site.url} className={input} /></Field>
           <Field label="Text the page must contain" htmlFor="keyword" hint="optional"><input id="keyword" name="keyword" defaultValue={site.keyword ?? ""} className={input} /></Field>
           <Field label="Monthly report goes to" htmlFor="report_to" hint="separate emails with commas"><input id="report_to" name="report_to" defaultValue={site.report_to.join(", ")} className={input} /></Field>
-          <Field label="Extra people to alert when it goes down" htmlFor="alert_to" hint="optional"><input id="alert_to" name="alert_to" defaultValue={site.alert_to.join(", ")} className={input} /></Field>
-          <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="audit" defaultChecked={site.audit_enabled} className="size-5" />Run the nightly audit</label>
-          <div className="flex justify-end"><button type="submit" disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>
+          <div className="sm:col-span-2"><Field label="Extra people to alert when it goes down" htmlFor="alert_to" hint="optional"><input id="alert_to" name="alert_to" defaultValue={site.alert_to.join(", ")} className={input} /></Field></div>
+          <div className="flex flex-wrap items-center justify-between gap-4 sm:col-span-2">
+            <label className="flex min-h-11 items-center gap-3 text-[15px]"><input type="checkbox" name="audit" defaultChecked={site.audit_enabled} className="size-5" />Run the nightly audit</label>
+            <button type="submit" disabled={busy} className={btn.primary}>{busy ? "Saving…" : "Save changes"}</button>
+          </div>
         </form>
       </Card>
+      <div className="flex flex-col gap-5">
       {site.whatsapp?.enabled && (
         <Card className="flex flex-col gap-3 p-5">
           <div className="flex flex-col gap-1">
@@ -535,6 +538,7 @@ export function SettingsTab({ site }: { site: SiteDetail }) {
         </div>
         <button onClick={remove} className={btn.danger}>Remove website</button>
       </Card>
+      </div>
     </div>
   );
 }

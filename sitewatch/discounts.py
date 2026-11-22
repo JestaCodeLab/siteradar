@@ -85,11 +85,11 @@ def check(code, ws, plan_id, cycle, price, currency):
 
 
 def describe(row):
-    """'20% off', 'GHS 50 off / $5 off'."""
+    """'20% off', '$5 off'."""
     if row["kind"] == "percent":
         p = row["percent"]
         return f"{p:g}% off"
-    return f"{plans.money(row['amount_ghs'], 'GHS')} off" + (f" / {plans.money(row['amount_usd'], 'USD')} off" if row["amount_usd"] else "")
+    return f"{plans.money(row['amount_usd'], 'USD')} off"
 
 
 def duration_text(row):
@@ -128,5 +128,5 @@ def renewal_discount(ws, price):
     row = get(code)
     if not row or not applies(row, ws["plan_id"], ws["cycle"]):
         return 0.0, None
-    off = amount_off(row, price, ws.get("currency") or "GHS")
+    off = amount_off(row, price, ws.get("currency") or "USD")
     return (off, row["code"]) if off > 0 else (0.0, None)

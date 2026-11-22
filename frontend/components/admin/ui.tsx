@@ -72,7 +72,7 @@ export function Tabs<T extends string>({ items, value, onChange }: { items: { id
   );
 }
 
-export const money = (n: number) => `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+export const money = (n: number) => `$${n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 export const shortDate = fmtDateTs;
 export const whenAgo = (ts: number) => fmtAgo(ts);
 

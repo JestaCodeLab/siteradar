@@ -147,7 +147,7 @@ export default function CustomerPage() {
           {panel === "refund" && (
             <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); run(() => send("POST", `/api/admin/customers/${id}/refund`, { reference: f.get("reference"), amount: Number(f.get("amount")) || undefined }), "Refund recorded."); }} className="flex flex-col gap-3 rounded-xl bg-[#F5F1FF] p-4">
               <label className="flex flex-col gap-1.5 text-sm font-medium">Payment<Select ariaLabel="Payment" name="reference" defaultValue={refundable[0]?.reference} options={refundable.map((p) => ({ value: p.reference, label: `${shortDate(p.paid ?? p.created)} · ${p.plan_id} · ${money(p.amount)}${p.refunded ? ` (${money(p.refunded)} refunded)` : ""}` }))} /></label>
-              <label className="flex flex-col gap-1.5 text-sm font-medium">Amount in GHS (empty refunds what is left)<input name="amount" type="number" step="0.01" min={0} className={`${aInput} !w-48`} /></label>
+              <label className="flex flex-col gap-1.5 text-sm font-medium">Amount in USD (empty refunds what is left)<input name="amount" type="number" step="0.01" min={0} className={`${aInput} !w-48`} /></label>
               <div><button disabled={busy} className={aBtn.danger}>Refund through Paystack</button></div></form>)}
         </AdminCard>
 

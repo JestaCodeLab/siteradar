@@ -30,7 +30,6 @@ export function NewDiscountDialog({ plans, onClose, onDone }: { plans: { id: str
   const [description, setDescription] = useState("");
   const [kind, setKind] = useState<"percent" | "fixed">("percent");
   const [percent, setPercent] = useState("20");
-  const [ghs, setGhs] = useState("");
   const [usd, setUsd] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
   const [cycles, setCycles] = useState("both");
@@ -46,7 +45,7 @@ export function NewDiscountDialog({ plans, onClose, onDone }: { plans: { id: str
     e.preventDefault(); setBusy(true); setError(null);
     try {
       await send("POST", "/api/admin/discounts", {
-        code, description, kind, percent: Number(percent), amount_ghs: Number(ghs || 0), amount_usd: Number(usd || 0), plan_ids: chosen, cycles,
+        code, description, kind, percent: Number(percent), amount_usd: Number(usd || 0), plan_ids: chosen, cycles,
         periods: lasts === "n" ? Number(count) : Number(lasts), max_uses: maxUses || null, starts: starts || null, expires: ends || null,
       });
       onDone();
@@ -75,9 +74,8 @@ export function NewDiscountDialog({ plans, onClose, onDone }: { plans: { id: str
           {kind === "percent" ? (
             <div className="flex items-center gap-2"><input aria-label="Percent off" type="number" min={1} max={100} step="any" required value={percent} onChange={(e) => setPercent(e.target.value)} className={`${aInput} max-w-[140px]`} /><span className="text-[15px]">% off the plan price (100 makes the plan free)</span></div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1.5 text-[13px] text-[#5B6472]">Off in cedis (GHS)<input type="number" min={0} step="any" value={ghs} onChange={(e) => setGhs(e.target.value)} placeholder="50" className={aInput} /></label>
-              <label className="flex flex-col gap-1.5 text-[13px] text-[#5B6472]">Off in dollars (USD)<input type="number" min={0} step="any" value={usd} onChange={(e) => setUsd(e.target.value)} placeholder="5" className={aInput} /></label>
+            <div className="grid gap-3 sm:max-w-[240px]">
+              <label className="flex flex-col gap-1.5 text-[13px] text-[#5B6472]">Amount off in US dollars<input type="number" min={0} step="any" value={usd} onChange={(e) => setUsd(e.target.value)} placeholder="5" className={aInput} /></label>
             </div>
           )}
         </fieldset>
