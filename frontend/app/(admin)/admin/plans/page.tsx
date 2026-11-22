@@ -18,7 +18,6 @@ const parseStorage = (s: string) => Math.round(num(s) * (/gb/i.test(s) ? 1024 : 
 
 /** What the box shows while it is not being edited, and how it is read back. */
 const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (s: string) => number }[] = [
-  { key: "price_month", label: "GHS / month", show: (p) => String(p.price_month), read: num },
   { key: "sites", label: "Websites", show: (p) => String(p.sites), read: num },
   { key: "members", label: "Team", show: (p) => String(p.members), read: num },
   { key: "interval_minutes", label: "Check every", show: (p) => `${p.interval_minutes} min`, read: num },
@@ -27,8 +26,8 @@ const COLS: { key: keyof Plan; label: string; show: (p: Plan) => string; read: (
   { key: "storage_mb", label: "Storage", show: (p) => fmtStorage(p.storage_mb), read: parseStorage },
   { key: "ai_credits", label: "AI drafts", show: (p) => String(p.ai_credits ?? 0), read: num },
 ];
-const USD_COL: (typeof COLS)[number] = { key: "price_month_usd", label: "USD / month", show: (p) => String(p.price_month_usd ?? 0), read: num };
-const GRID = "minmax(90px,0.9fr) 96px 96px 175px repeat(7, minmax(76px,1fr)) 56px";
+const USD_COL: (typeof COLS)[number] = { key: "price_month_usd", label: "Price / month (USD)", show: (p) => String(p.price_month_usd ?? 0), read: num };
+const GRID = "minmax(90px,0.9fr) 110px 150px repeat(7, minmax(76px,1fr)) 56px";
 const FEATURES: { label: string; get: (p: Plan) => boolean; set: (p: Plan, v: boolean) => Partial<Plan>; fixed?: boolean }[] = [
   { label: "Email alerts", get: () => true, set: () => ({}), fixed: true },
   { label: "Slack and Teams alerts", get: (p) => p.channels.includes("chat"), set: (p, v) => ({ channels: toggle(p.channels, "chat", v) }) },
@@ -65,35 +64,24 @@ export default function AdminPlans() {
     try {
       await send("PUT", "/api/admin/plans", {
         settings: { yearly_discount: disc },
-        plans: cur.plans.map((p) => ({ id: p.id, price_month: p.price_month, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes,
+        plans: cur.plans.map((p) => ({ id: p.id, price_month_usd: p.price_month_usd ?? 0, sites: p.sites, members: p.members, interval_minutes: p.interval_minutes,
           history_months: p.history_months, audit_pages: p.audit_pages, storage_mb: p.storage_mb, ai_credits: p.ai_credits, channels: p.channels,
           client_access: p.client_access, priority_support: p.priority_support, active: p.active })),
       });
-      await mutate(); setDraft(null); setTyping({}); setMsg({ ok: true, text: "Saved. New prices apply to new subscriptions and renewals." });
+      await mutate(); setDraft(null); setTyping({}); setMsg({ ok: true, text: "Saved. Limits apply now. New prices apply to new subscriptions and renewals." });
     } catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "Could not save." }); }
     setBusy(false);
   }
 
   return (
     <>
-      <AdminHeader title="Plans and pricing" subtitle="Change prices, limits and features here. Changes apply to new subscriptions. Existing customers keep their price until they renew or change plan."
+      <AdminHeader title="Plans and pricing" subtitle="Change prices, limits and features here. Limits and features change for every customer on the plan as soon as you save. A new price applies to new subscriptions and renewals. Lowering the website limit pauses the newest extra websites."
         actions={<div className="flex gap-2.5"><button disabled={!dirty || busy} onClick={() => { setDraft(null); setTyping({}); setMsg(null); }} className={aBtn.secondary}>Discard</button>
           <button disabled={!dirty || busy} onClick={save} className={aBtn.primary}>{busy ? "Saving…" : "Save changes"}</button></div>} />
 
       <div className="flex flex-wrap items-stretch gap-5">
         <AdminCard label="Billing rules" className="flex min-w-0 flex-[1.4_1_460px] flex-col gap-6">
           <h2 className="text-lg font-semibold">Billing rules</h2>
-
-          <div className="flex flex-col gap-2.5">
-            <span className="text-sm font-medium">Currency <span className="font-normal text-[#5B6472]">chosen from the customer country. Prices for both are set in the table below.</span></span>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[["Ghana", "Ghana cedis", "GHS"], ["Everywhere else", "US dollars", "USD"]].map(([where, name, code]) => (
-                <div key={code} className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E5EA] px-4 py-3">
-                  <span className="flex flex-col"><span className="text-sm font-semibold">{where}</span><span className="text-[13px] text-[#5B6472]">{name}</span></span>
-                  <span className="rounded-md bg-[#EFEAFF] px-2.5 py-1 font-mono text-[13px] font-semibold text-[#4A33B0]">{code}</span>
-                </div>))}
-            </div>
-          </div>
 
           <div className="flex flex-col gap-2 sm:max-w-[240px]"><label htmlFor="disc" className="text-sm font-medium">Yearly discount (%) <span className="block font-normal text-[#5B6472]">off the price of 12 months</span></label>
             <input id="disc" type="number" min={0} max={60} value={cur.discount} onChange={(e) => edit({ discount: e.target.value })} className={aInput} /></div>
@@ -108,14 +96,13 @@ export default function AdminPlans() {
         <div className="px-[22px] pb-1 pt-[22px]"><h2 className="text-lg font-semibold">Plan limits and prices</h2></div>
         <div className="overflow-x-auto"><div className="min-w-[1220px] pb-2">
           <div style={{ display: "grid", gridTemplateColumns: GRID }} className="items-center gap-3 border-y border-[#E2E5EA] bg-[#F8F9FB] px-[22px] py-3 text-xs font-semibold uppercase tracking-[0.04em] text-[#5B6472]">
-            <span>Plan</span><span>GHS / month</span><span>USD / month</span><span>Yearly, per month</span>{COLS.slice(1).map((c) => <span key={c.key}>{c.label}</span>)}<span>Active</span></div>
+            <span>Plan</span><span>{USD_COL.label}</span><span>Yearly, per month</span>{COLS.map((c) => <span key={c.key}>{c.label}</span>)}<span>Active</span></div>
           {cur.plans.map((p) => (
             <div key={p.id} style={{ display: "grid", gridTemplateColumns: GRID }} className="items-center gap-3 border-b border-[#EDEFF3] px-[22px] py-3 last:border-0">
               <span className="text-[15px] font-semibold">{p.name}<span className="block text-xs font-normal text-[#5B6472]">{p.customers} customer{p.customers === 1 ? "" : "s"}</span></span>
-              <Cell plan={p} col={COLS[0]} typing={typing} setTyping={setTyping} apply={editPlan} />
               <Cell plan={p} col={USD_COL} typing={typing} setTyping={setTyping} apply={editPlan} />
-              <span className="text-[13px] text-[#5B6472]">{p.price_month === 0 ? "Not offered" : `GHS ${fmtAmt(yearlyPerMonth(p.price_month))} (GHS ${fmtAmt(Math.round(p.price_month * 12 * (1 - disc / 100) * 100) / 100)}/yr) · $${fmtAmt(yearlyPerMonth(p.price_month_usd ?? 0))} ($${fmtAmt(Math.round((p.price_month_usd ?? 0) * 12 * (1 - disc / 100) * 100) / 100)}/yr)`}</span>
-              {COLS.slice(1).map((c) => <Cell key={c.key} plan={p} col={c} typing={typing} setTyping={setTyping} apply={editPlan} />)}
+              <span className="text-[13px] text-[#5B6472]">{!p.price_month_usd ? "Not offered" : `$${fmtAmt(yearlyPerMonth(p.price_month_usd))} ($${fmtAmt(Math.round(p.price_month_usd * 12 * (1 - disc / 100) * 100) / 100)}/yr)`}</span>
+              {COLS.map((c) => <Cell key={c.key} plan={p} col={c} typing={typing} setTyping={setTyping} apply={editPlan} />)}
               <Checkbox label={`${p.name} active`} checked={p.active} onChange={(v) => editPlan(p.id, { active: v })} />
             </div>))}
         </div></div>

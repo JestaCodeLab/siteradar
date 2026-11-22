@@ -334,6 +334,11 @@ ALTER TABLE users ADD COLUMN totp_secret TEXT;
 ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE users ADD COLUMN totp_last BIGINT NOT NULL DEFAULT 0;
 """),
+    (27, """
+UPDATE workspaces SET currency='USD' WHERE currency <> 'USD';
+ALTER TABLE payments ALTER COLUMN currency SET DEFAULT 'USD';
+UPDATE plans SET price_month=price_month_usd;
+"""),
 ]
 
 

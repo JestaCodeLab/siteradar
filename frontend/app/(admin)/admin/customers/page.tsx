@@ -57,7 +57,7 @@ export default function Customers() {
                   <span className="font-mono text-[13px]">{r.sites} of {r.sites_limit}</span>
                   <span className="font-mono text-[13px]">{r.members} of {r.members_limit}</span>
                   <span><Pill tone={statusTone(r.status)}>{r.status}</Pill></span>
-                  <span className="font-mono text-[13px]">{r.currency === "USD" ? "$" : "GHS "}{Math.round(r.mrr).toLocaleString()}</span>
+                  <span className="font-mono text-[13px]">${Math.round(r.mrr).toLocaleString()}</span>
                   <span className="text-[13px] text-[#5B6472]">{shortDate(r.created)}</span>
                 </Link>
               ))}

@@ -171,7 +171,7 @@ def _receipt(ws, pay):
     plan = plans.get(pay["plan_id"])
     renews = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(ws["plan_renews"])))
     paid_on = emails.fmt_date(time.strftime("%Y-%m-%d", time.localtime(pay.get("paid") or time.time())))
-    cur = pay["currency"] or "GHS"
+    cur = pay["currency"] or "USD"
     mail = emails.payment_received(owner["first_name"], ws["name"], plan["name"], pay["cycle"], plans.money(pay["amount"], cur),
                                    pay.get("method") or method_label(pay.get("channel"), None), pay["reference"], paid_on, renews,
                                    discount=f"-{plans.money(pay['discount_amount'], cur)} ({pay['discount_code']})" if pay.get("discount_amount") else None)

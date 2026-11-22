@@ -87,14 +87,13 @@ export default function AdminAi() {
 
       <AdminCard className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold">Credit packages</h2>
-          <button type="button" onClick={() => setBundles([...cur, { credits: 500, price_ghs: 60, price_usd: 5 }])} className={aBtn.secondary}><Plus size={16} aria-hidden="true" className="mr-1.5" />Add a package</button></div>
-        <p className="text-sm text-[#5B6472]">Shown in the top-up window when a customer runs out. Customers in Ghana pay in cedis and everyone else in dollars. “Margin” is the dollar price against the worst-case cost of the same credits.</p>
+          <button type="button" onClick={() => setBundles([...cur, { credits: 500, price_ghs: 0, price_usd: 5 }])} className={aBtn.secondary}><Plus size={16} aria-hidden="true" className="mr-1.5" />Add a package</button></div>
+        <p className="text-sm text-[#5B6472]">Shown in the top-up window when a customer runs out. Prices are in US dollars. “Margin” is the dollar price against the worst-case cost of the same credits.</p>
         <div className="overflow-x-auto"><div className="min-w-[620px]">
-          <TableHead template="1fr 1fr 1fr 1fr 48px" cols={["Credits", "Price (GHS)", "Price (USD)", "Margin", " "]} />
+          <TableHead template="1fr 1fr 1fr 48px" cols={["Credits", "Price (USD)", "Margin", " "]} />
           {cur.map((b, i) => (
-            <div key={i} className="grid items-center gap-3 border-t border-[#EEF0F3] py-2.5 text-sm" style={{ gridTemplateColumns: "1fr 1fr 1fr 1fr 48px" }}>
+            <div key={i} className="grid items-center gap-3 border-t border-[#EEF0F3] py-2.5 text-sm" style={{ gridTemplateColumns: "1fr 1fr 1fr 48px" }}>
               <input className={field} inputMode="numeric" aria-label="Credits" value={b.credits} onChange={(e) => edit(i, { credits: Number(e.target.value.replace(/\D/g, "")) || 0 })} />
-              <input className={field} inputMode="decimal" aria-label="Price in cedis" value={b.price_ghs} onChange={(e) => edit(i, { price_ghs: Number(e.target.value) || 0 })} />
               <input className={field} inputMode="decimal" aria-label="Price in dollars" value={b.price_usd} onChange={(e) => edit(i, { price_usd: Number(e.target.value) || 0 })} />
               <span className="font-medium">{b.credits ? `${(b.price_usd / (b.credits * (unit ? unit * 2 : WORST))).toFixed(1)}×` : "—"}</span>
               <button type="button" onClick={() => setBundles(cur.filter((_, j) => j !== i))} disabled={cur.length < 2} aria-label="Remove this package" className="inline-flex size-10 items-center justify-center rounded-lg border border-[#C9CFD8] text-[#B3261E] hover:bg-[#FBE7E5] disabled:opacity-40"><Trash2 size={16} aria-hidden="true" /></button>
