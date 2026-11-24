@@ -97,7 +97,7 @@ def blueprint(cfg):
         ws_id = g.ws["id"]
         names = {x["id"]: x["name"] for x in db.q("SELECT id, name FROM sites WHERE workspace_id=?", (ws_id,)) if allowed(x["id"])}
         ids = [only] if only in names else [] if only else list(names)
-        sub_ids = [] if only else [str(x["id"]) for x in db.q("SELECT id FROM subscriptions WHERE workspace_id=?", (ws_id,))]
+        sub_ids = [] if only or g.role not in ("owner", "admin") else [str(x["id"]) for x in db.q("SELECT id FROM subscriptions WHERE workspace_id=?", (ws_id,))]
         n = size + 1                      # one extra row per source tells us whether there is a next page
         events_ = []
         want = lambda *k: kinds is None or bool(kinds.intersection(k))
@@ -154,6 +154,7 @@ def blueprint(cfg):
                        bundles=[{"credits": b["credits"], "price": b[key]} for b in billing.ai_bundles()])
 
     @bp.get("/settings")
+    @need("admin")
     def settings():
         ws = g.ws
         plan = plans.limits(ws)

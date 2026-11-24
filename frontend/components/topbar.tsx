@@ -45,6 +45,7 @@ const PAGES: Hit[] = [
 
 function SearchDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const { isAdmin } = useMe();
   const { data: sites } = useSWR<SitesResponse>("/api/sites", fetcher);
   const { data: subs } = useSWR<SubscriptionsResponse>("/api/subscriptions", fetcher);
   const [q, setQ] = useState("");
@@ -53,7 +54,7 @@ function SearchDialog({ onClose }: { onClose: () => void }) {
   const all: Hit[] = [
     ...(sites?.sites.map((s) => ({ label: s.name, hint: s.host, href: `/websites/${s.id}`, group: "Websites" })) ?? []),
     ...(subs?.subscriptions.map((s) => ({ label: s.name, hint: [s.site_name, s.provider].filter(Boolean).join(" · "), href: `/subscriptions/${s.id}`, group: "Subscriptions" })) ?? []),
-    ...PAGES,
+    ...PAGES.filter((p) => isAdmin || !/^\/(activity|settings\?tab=)/.test(p.href)),
   ];
   const needle = q.trim().toLowerCase();
   const hits = (needle ? all.filter((h) => `${h.label} ${h.hint}`.toLowerCase().includes(needle)) : all.filter((h) => h.group !== "Subscriptions")).slice(0, 10);
@@ -104,6 +105,7 @@ const evKey = (e: ActivityEvent) => e.kind + e.ts + e.title;
 
 /** Read marks live in this browser: "mark all" moves a cut-off time, and a single item is remembered by its key. */
 function Notifications() {
+  const { isAdmin } = useMe();
   const ref = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [seen, setSeen] = useState<number>(() => {
@@ -160,7 +162,7 @@ function Notifications() {
               );
             })}
           </ul>
-          <Link href="/activity" onClick={close} className="flex min-h-11 items-center justify-center text-sm font-semibold text-brand">View all activity</Link>
+          {isAdmin && <Link href="/activity" onClick={close} className="flex min-h-11 items-center justify-center text-sm font-semibold text-brand">View all activity</Link>}
         </div>
       )}
     </div>

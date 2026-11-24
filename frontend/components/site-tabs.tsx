@@ -403,11 +403,12 @@ export function AuditTab({ id, site, onRun, busy }: { id: string; site: SiteDeta
 
 /** The latest fixes, manual audits and plugin actions on this website. The full list is on the Activity logs page. */
 function RecentChanges({ id }: { id: string }) {
+  const { isAdmin } = useMe();
   const { data } = useSWR<{ events: ActivityEvent[] }>(`/api/activity?type=changes&site=${id}&limit=10`, fetcher, { refreshInterval: 30000 });
   if (!data) return <Loading />;
   return (
     <Card className="px-5 pb-2 pt-5">
-      <CardTitle aside={<Link href="/activity" className="font-semibold text-brand">See all</Link>}>Recent changes</CardTitle>
+      <CardTitle aside={isAdmin ? <Link href="/activity" className="font-semibold text-brand">See all</Link> : undefined}>Recent changes</CardTitle>
       {data.events.length === 0 && <p className="border-t border-line-soft py-4 text-sm text-muted">Nothing yet. Fixes you apply, audits you run by hand and plugin actions on this website are listed here.</p>}
       {data.events.map((e) => (
         <div key={e.kind + e.ts + e.title} className="flex flex-wrap items-start justify-between gap-3 border-t border-line-soft py-3">
