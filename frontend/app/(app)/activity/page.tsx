@@ -3,11 +3,13 @@
 import { AddWebsiteButton } from "@/components/add-website";
 import { Activity } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { btn, Card, Empty, ErrorState, PageHeader, Skeleton } from "@/components/ui";
 import { fetcher, type ActivityEvent } from "@/lib/api";
 import { dayLabel, fmtTime } from "@/lib/format";
+import { useMe } from "@/lib/me";
 
 const FILTERS: [string, string][] = [
   ["all", "All"], ["incidents", "Incidents"], ["alerts", "Alerts"], ["audits", "Audits"], ["changes", "Fixes and changes"], ["billing", "Subscriptions"],
@@ -16,13 +18,16 @@ const FILTERS: [string, string][] = [
 const dot = { bad: "bg-bad", warn: "bg-bar-warn", ok: "bg-ok", info: "bg-brand" } as const;
 
 export default function ActivityPage() {
+  const router = useRouter();
+  const { ws, isAdmin } = useMe();
+  useEffect(() => { if (ws && !isAdmin) router.replace("/overview"); }, [ws, isAdmin, router]);
   const [filter, setFilter] = useState("all");
   // Pages are 50 events. Each page starts after the last event of the one before it, so the cursors of the pages visited are kept here.
   const [cursors, setCursors] = useState<(number | null)[]>([null]);
   const page = cursors.length;
   const before = cursors[page - 1];
   const { data, error, mutate } = useSWR<{ events: ActivityEvent[]; more: boolean; next: number | null }>(
-    `/api/activity?type=${filter}${before ? `&before=${before}` : ""}`, fetcher, { refreshInterval: page === 1 ? 60000 : 0, keepPreviousData: true });
+    ws && isAdmin ? `/api/activity?type=${filter}${before ? `&before=${before}` : ""}` : null, fetcher, { refreshInterval: page === 1 ? 60000 : 0, keepPreviousData: true });
   if (error) return <ErrorState message={error.message} retry={() => mutate()} />;
 
   const events = data?.events ?? [];

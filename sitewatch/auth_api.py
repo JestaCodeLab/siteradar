@@ -65,6 +65,13 @@ def blueprint(cfg):
         paying = not g.ws["comped"] and g.ws["plan_status"] in ("active", "past_due")
         return a["message"] if a["audience"] == "everyone" or (a["audience"] == "paying") == paying else None
 
+    def own_view(w):
+        """People limited to selected websites are shown the number they can open, not the workspace total."""
+        if g.site_access is not None:
+            n = db.q1("SELECT COUNT(*) n FROM sites WHERE workspace_id=? AND id = ANY(?)", (g.ws["id"], list(g.site_access)))["n"] if g.site_access else 0
+            w["usage"] = {**w["usage"], "sites": n}
+        return w
+
     def me_payload():
         mine = accounts.memberships(g.user["id"]) if g.user else []
         # Worked out from the stored account, not g.user: while a code is still owed, ctx.load() hands out a copy with is_super turned off,
@@ -75,7 +82,7 @@ def blueprint(cfg):
             "user": {**accounts.public_user(g.user), **({"is_super": False} if pending else {})} if g.user else None,
             "mfa_pending": pending,
             "workspaces": [{"id": w["id"], "name": w["name"], "role": w["role"], "logo_url": w["logo_url"]} for w in mine],
-            "workspace": accounts.public_workspace(g.ws, g.role) if g.ws else None,
+            "workspace": own_view(accounts.public_workspace(g.ws, g.role)) if g.ws else None,
             "announcement": announcement(),
             "session_seconds_left": max(0, int(session.get("exp", 0) - time.time())) if g.user else None,
             "support": {"until": g.impersonating["until"], "reason": g.impersonating["reason"], "mode": g.impersonating["mode"]}
@@ -540,6 +547,7 @@ def blueprint(cfg):
 
     @bp.post("/team/invites")
     @workspace_required
+    @need("admin")
     @need("admin")
     def team_invite():
         if limited("invite", 60, 20, key=str(g.ws["id"])):

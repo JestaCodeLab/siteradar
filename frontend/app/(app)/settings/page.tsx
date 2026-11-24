@@ -306,9 +306,9 @@ function Settings() {
   const router = useRouter();
   const params = useSearchParams();
   const { isAdmin } = useMe();
-  const tabs: [Tab, string][] = [["company", "Company"], ["profile", "Profile and security"], ["team", "Team"], ...(isAdmin ? [["billing", "Billing"] as [Tab, string]] : []), ["alerts", "Alerts"]];
+  const tabs: [Tab, string][] = isAdmin ? [["company", "Company"], ["profile", "Profile and security"], ["team", "Team"], ["billing", "Billing"], ["alerts", "Alerts"]] : [["profile", "Profile and security"]];
   const asked = params.get("tab") as Tab | null;
-  const tab: Tab = tabs.some(([k]) => k === asked) ? (asked as Tab) : "company";
+  const tab: Tab = tabs.some(([k]) => k === asked) ? (asked as Tab) : tabs[0][0];
   const { data, error, mutate } = useSWR<SettingsData>(tab === "alerts" ? "/api/settings" : null, fetcher);
   return (
     <>

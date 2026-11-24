@@ -88,7 +88,7 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
           <Item href="/subscriptions" label="Subscriptions" Icon={Receipt} current={is("/subscriptions")} strong onClose={onClose} />
         </nav>
 
-        {ws && (
+        {ws && isAdmin && (
           <div className="flex flex-col gap-3 rounded-xl border border-[#222b3d] bg-[#151c2c] p-3.5">
             <span className="text-[13px] font-semibold text-white">Your plan usage</span>
             {[["Websites", ws.usage.sites, ws.plan.sites], ["Team members", ws.usage.seats, ws.plan.members]].map(([label, used, of]) => (
@@ -97,13 +97,13 @@ function Nav({ open, onClose }: { open: boolean; onClose: () => void }) {
                 <div className="h-1.5 rounded-[3px] bg-[#26324a]"><div className="h-1.5 rounded-[3px] bg-[#4fd08f]" style={{ width: `${Math.min(100, ((used as number) / Math.max(of as number, 1)) * 100)}%` }} /></div>
               </div>
             ))}
-            {isAdmin && <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#26324a] text-[13px] font-semibold text-white hover:bg-[#2f3d5a]">Manage plan</Link>}
+            <Link href="/settings?tab=billing" onClick={onClose} className="flex min-h-10 items-center justify-center rounded-lg bg-[#26324a] text-[13px] font-semibold text-white hover:bg-[#2f3d5a]">Manage plan</Link>
           </div>
         )}
 
         <div className="flex flex-col gap-1 border-t border-[#222b3d] pt-3">
           <Item href="/settings" label="Settings" Icon={Settings} current={settings} onClose={onClose} />
-          <Item href="/activity" label="Activity logs" Icon={Clock} current={is("/activity")} onClose={onClose} />
+          {isAdmin && <Item href="/activity" label="Activity logs" Icon={Clock} current={is("/activity")} onClose={onClose} />}
         </div>
       </aside>
     </>
