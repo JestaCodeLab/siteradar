@@ -160,7 +160,7 @@ def set_site_numbers(cfg, ws, user, site, phones, consent):
     if fresh and not consent:
         raise ValueError("Tick the box to confirm this number's owner agrees to get alerts on WhatsApp.")
     for n in fresh:
-        db.run("INSERT INTO whatsapp_numbers(workspace_id, phone, consent_user, consent_at) VALUES (?,?,?,?)", (ws["id"], n, user["id"], time.time()))
+        db.exec("INSERT INTO whatsapp_numbers(workspace_id, phone, consent_user, consent_at) VALUES (?,?,?,?)", (ws["id"], n, user["id"], time.time()))
     db.run("UPDATE sites SET whatsapp=? WHERE id=?", (json.dumps(clean), site["id"]))
     sites.refresh(cfg)
     for n in clean:
