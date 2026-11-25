@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import accounts, alerts, analytics, db, health as health_mod, monitor, plans, storage
+from . import accounts, alerts, analytics, db, emails, health as health_mod, monitor, plans, storage
 from .charts import bar_chart, line_chart, uptime_strip
 
 log = logging.getLogger("sitewatch.report")
@@ -515,11 +515,8 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
         if paths.get("pdf"):
             attach.append((os.path.basename(paths["pdf"]), paths["pdf_bytes"], "application/pdf"))
         c = ctx["client"]
-        summary = f"Website report for {site['name']} – {ctx['period']}\n\n{c['short']}\n"
-        if c["todo"]:
-            summary += "\nWhat to do first:\n" + "\n".join(f"{i}. {t['title']} ({t['who']})" for i, t in enumerate(c["todo"], 1)) + "\n"
-        alerts.send_email(cfg, to, f"Website report – {site['name']} – {ctx['period']}",
-                          summary + "\nThe full report is attached.", html=html, attachments=attach)
+        mail = emails.report_ready("website report", site["name"], ctx["period"], c["short"], attached=bool(attach))
+        alerts.send_email(cfg, to, mail.subject, mail.text, html=mail.html, attachments=attach)
     return paths
 
 

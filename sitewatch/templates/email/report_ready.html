@@ -1,0 +1,10 @@
+{% extends "email/base.html" %}{% import "email/_parts.html" as p %}
+{% set preheader = "Your " ~ kind ~ " for " ~ name ~ " – " ~ period ~ " is " ~ ("attached as a PDF." if attached else "ready.") %}
+{% set eyebrow = kind|capitalize ~ " · " ~ period %}
+{% set title %}Your {{ kind }} is ready{% endset %}
+{% block intro %}{% call p.para() %}Hi there, the {{ kind }} for <b style="color:#0F172A">{{ name }}</b> covering {{ period }} {% if attached %}is attached to this email as a PDF.{% else %}is ready, but we could not attach the PDF this time. You can download it from the Reports page.{% endif %}{% endcall %}{% endblock %}
+{% block body %}
+{% if summary %}{% call p.notice() %}<b>The short version:</b> {{ summary }}{% endcall %}{% endif %}
+{{ p.button(reports_url, "Open reports") }}
+{% endblock %}
+{% block footer_note %}You received this email because you are on the report list for {{ name }}.{% endblock %}

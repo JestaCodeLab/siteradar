@@ -2,7 +2,7 @@
 import logging
 import os
 
-from . import alerts, plans, report, storage, subscriptions
+from . import alerts, emails, plans, report, subscriptions
 
 log = logging.getLogger("sitewatch.sub_report")
 
@@ -28,9 +28,6 @@ def email(cfg, ws, year, month):
     attach = []
     if paths.get("pdf"):
         attach.append((os.path.basename(paths["pdf"]), paths["pdf_bytes"], "application/pdf"))
-    text = (f"Subscription report for {r['label']}\n\nSpent: {money(r['total'])}\n"
-            f"Due in {r['next_label']}: {money(r['next_total'])}\n")
-    if r["actions"]:
-        text += "\nWhat to do next:\n" + "\n".join(f"- {a['text']}" for a in r["actions"]) + "\n"
-    return alerts.send_email(cfg, to, f"Subscription report – {r['label']}", text + "\nThe full report is attached.",
-                             html=storage.get(paths["html"]).decode("utf-8"), attachments=attach)
+    summary = f"{money(r['total'])} spent. Due in {r['next_label']}: {money(r['next_total'])}."
+    mail = emails.report_ready("subscription report", ws["name"], r["label"], summary, attached=bool(attach))
+    return alerts.send_email(cfg, to, mail.subject, mail.text, html=mail.html, attachments=attach)
