@@ -155,6 +155,24 @@ def remove(key, legacy_path=None):
     db.exec("DELETE FROM assets WHERE key=?", (key,))
 
 
+def rename(key, new_key):
+    """Give a stored file a new key. The file in the cloud keeps its address (remembered in `ref`); a file on disk is moved.
+    If something is already stored under the new key, that newer file is kept and nothing changes."""
+    row = info(key)
+    if not row or info(new_key):
+        return
+    ref = row["ref"]
+    if ref.startswith("cloudinary:"):
+        kind, typ, pid = _parts(row, key)          # files saved before folders existed have their address worked out from the key
+        ref = f"cloudinary:{kind}:{typ}:{pid}"
+    else:
+        try:
+            os.replace(_local_path(key), _local_path(new_key))
+        except FileNotFoundError:
+            pass
+    db.exec("UPDATE assets SET key=?, ref=? WHERE key=?", (new_key, ref, key))
+
+
 def migrate_local(cfg):
     """Copy files saved on the old volume (invoices, screenshots) into the current storage."""
     n = 0

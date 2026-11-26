@@ -14,7 +14,7 @@ def money(d):
 def generate(cfg, ws, year, month, pdf=False):
     ctx = subscriptions.build_report(ws['id'], year, month)
     html = report.env.get_template("subscription_report.html").render(r=ctx, money=money, cfg=cfg, ws=ws)
-    paths = report.publish(f"report/subscriptions-{ws['id']}-{year}-{month:02d}", html, pdf, ws['id'])
+    paths = report.publish(report.subscription_key(ws["id"], f"{year}-{month:02d}"), html, pdf, ws['id'])
     paths["context"] = ctx
     return paths
 

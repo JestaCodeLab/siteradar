@@ -638,8 +638,8 @@ def _wipe_workspace(ws_id):
             db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (site_ids,))
         for sid in site_ids:
             e = re.escape(sid)
-            out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
-    out["files"] += _remove_files(rf"^report/subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+            out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/(site/)?{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+    out["files"] += _remove_files(rf"^report/(subs/)?subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
     invoices = db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (ws_id,))
     for r in invoices:
         storage.remove("invoice/" + r["filename"])
