@@ -222,8 +222,16 @@ def blueprint(cfg):
         st = gsc.take_state(request.args.get("state", "")) if request.args.get("state") else None
         if not st:
             return redirect(app_url() + "/overview")
+        # The approval must come back to the same signed-in person who asked for it, who may still manage that website. Otherwise someone
+        # could send their own approval link to another person and collect that person's Search Console access.
+        if not g.user:
+            return redirect(app_url() + "/login")
+        support = g.impersonating and g.impersonating["ws"] == st["ws_id"] and g.impersonating["mode"] == "edit"
+        if g.user["id"] != st["user_id"] or not (support or accounts.role_in(g.user["id"], st["ws_id"]) in ("owner", "admin")):
+            log.warning("Search Console approval for %s refused: user %s is not the one who asked", st["site_id"], g.user["id"])
+            return redirect(app_url() + "/overview")
         back = f"{app_url()}/websites/{st['site_id']}?tab=analytics"
-        code, site = request.args.get("code"), sites.get_any(st["site_id"])
+        code, site = request.args.get("code"), sites.get(st["ws_id"], st["site_id"])
         if request.args.get("error") or not code or not site:
             return redirect(back + "&gsc=denied")
         try:
