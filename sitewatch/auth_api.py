@@ -129,6 +129,7 @@ def blueprint(cfg):
         if turnstile.enabled() and not turnstile.verify(data.get("turnstile_token"), client_ip()):
             return jsonify(error="We could not confirm you are a person. Please complete the check and try again.", code="captcha"), 400
         user = accounts.register(data, request_country() or str(data.get("country") or ""))
+        session["signup"] = accounts.signup_proof(user)
         return jsonify(email=user["email"]), 201
 
     @bp.get("/geo")
@@ -143,7 +144,9 @@ def blueprint(cfg):
     def verify():
         if limited("verify", 15, 20):
             return jsonify(error="Too many attempts. Try again in a few minutes."), 429
-        user = accounts.verify_email(body().get("email"), body().get("code"))
+        user, password_kept = accounts.verify_email(body().get("email"), body().get("code"), session.get("signup"))
+        if not password_kept:
+            return jsonify(reset_password=True, email=user["email"])
         sign_in(user)
         load_workspace(user)
         return jsonify(me_payload())
@@ -159,7 +162,12 @@ def blueprint(cfg):
     def login():
         if limited("login", 15, 10) or limited("login-account", 15, 10, key=(body().get("email") or "").strip().lower()[:200] or "-"):
             return jsonify(error="Too many attempts. Try again in 15 minutes.", code="rate"), 429
-        user = accounts.login(body().get("email"), body().get("password"))
+        try:
+            user = accounts.login(body().get("email"), body().get("password"))
+        except accounts.AuthError as e:
+            if e.code == "unverified":          # the password was right, so this browser may keep it when it confirms the address
+                session["signup"] = accounts.signup_proof(accounts.user_by_email(body().get("email").strip()))
+            raise
         sign_in(user, remember=body().get("remember", True))
         g.user, g.impersonating = user, None
         mine = accounts.memberships(user["id"])

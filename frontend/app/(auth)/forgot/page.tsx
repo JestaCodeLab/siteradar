@@ -1,16 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { AuthShell, FormError } from "@/components/auth-shell";
 import { btn, Field, input } from "@/components/ui";
 import { send } from "@/lib/api";
 
-export default function ForgotPage() {
+function Form() {
   const router = useRouter();
-  const [step, setStep] = useState<"email" | "reset">("email");
-  const [email, setEmail] = useState("");
+  const params = useSearchParams();
+  // set when an email address was just confirmed from a browser that did not choose the password: a reset code is already on its way
+  const verified = params.get("verified") === "1";
+  const [step, setStep] = useState<"email" | "reset">(verified ? "reset" : "email");
+  const [email, setEmail] = useState(verified ? params.get("email") ?? "" : "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +30,7 @@ export default function ForgotPage() {
   }
 
   return (
-    <AuthShell variant="forgot">
+    <>
       {step === "email" ? (
         <>
           <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Reset your password</h2><p className="text-[15px] text-muted">Enter your email and we will send you a 6-digit code.</p></div>
@@ -39,7 +42,7 @@ export default function ForgotPage() {
         </>
       ) : (
         <>
-          <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Choose a new password</h2><p className="text-[15px] text-muted">If an account exists for {email}, a code is on its way.</p></div>
+          <div className="flex flex-col gap-2"><h2 className="text-[28px] font-semibold">Choose a new password</h2><p className="text-[15px] text-muted">{verified ? `Your email address is confirmed. To keep your account safe, choose your password again: we sent a new code to ${email}.` : `If an account exists for ${email}, a code is on its way.`}</p></div>
           <form onSubmit={reset} className="flex flex-col gap-3.5">
             <Field label="6-digit code" htmlFor="code"><input id="code" name="code" inputMode="numeric" maxLength={6} required className={`${input} font-mono tracking-widest`} /></Field>
             <Field label="New password" htmlFor="password" hint="at least 8 characters"><input id="password" name="password" type="password" minLength={8} required autoComplete="new-password" className={input} /></Field>
@@ -49,6 +52,10 @@ export default function ForgotPage() {
         </>
       )}
       <p className="text-sm text-muted"><Link href="/login" className="font-semibold text-brand">Back to log in</Link></p>
-    </AuthShell>
+    </>
   );
+}
+
+export default function ForgotPage() {
+  return <AuthShell variant="forgot"><Suspense><Form /></Suspense></AuthShell>;
 }

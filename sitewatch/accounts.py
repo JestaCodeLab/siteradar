@@ -89,6 +89,7 @@ def register(data, country=None):
         raise AuthError("An account with this email already exists. Log in instead.", "exists", 409)
     pw = generate_password_hash(data["password"])
     if existing:     # started signing up before but never verified: let them try again
+        _check_code_rate(existing["id"], "verify")          # before anything changes, so a refused attempt leaves the first one intact
         db.run("UPDATE users SET first_name=?, last_name=?, phone=?, country=?, password_hash=? WHERE id=?",
                (first, last, phone, country, pw, existing["id"]))
         uid = existing["id"]
@@ -170,17 +171,31 @@ def notify_admin_signup(user):
         log.exception("Signup notification failed for user %s", user["id"])
 
 
-def verify_email(email, code):
+def signup_proof(user):
+    """Kept in the cookie of the browser that chose (or typed) the account's current password, until the email address is confirmed."""
+    return hashlib.sha256(f"{user['id']}:{user['password_hash']}".encode()).hexdigest()
+
+
+def verify_email(email, code, proof=None):
+    """Confirm the address with the emailed code. Returns (user, password_kept).
+
+    Anyone can start a sign-up with someone else's address, or start it again with another password while the owner is still waiting for the
+    code. So the password is only kept when the browser confirming the code is the one that set it. Otherwise it is thrown away and a reset
+    code is sent, and only the owner of the mailbox can choose a new one."""
     user = user_by_email(norm_email(email)) or raise_(AuthError("That code is not right.", "bad_code", 400))
     first_time = not user["email_verified"]
     check_code(user, "verify", code)
+    kept = not first_time or hmac.compare_digest(proof or "", signup_proof(user))
     sets = f"email_verified=1, last_login={time.time()}"
     if user["email"].lower() in super_emails():
         sets += ", is_super=1"
     db.exec(f"UPDATE users SET {sets} WHERE id=?", (user["id"],))
+    if not kept:
+        db.exec("UPDATE users SET password_hash=?, session_ver=session_ver+1 WHERE id=?", (generate_password_hash(secrets.token_urlsafe(32)), user["id"]))
+        request_reset(user["email"])
     if first_time:
         send_welcome(user)
-    return user_by_id(user["id"])
+    return user_by_id(user["id"]), kept
 
 
 def raise_(e):
