@@ -339,6 +339,11 @@ UPDATE workspaces SET currency='USD' WHERE currency <> 'USD';
 ALTER TABLE payments ALTER COLUMN currency SET DEFAULT 'USD';
 UPDATE plans SET price_month=price_month_usd;
 """),
+    (29, """
+-- websites deleted before their connections were removed with them: drop the plugin keys and Search Console tokens left behind
+DELETE FROM kv WHERE (key LIKE 'connector:%' OR key LIKE 'gsc:%' OR key LIKE 'gsc-data:%')
+    AND NOT EXISTS (SELECT 1 FROM sites s WHERE s.id = split_part(kv.key, ':', 2));
+"""),
 ]
 
 

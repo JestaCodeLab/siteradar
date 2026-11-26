@@ -616,7 +616,8 @@ def delete_workspace(ws_id):
     db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws_id,))
 
 
-SITE_DATA_TABLES = ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots")
+SITE_DATA_TABLES = ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots", "site_events")
+SITE_KV = ("connector", "gsc", "gsc-data", "fixes", "edits", "tracking", "platform", "platform-try", "audit-quota")
 
 
 def _remove_files(pattern):
@@ -633,12 +634,17 @@ def _wipe_workspace(ws_id):
     Payment records and the admin audit trail stay (accounting). Returns what was removed, for the audit trail."""
     site_ids = [r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (ws_id,))]
     out = {"websites": len(site_ids), "files": 0}
+    for sid in db.kv_get(f"deleted-sites:{ws_id}", []):          # websites deleted earlier, unless another customer has that ID today
+        if sid not in site_ids and not db.q1("SELECT 1 FROM sites WHERE id=?", (sid,)):
+            site_ids.append(sid)
     if site_ids:
         for table in SITE_DATA_TABLES:
             db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (site_ids,))
         for sid in site_ids:
             e = re.escape(sid)
             out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/(site/)?{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+            for kind in SITE_KV:
+                db.exec("DELETE FROM kv WHERE key=?", (f"{kind}:{sid}",))
     out["files"] += _remove_files(rf"^report/(subs/)?subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
     invoices = db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (ws_id,))
     for r in invoices:
@@ -648,9 +654,10 @@ def _wipe_workspace(ws_id):
     db.exec("DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE workspace_id=?)", (ws_id,))
     out["subscriptions"] = db.q1("SELECT COUNT(*) n FROM subscriptions WHERE workspace_id=?", (ws_id,))["n"]
     members = [r["user_id"] for r in db.q("SELECT user_id FROM memberships WHERE workspace_id=?", (ws_id,))]
-    for t in ("subscriptions", "sites", "memberships", "invitations", "sms_log"):
+    for t in ("subscriptions", "sites", "memberships", "invitations", "sms_log", "whatsapp_numbers", "whatsapp_log", "push_subscriptions"):
         db.exec(f"DELETE FROM {t} WHERE workspace_id=?", (ws_id,))
     db.exec("DELETE FROM kv WHERE key LIKE ?", (f"renewal-notice:{ws_id}:%",))
+    db.exec("DELETE FROM kv WHERE key=?", (f"deleted-sites:{ws_id}",))
     storage.remove(f"logo/{ws_id}")
     out["people"] = _remove_orphaned_users(members)
     return out
