@@ -85,10 +85,11 @@ def create(cfg, ws, data):
     if not name:
         raise ValueError("Give the website a name.")
     url = normalise_url(data.get("url"))
-    base = slug(name) or slug(urlparse(url).netloc)
-    site_id = base
+    base = (slug(name) or slug(urlparse(url).netloc))[:60].strip("-")
+    # An ID is never given out twice: history stays after a website is deleted, so a new one with the same name must not pick it up.
+    site_id = f"{base}-{secrets.token_hex(4)}"
     while db.q1("SELECT 1 FROM sites WHERE id=?", (site_id,)):    # ids are shared by every customer
-        site_id = f"{base}-{secrets.token_hex(2)}"
+        site_id = f"{base}-{secrets.token_hex(4)}"
     _insert({"id": site_id, "workspace_id": ws["id"], "name": name, "url": url, "keyword": (data.get("keyword") or None),
              "owner": data.get("owner", ""), "report_to": data.get("report_to") or [],
              "alert_to": data.get("alert_to") or []})
@@ -118,10 +119,21 @@ def update(cfg, site_id, data):
         refresh(cfg)
 
 
+# Access SiteRadar holds on the customer's behalf: the plugin's connection key and the Search Console token with the data it fetched
+ACCESS_KEYS = ("connector", "gsc", "gsc-data")
+
+
 def delete(cfg, site_id):
-    """Stops monitoring. Check, audit and analytics history stays in the database."""
+    """Stops monitoring and gives up the website's connections. Check, audit and analytics history stays in the database."""
     from . import screenshot
     screenshot.remove(cfg, site_id)
+    # Our copy of the Google token is removed, not revoked at Google: revoking would also cut off the customer's other websites on that Google account.
+    for kind in ACCESS_KEYS:
+        db.exec("DELETE FROM kv WHERE key=?", (f"{kind}:{site_id}",))
+    row = db.q1("SELECT workspace_id FROM sites WHERE id=?", (site_id,))
+    if row:             # remembered, so erasing the customer also removes the history of websites deleted earlier
+        key = f"deleted-sites:{row['workspace_id']}"
+        db.kv_set(key, [*db.kv_get(key, []), site_id])
     db.run("UPDATE subscriptions SET site_id=NULL WHERE site_id=?", (site_id,))
     db.run("DELETE FROM sites WHERE id=?", (site_id,))
     refresh(cfg)

@@ -52,6 +52,7 @@ def main(argv=None):
     cfg = load(args.config)
     db.init(cfg)
     storage.init(cfg)
+    report.move_old_reports()
     from . import errorlog
     errorlog.install()
     accounts.bootstrap(cfg)

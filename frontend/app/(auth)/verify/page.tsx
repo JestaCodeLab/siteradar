@@ -29,7 +29,9 @@ function Form() {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      const me = await send<Me>("POST", "/api/auth/verify", { email, code });
+      const res = await send<Me | { reset_password: true }>("POST", "/api/auth/verify", { email, code });
+      if ("reset_password" in res) { router.replace(`/forgot?verified=1&email=${encodeURIComponent(email)}`); return; }
+      const me = res;
       await mutate("/api/auth/me", me, false);
       router.replace(homeFor(me));
     } catch (err) {

@@ -745,7 +745,7 @@ def blueprint(cfg):
             audit = db.latest_audit(site_id, before=until)
             visitors = db.q1("SELECT COUNT(DISTINCT visitor) n FROM hits WHERE site_id=? AND ts>=? AND ts<?", (site_id, since, eff))["n"]
             period = d.strftime("%Y-%m")
-            stored = storage.info(f"report/{site_id}-{period}.html")
+            stored = storage.info(report.site_key(site_id, period) + ".html")
             last_day = dt.date.fromtimestamp(max(since, eff - 1)).day
             out.append({
                 "period": period, "label": d.strftime("%B %Y"), "range": f"1\u2013{last_day} {d:%b %Y}",
@@ -780,7 +780,8 @@ def blueprint(cfg):
             dt.date(year, month, 1)
         except ValueError:
             abort(404)
-        key = f"report/{site_id}-{period}.{fmt}"
+        period = f"{year}-{month:02d}"
+        key = f"{report.site_key(site_id, period)}.{fmt}"
         return report_response(key, fmt, f"{site_id}-report-{period}.pdf", (year, month) >= (dt.date.today().year, dt.date.today().month),
                                lambda: report.generate(cfg, s, year, month, pdf=(fmt == "pdf")))
 
@@ -901,7 +902,7 @@ def blueprint(cfg):
         if fmt not in ("html", "pdf"):
             abort(404)
         year, month = parse_period(period)
-        key = f"report/subscriptions-{g.ws['id']}-{year}-{month:02d}.{fmt}"
+        key = f"{report.subscription_key(g.ws['id'], f'{year}-{month:02d}')}.{fmt}"
         return report_response(key, fmt, f"subscriptions-{period}.pdf", (year, month) >= (dt.date.today().year, dt.date.today().month),
                                lambda: sub_report.generate(cfg, g.ws, year, month, pdf=(fmt == "pdf")))
 

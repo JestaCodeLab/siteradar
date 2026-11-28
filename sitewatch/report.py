@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from . import accounts, alerts, analytics, db, health as health_mod, monitor, plans, storage
+from . import accounts, alerts, analytics, db, emails, health as health_mod, monitor, plans, storage
 from .charts import bar_chart, line_chart, uptime_strip
 
 log = logging.getLogger("sitewatch.report")
@@ -23,6 +23,49 @@ def _covers(year, month, until_eff, partial):
     """"1–8 November" while the month is running, otherwise "1–30 November"."""
     last = dt.datetime.fromtimestamp(until_eff - 1).day if partial else calendar.monthrange(year, month)[1]
     return f"1–{last} {dt.date(year, month, 1).strftime('%B')}"
+
+
+# Website reports and subscription reports are stored apart. A website ID is made from its name, so with one shared folder a website
+# called "subscriptions 3" would have had the same file name as workspace 3's spending report.
+def site_key(site_id, period):
+    return f"report/site/{site_id}-{period}"
+
+
+def subscription_key(ws_id, period):
+    return f"report/subs/subscriptions-{ws_id}-{period}"
+
+
+_OLD_KEY = re.compile(r"report/([^/]+)-(\d{4}-\d{2})\.(html|pdf)")
+
+
+def move_old_reports():
+    """Move reports saved under the old shared names to their new place. Safe to run at every start.
+
+    A file that cannot be attributed with certainty is left where it is, where nothing reads it, and the report is made again when asked for:
+    a "subscriptions-N" name that a website has also used, or a website report older than the website that now has that ID."""
+    moved = left = 0
+    for row in db.q("SELECT key, ts FROM assets WHERE key ~ ?", (r"^report/[^/]+$",)):
+        m = _OLD_KEY.fullmatch(row["key"])
+        if not m:
+            continue
+        name, period, fmt = m.groups()
+        subs = re.fullmatch(r"subscriptions-(\d+)", name)
+        if subs:
+            unsure = db.q1("""SELECT 1 FROM sites WHERE id=? UNION ALL SELECT 1 FROM checks WHERE site_id=?
+                              UNION ALL SELECT 1 FROM site_events WHERE site_id=? LIMIT 1""", (name, name, name))
+            new = subscription_key(int(subs.group(1)), period)
+        else:
+            site = db.q1("SELECT created FROM sites WHERE id=?", (name,))
+            unsure = site and (row["ts"] or 0) < (site["created"] or 0)
+            new = site_key(name, period)
+        if unsure:
+            left += 1
+            continue
+        storage.rename(row["key"], f"{new}.{fmt}")
+        moved += 1
+    if moved or left:
+        log.info("Report files: %d moved to their new place, %d left unused because their owner is not certain", moved, left)
+    return moved, left
 
 
 def month_bounds(year, month):
@@ -504,7 +547,7 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
         year, month = previous_month(today.year, today.month)
     ctx = build(cfg, site, year, month)
     html = render(ctx)
-    key = f"report/{site['id']}-{year}-{month:02d}"
+    key = site_key(site["id"], f"{year}-{month:02d}")
     paths = publish(key, html, pdf or email, site.get("workspace_id"))
     if email:        # the scheduler's monthly run: remembered, so the Reports page can tell automatic reports from ones made by hand
         db.log_alert(site["id"], f"report:{year}-{month:02d}", "Monthly report created automatically")
@@ -515,11 +558,8 @@ def generate(cfg, site, year=None, month=None, pdf=False, email=False):
         if paths.get("pdf"):
             attach.append((os.path.basename(paths["pdf"]), paths["pdf_bytes"], "application/pdf"))
         c = ctx["client"]
-        summary = f"Website report for {site['name']} – {ctx['period']}\n\n{c['short']}\n"
-        if c["todo"]:
-            summary += "\nWhat to do first:\n" + "\n".join(f"{i}. {t['title']} ({t['who']})" for i, t in enumerate(c["todo"], 1)) + "\n"
-        alerts.send_email(cfg, to, f"Website report – {site['name']} – {ctx['period']}",
-                          summary + "\nThe full report is attached.", html=html, attachments=attach)
+        mail = emails.report_ready("website report", site["name"], ctx["period"], c["short"], attached=bool(attach))
+        alerts.send_email(cfg, to, mail.subject, mail.text, html=mail.html, attachments=attach)
     return paths
 
 

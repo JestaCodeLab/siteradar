@@ -27,10 +27,12 @@ def load():
     g.impersonating = None
     g.site_access = None
     uid = session.get("uid")
-    if uid and session.get("exp", time.time() + 1) < time.time():      # the hour is up
+    if not uid:          # not signed in: leave the cookie alone, it holds the steps of a sign-up or a Google sign-in
+        return
+    if session.get("exp", time.time() + 1) < time.time():      # the hour is up
         session.clear()
         return
-    user = accounts.user_by_id(uid) if uid else None
+    user = accounts.user_by_id(uid)
     if not user or user["disabled"]:
         session.clear()
         return

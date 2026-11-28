@@ -89,6 +89,7 @@ def register(data, country=None):
         raise AuthError("An account with this email already exists. Log in instead.", "exists", 409)
     pw = generate_password_hash(data["password"])
     if existing:     # started signing up before but never verified: let them try again
+        _check_code_rate(existing["id"], "verify")          # before anything changes, so a refused attempt leaves the first one intact
         db.run("UPDATE users SET first_name=?, last_name=?, phone=?, country=?, password_hash=? WHERE id=?",
                (first, last, phone, country, pw, existing["id"]))
         uid = existing["id"]
@@ -99,28 +100,36 @@ def register(data, country=None):
     return user_by_id(uid)
 
 
-def _hash_code(uid, purpose, code):
-    return hmac.new(f"{uid}:{purpose}".encode(), code.encode(), hashlib.sha256).hexdigest()
+def _hash_code(uid, purpose, code, target=""):
+    """`target` is the address a code was sent to when that is not yet the account's own, so the code confirms that address and no other."""
+    scope = f"{uid}:{purpose}" + (f":{target.lower()}" if target else "")
+    return hmac.new(scope.encode(), code.encode(), hashlib.sha256).hexdigest()
 
 
-def send_code(user, purpose, to=None):
-    """Email a 6-digit code. At most one a minute and five an hour per person."""
+def _check_code_rate(user_id, purpose):
+    """At most one code a minute and five an hour per person."""
     now = time.time()
     recent = db.q("SELECT created FROM email_codes WHERE user_id=? AND purpose=? AND created>? ORDER BY created DESC",
-                  (user["id"], purpose, now - 3600))
+                  (user_id, purpose, now - 3600))
     if recent and now - recent[0]["created"] < 60:
         raise AuthError("Please wait a minute before asking for another code.", "rate", 429)
     if len(recent) >= 5:
         raise AuthError("Too many codes requested. Try again in an hour.", "rate", 429)
+
+
+def send_code(user, purpose, to=None):
+    """Email a 6-digit code, to the account's address unless `to` is a new one being confirmed."""
+    _check_code_rate(user["id"], purpose)
+    now = time.time()
     db.exec("UPDATE email_codes SET used=1 WHERE user_id=? AND purpose=?", (user["id"], purpose))
     code = f"{secrets.randbelow(1000000):06d}"
     db.run("INSERT INTO email_codes(user_id, purpose, code_hash, created, expires) VALUES (?,?,?,?,?)",
-           (user["id"], purpose, _hash_code(user["id"], purpose, code), now, now + CODE_MINUTES * 60))
+           (user["id"], purpose, _hash_code(user["id"], purpose, code, to or ""), now, now + CODE_MINUTES * 60))
     mail = (emails.reset_code if purpose == "reset" else emails.verify_code)(user["first_name"], code, CODE_MINUTES)
     mailer.send(to or user["email"], mail.subject, mail.text, mail.html)
 
 
-def check_code(user, purpose, code):
+def check_code(user, purpose, code, target=""):
     row = db.q1("SELECT * FROM email_codes WHERE user_id=? AND purpose=? AND used=0 ORDER BY created DESC LIMIT 1",
                 (user["id"], purpose))
     code = re.sub(r"\D", "", code or "")
@@ -129,7 +138,7 @@ def check_code(user, purpose, code):
     # Counting the attempt and checking the limit is one statement, so parallel guesses cannot all slip under the limit.
     if not db.q1("UPDATE email_codes SET attempts=attempts+1 WHERE id=? AND attempts<5 RETURNING id", (row["id"],)):
         raise AuthError("Too many wrong attempts. Ask for a new code.", "locked", 429)
-    if not hmac.compare_digest(row["code_hash"], _hash_code(user["id"], purpose, code)):
+    if not hmac.compare_digest(row["code_hash"], _hash_code(user["id"], purpose, code, target)):
         raise AuthError("That code is not right. Check it and try again.", "bad_code", 400)
     # A right code works once, even if it was sent twice at the same moment.
     if not db.q1("UPDATE email_codes SET used=1 WHERE id=? AND used=0 RETURNING id", (row["id"],)):
@@ -162,17 +171,31 @@ def notify_admin_signup(user):
         log.exception("Signup notification failed for user %s", user["id"])
 
 
-def verify_email(email, code):
+def signup_proof(user):
+    """Kept in the cookie of the browser that chose (or typed) the account's current password, until the email address is confirmed."""
+    return hashlib.sha256(f"{user['id']}:{user['password_hash']}".encode()).hexdigest()
+
+
+def verify_email(email, code, proof=None):
+    """Confirm the address with the emailed code. Returns (user, password_kept).
+
+    Anyone can start a sign-up with someone else's address, or start it again with another password while the owner is still waiting for the
+    code. So the password is only kept when the browser confirming the code is the one that set it. Otherwise it is thrown away and a reset
+    code is sent, and only the owner of the mailbox can choose a new one."""
     user = user_by_email(norm_email(email)) or raise_(AuthError("That code is not right.", "bad_code", 400))
     first_time = not user["email_verified"]
     check_code(user, "verify", code)
+    kept = not first_time or hmac.compare_digest(proof or "", signup_proof(user))
     sets = f"email_verified=1, last_login={time.time()}"
     if user["email"].lower() in super_emails():
         sets += ", is_super=1"
     db.exec(f"UPDATE users SET {sets} WHERE id=?", (user["id"],))
+    if not kept:
+        db.exec("UPDATE users SET password_hash=?, session_ver=session_ver+1 WHERE id=?", (generate_password_hash(secrets.token_urlsafe(32)), user["id"]))
+        request_reset(user["email"])
     if first_time:
         send_welcome(user)
-    return user_by_id(user["id"])
+    return user_by_id(user["id"]), kept
 
 
 def raise_(e):
@@ -258,8 +281,8 @@ def request_email_change(user, new_email, password):
         raise AuthError("Your password is not right.", "bad_login", 403)
     if user_by_email(new):
         raise ValueError("Another account already uses that email address.")
+    send_code(user, "email", to=new)          # first: a refused request must leave the address waiting for confirmation as it was
     db.exec("UPDATE users SET pending_email=? WHERE id=?", (new, user["id"]))
-    send_code(user, "email", to=new)
     return new
 
 
@@ -267,10 +290,11 @@ def confirm_email_change(user, code):
     fresh = user_by_id(user["id"])
     if not fresh["pending_email"]:
         raise ValueError("There is no email change waiting for a code.")
-    check_code(fresh, "email", code)
+    check_code(fresh, "email", code, target=fresh["pending_email"])
     if user_by_email(fresh["pending_email"]):
         raise ValueError("Another account already uses that email address.")
     db.exec("UPDATE users SET email=?, pending_email=NULL WHERE id=?", (fresh["pending_email"], user["id"]))
+    db.exec("UPDATE email_codes SET used=1 WHERE user_id=?", (user["id"],))          # codes sent to the old address stop working
     return user_by_id(user["id"])
 
 
@@ -616,7 +640,8 @@ def delete_workspace(ws_id):
     db.exec("UPDATE workspaces SET paystack_auth=NULL, paystack_card=NULL WHERE id=?", (ws_id,))
 
 
-SITE_DATA_TABLES = ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots")
+SITE_DATA_TABLES = ("checks", "incidents", "hits", "audits", "alerts_sent", "domain_checks", "dns_snapshots", "sitemap_snapshots", "site_events")
+SITE_KV = ("connector", "gsc", "gsc-data", "fixes", "edits", "tracking", "platform", "platform-try", "audit-quota")
 
 
 def _remove_files(pattern):
@@ -633,13 +658,18 @@ def _wipe_workspace(ws_id):
     Payment records and the admin audit trail stay (accounting). Returns what was removed, for the audit trail."""
     site_ids = [r["id"] for r in db.q("SELECT id FROM sites WHERE workspace_id=?", (ws_id,))]
     out = {"websites": len(site_ids), "files": 0}
+    for sid in db.kv_get(f"deleted-sites:{ws_id}", []):          # websites deleted earlier, unless another customer has that ID today
+        if sid not in site_ids and not db.q1("SELECT 1 FROM sites WHERE id=?", (sid,)):
+            site_ids.append(sid)
     if site_ids:
         for table in SITE_DATA_TABLES:
             db.exec(f"DELETE FROM {table} WHERE site_id = ANY(?)", (site_ids,))
         for sid in site_ids:
             e = re.escape(sid)
-            out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
-    out["files"] += _remove_files(rf"^report/subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+            out["files"] += _remove_files(rf"^shot/{e}-(desktop|mobile)\.jpg$") + _remove_files(rf"^report/(site/)?{e}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
+            for kind in SITE_KV:
+                db.exec("DELETE FROM kv WHERE key=?", (f"{kind}:{sid}",))
+    out["files"] += _remove_files(rf"^report/(subs/)?subscriptions-{ws_id}-[0-9]{{4}}-[0-9]{{2}}\.(html|pdf)$")
     invoices = db.q("SELECT i.filename FROM invoices i JOIN subscriptions s ON s.id=i.subscription_id WHERE s.workspace_id=?", (ws_id,))
     for r in invoices:
         storage.remove("invoice/" + r["filename"])
@@ -648,9 +678,10 @@ def _wipe_workspace(ws_id):
     db.exec("DELETE FROM invoices WHERE subscription_id IN (SELECT id FROM subscriptions WHERE workspace_id=?)", (ws_id,))
     out["subscriptions"] = db.q1("SELECT COUNT(*) n FROM subscriptions WHERE workspace_id=?", (ws_id,))["n"]
     members = [r["user_id"] for r in db.q("SELECT user_id FROM memberships WHERE workspace_id=?", (ws_id,))]
-    for t in ("subscriptions", "sites", "memberships", "invitations", "sms_log"):
+    for t in ("subscriptions", "sites", "memberships", "invitations", "sms_log", "whatsapp_numbers", "whatsapp_log", "push_subscriptions"):
         db.exec(f"DELETE FROM {t} WHERE workspace_id=?", (ws_id,))
     db.exec("DELETE FROM kv WHERE key LIKE ?", (f"renewal-notice:{ws_id}:%",))
+    db.exec("DELETE FROM kv WHERE key=?", (f"deleted-sites:{ws_id}",))
     storage.remove(f"logo/{ws_id}")
     out["people"] = _remove_orphaned_users(members)
     return out

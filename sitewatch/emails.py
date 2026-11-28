@@ -89,6 +89,19 @@ def invite(workspace, who, role, url, days, email):
                                        url=url, days=days, email=email))
 
 
+# ---- reports --------------------------------------------------------------------------------
+
+def report_ready(kind, name, period, summary="", attached=True):
+    """The email that carries a monthly report. The report itself is the PDF attachment, so the body stays short.
+
+    `kind` is 'website report' or 'subscription report'; `name` is the website or workspace it covers."""
+    subject = f"{kind.capitalize()} – {name} – {period}" if kind == "website report" else f"{kind.capitalize()} – {period}"
+    reports = app_url() + ("/reports" if kind == "website report" else "/subscriptions/reports")
+    text = _text(f"Your {kind} for {name} covering {period} " + ("is attached to this email as a PDF." if attached else "is ready, but we could not attach the PDF. Download it from the Reports page."),
+                 f"The short version: {summary}" if summary else "", f"Open reports: {reports}")
+    return Mail(subject, text, _render("report_ready", subject, kind=kind, name=name, period=period, summary=summary, attached=attached, reports_url=reports))
+
+
 # ---- billing --------------------------------------------------------------------------------
 
 def payment_received(first_name, workspace, plan, cycle, amount, method, reference, paid_on, renews, discount=None):
