@@ -694,7 +694,7 @@ def _remove_orphaned_users(user_ids):
         u = user_by_id(uid)
         if not u or u["is_super"] or db.q1("SELECT 1 FROM memberships WHERE user_id=?", (uid,)):
             continue
-        for t in ("email_codes", "login_tickets"):
+        for t in ("email_codes", "login_tickets", "sessions"):
             db.exec(f"DELETE FROM {t} WHERE user_id=?", (uid,))
         db.exec("DELETE FROM users WHERE id=?", (uid,))
         n += 1

@@ -344,6 +344,17 @@ UPDATE plans SET price_month=price_month_usd;
 DELETE FROM kv WHERE (key LIKE 'connector:%' OR key LIKE 'gsc:%' OR key LIKE 'gsc-data:%')
     AND NOT EXISTS (SELECT 1 FROM sites s WHERE s.id = split_part(kv.key, ':', 2));
 """),
+    (30, """
+-- sign-ins kept on the server: short-lived access tokens and rotating refresh tokens (only their hashes are stored)
+CREATE TABLE sessions (
+    id TEXT PRIMARY KEY, user_id BIGINT NOT NULL, ver INTEGER NOT NULL,
+    access_hash TEXT NOT NULL, access_expires DOUBLE PRECISION NOT NULL, refresh_hash TEXT NOT NULL,
+    prev_access_hash TEXT, prev_refresh_hash TEXT, rotated DOUBLE PRECISION NOT NULL,
+    created DOUBLE PRECISION NOT NULL, expires DOUBLE PRECISION NOT NULL, hard_expires DOUBLE PRECISION NOT NULL,
+    remember INTEGER NOT NULL DEFAULT 1, ws BIGINT, imp TEXT, mfa INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_sessions_user ON sessions(user_id);
+"""),
 ]
 
 

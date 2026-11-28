@@ -4,28 +4,33 @@ import { Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { btn } from "./ui";
-import { send } from "@/lib/api";
+import { fetcher, refreshAccess, send, type Me } from "@/lib/api";
 import { useMe } from "@/lib/me";
 
 const WARN_AT = 5 * 60;          // seconds left when the prompt appears
+const RENEW_AT = 5 * 60;         // seconds left on the access token when a new one is fetched
 
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 
 /**
  * Signed-in sessions last an hour. Five minutes before the end this asks whether to stay logged in,
  * and when the time is up it signs the person out. The server enforces the same deadline.
+ *
+ * It also keeps the short-lived access token fresh, so links to reports and preview images keep working. That never moves the deadline.
  */
 export function SessionGuard() {
   const router = useRouter();
   const { me, mutate } = useMe();
   const dialog = useRef<HTMLDialogElement>(null);
   const deadline = useRef<number | null>(null);
+  const accessDeadline = useRef<number | null>(null);
   const [left, setLeft] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
   // the server says how long is left each time the profile loads; count down from there
   useEffect(() => {
     deadline.current = me?.authenticated && me.session_seconds_left != null ? Date.now() + me.session_seconds_left * 1000 : null;
+    accessDeadline.current = me?.authenticated && me.access_seconds_left != null ? Date.now() + me.access_seconds_left * 1000 : null;
   }, [me]);
 
   useEffect(() => {
@@ -34,6 +39,13 @@ export function SessionGuard() {
       const remaining = Math.ceil((deadline.current - Date.now()) / 1000);
       if (remaining <= 0) {
         deadline.current = null; setLeft(null);
+        // another tab may have chosen to stay logged in: ask the server before signing out
+        const now = await fetcher<Me>("/api/auth/me").catch(() => null);
+        if (now?.authenticated && (now.session_seconds_left ?? 0) > 0) {
+          deadline.current = Date.now() + now.session_seconds_left! * 1000;
+          await mutate(now, false);
+          return;
+        }
         try { sessionStorage.setItem("sitewatch.expired", "1"); } catch { /* the message is optional */ }
         await send("POST", "/api/auth/logout").catch(() => {});
         await mutate();
@@ -41,10 +53,17 @@ export function SessionGuard() {
         return;
       }
       setLeft(remaining);
+      if (accessDeadline.current != null && accessDeadline.current - Date.now() < RENEW_AT * 1000) {
+        accessDeadline.current = null;          // one attempt at a time
+        const seconds = await refreshAccess();
+        accessDeadline.current = Date.now() + (seconds ?? RENEW_AT + 30) * 1000;      // no answer: try again shortly
+      }
     }
+    const wake = () => { if (document.visibilityState === "visible") void tick(); };      // timers are slowed in hidden tabs
+    document.addEventListener("visibilitychange", wake);
     const t = setInterval(tick, 1000);
     const first = setTimeout(tick, 0);
-    return () => { clearInterval(t); clearTimeout(first); };
+    return () => { document.removeEventListener("visibilitychange", wake); clearInterval(t); clearTimeout(first); };
   }, [mutate, router]);
 
   const show = left != null && left <= WARN_AT;

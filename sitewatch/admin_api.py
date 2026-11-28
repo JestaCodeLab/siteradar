@@ -6,9 +6,9 @@ import json
 import os
 import time
 
-from flask import Blueprint, Response, abort, g, jsonify, request, session
+from flask import Blueprint, Response, abort, g, jsonify, request
 
-from . import accounts, ai, billing, db, discounts, mailer, plans, security, sites, storage, whatsapp
+from . import accounts, ai, billing, db, discounts, mailer, plans, security, sessions, sites, storage, whatsapp
 from .ctx import SUPPORT_MINUTES, super_required
 
 PLAN_COLORS = {"freelance": "#C9CFD8", "starter": "#9DB4F5", "growth": "#6B4FE0", "scale": "#2B1C77"}
@@ -353,7 +353,7 @@ def blueprint(cfg):
     @bp.post("/customers/<int:ws_id>/delete")
     def customer_delete(ws_id):
         """Delete a customer and everything it owns, for good. The workspace name must be typed back, and a reason is kept in the audit trail."""
-        if session.get("imp"):
+        if g.session["imp"]:
             abort(403, "Not available in a support session.")
         w, d = ws_or_404(ws_id), body()
         if (d.get("confirm") or "").strip() != w["name"]:
@@ -430,23 +430,24 @@ def blueprint(cfg):
             raise ValueError("Write a reason of at least 10 characters. It goes in the audit log.")
         mode = "edit" if d.get("mode") == "edit" else "view"
         until = time.time() + SUPPORT_MINUTES * 60
-        session["imp"] = {"ws": ws_id, "until": until, "reason": reason, "mode": mode}
+        sessions.update(imp={"ws": ws_id, "until": until, "reason": reason, "mode": mode})
         audit("support.start", ws_id, f"{'Full access' if mode == 'edit' else 'View only'}. Reason: {reason}")
         return jsonify(ok=True, until=until, mode=mode)
 
     @bp.post("/support/mode")
     def support_mode():
-        imp = session.get("imp")
+        imp = g.session["imp"]
         if not imp or imp["until"] < time.time():
             raise ValueError("No support session is open.")
         mode = "edit" if body().get("mode") == "edit" else "view"
-        session["imp"] = {**imp, "mode": mode}
+        sessions.update(imp={**imp, "mode": mode})
         audit("support.mode", imp["ws"], "full access" if mode == "edit" else "view only")
         return jsonify(ok=True, mode=mode)
 
     @bp.post("/support/stop")
     def support_stop():
-        imp = session.pop("imp", None)
+        imp = g.session["imp"] if g.session else None
+        sessions.update(imp=None)
         if imp and g.user:
             audit("support.stop", imp["ws"])
         return jsonify(ok=True)

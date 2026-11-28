@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Check, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { apiFetch } from "@/lib/api";
 import { fmtAgo, fmtDateTs } from "@/lib/format";
 
 export const tones = {
@@ -82,7 +83,7 @@ export function BackLink({ href, children }: { href: string; children: ReactNode
 
 /** Downloads a CSV the API builds (the login cookie goes with the request). */
 export async function downloadCsv(path: string, name: string) {
-  const res = await fetch(path, { credentials: "same-origin" });
+  const res = await apiFetch(path);
   if (!res.ok) return;
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a"); a.href = url; a.download = `${name}.csv`; a.click();

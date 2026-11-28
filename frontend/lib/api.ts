@@ -4,8 +4,35 @@ export class ApiError extends Error {
   }
 }
 
+let refreshing: Promise<number | null> | null = null;
+
+/** Gets a new access token with the refresh cookie. Answers the seconds the new one lasts, or null when there is none to report
+ * (the sign-in is over, the network failed, or another tab refreshed a moment ago). Calls made together share one request. */
+export function refreshAccess(): Promise<number | null> {
+  const run = async () => {
+    try {
+      const res = await fetch("/api/auth/refresh", { method: "POST", credentials: "same-origin" });
+      if (res.ok) return ((await res.json()) as { access_seconds_left: number }).access_seconds_left;
+      if (res.status === 409) await new Promise((r) => setTimeout(r, 500));      // the other request's cookies are on their way
+    } catch { /* offline: the request that needed this reports the problem */ }
+    return null;
+  };
+  // one tab at a time where the browser can arrange it
+  refreshing ??= (navigator.locks ? navigator.locks.request("siteradar-refresh", run) : run()).finally(() => { refreshing = null; }) as Promise<number | null>;
+  return refreshing;
+}
+
+/** fetch for our own API: when the access token has run out, gets a new one and asks once more. */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const go = () => fetch(path, { credentials: "same-origin", ...init });
+  const res = await go();
+  if (res.status !== 401 || (await res.clone().json().catch(() => ({}))).code !== "token_expired") return res;
+  await refreshAccess();
+  return go();
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, { credentials: "same-origin", ...init });
+  const res = await apiFetch(path, init);
   if (res.status === 401 && !path.startsWith("/api/auth/")) {
     window.location.href = "/login?expired=1";
     throw new ApiError("Please sign in again.", 401);
@@ -206,6 +233,7 @@ export interface Me {
   support: { until: number; reason: string; mode: "view" | "edit" } | null;
   announcement: string | null;
   session_seconds_left?: number | null;
+  access_seconds_left?: number | null;
 }
 
 export interface TeamData {

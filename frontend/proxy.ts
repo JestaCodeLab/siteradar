@@ -21,7 +21,7 @@ function forApi(request: NextRequest) {
 
 export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/api/") || request.nextUrl.pathname === "/collect") return forApi(request);
-  const signedIn = request.cookies.has("session");
+  const signedIn = request.cookies.has("sr_access");
   const { pathname } = request.nextUrl;
   if (PRIVATE.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return signedIn ? NextResponse.next() : NextResponse.redirect(new URL("/login", request.url));

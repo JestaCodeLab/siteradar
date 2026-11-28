@@ -6,7 +6,7 @@ import { CheckCircle2, Download, Plug, X } from "lucide-react";
 import { btn } from "./ui";
 import { TrackingInstall } from "./tracking-install";
 import { useToast } from "./toast";
-import { send, type SiteDetail } from "@/lib/api";
+import { apiFetch, send, type SiteDetail } from "@/lib/api";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
 
@@ -61,7 +61,7 @@ export function usePluginActions(site: SiteDetail, onChange: () => void | Promis
   async function download() {
     setBusy("download");
     try {
-      const res = await fetch(`/api/sites/${site.id}/wordpress-plugin`, { method: "POST", credentials: "same-origin" });
+      const res = await apiFetch(`/api/sites/${site.id}/wordpress-plugin`, { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? "Could not prepare the plugin. Please try again.");

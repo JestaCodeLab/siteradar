@@ -6,14 +6,14 @@ import os
 
 from flask import Flask, Response, jsonify, request
 
-from . import accounts, admin_api, analytics, api, auth_api, connector, ctx, db, plans, push, security, sites
+from . import accounts, admin_api, analytics, api, auth_api, connector, ctx, db, plans, push, security, sessions, sites
 
 SESSION_DAYS = 30
 
 
 def create_app(cfg):
     app = Flask(__name__)
-    # Signing key for login cookies: set SECRET_KEY on the server; the fallback is derived from the database URL.
+    # Signing key for the sign-up and Google sign-in cookie (logins themselves are in sessions.py): set SECRET_KEY on the server; the fallback is derived from the database URL.
     secret = cfg.get("secret_key") or os.environ.get("SECRET_KEY")
     if not secret and str(os.environ.get("APP_URL", cfg.get("public_url", ""))).startswith("https://"):
         raise RuntimeError("SECRET_KEY is not set. Login cookies would be signed with a guessable key; set a long random SECRET_KEY.")
@@ -36,6 +36,7 @@ def create_app(cfg):
         ctx.load()
 
     app.after_request(security.harden)
+    app.after_request(sessions.apply)
 
     @app.errorhandler(accounts.AuthError)
     def auth_error(e):

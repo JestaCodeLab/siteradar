@@ -7,7 +7,7 @@ import { btn, Card, CardTitle } from "./ui";
 import { HBar } from "./charts";
 import { useToast } from "./toast";
 import { SearchOverview } from "./search-chart";
-import { fetcher, send, type AnalyticsResponse, type SearchRow, type SearchStatus } from "@/lib/api";
+import { fetcher, refreshAccess, send, type AnalyticsResponse, type SearchRow, type SearchStatus } from "@/lib/api";
 import { countryName } from "@/lib/countries";
 import { fmtAgo } from "@/lib/format";
 import { useMe } from "@/lib/me";
@@ -38,6 +38,7 @@ function useGscNotice(id: string, done: () => void) {
 
 async function startConnect(id: string) {
   const r = await send<{ url: string }>("POST", `/api/sites/${id}/search/connect`, { tab: "analytics" });
+  await refreshAccess();          // Google sends the browser straight back to the API, so leave with a full-length access token
   window.location.href = r.url;
 }
 

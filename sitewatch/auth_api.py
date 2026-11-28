@@ -7,9 +7,9 @@ import time
 
 from flask import Blueprint, Response, abort, g, jsonify, redirect, request, session
 
-from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sites, storage, totp, turnstile, uptime_tool, vault, whatsapp
+from . import accounts, billing, db, discounts, google_auth, gsc, mailer, plans, sessions, sites, storage, totp, turnstile, uptime_tool, vault, whatsapp
 from .security import browser_bind, client_ip, limited, same_browser, sha
-from .ctx import SESSION_SECONDS, SUPPORT_MINUTES, login_required, mfa_state, need, workspace_required
+from .ctx import SUPPORT_MINUTES, login_required, mfa_state, need, signed_out, workspace_required
 
 log = logging.getLogger("sitewatch.auth")
 LOGO_MAX = 1536 * 1024
@@ -36,13 +36,8 @@ def blueprint(cfg):
         return request.get_json(silent=True) or {}
 
     def sign_in(user, ws_id=None, remember=True):
-        session.clear()
-        session.permanent = bool(remember)        # not remembered: the cookie ends when the browser closes
-        session["uid"] = user["id"]
-        session["ver"] = user["session_ver"]
-        session["exp"] = time.time() + SESSION_SECONDS
-        if ws_id:
-            session["ws"] = ws_id
+        session.clear()          # the sign-up and Google steps are over
+        sessions.start(user, ws_id, remember)
 
     def load_workspace(user, ws_id=None):
         """Set the request's user and workspace the way a later request would (the one the session names, else the first), so the answer to
@@ -52,7 +47,7 @@ def blueprint(cfg):
         g.user, g.impersonating = user, None
         g.ws, g.role = (chosen, chosen["role"]) if chosen else (None, None)
         if chosen:
-            session["ws"] = chosen["id"]
+            sessions.update(ws=chosen["id"])
 
     def discount_limited():
         """Discount codes are tried at checkout as well as in the check box, so all of them share one allowance."""
@@ -84,7 +79,8 @@ def blueprint(cfg):
             "workspaces": [{"id": w["id"], "name": w["name"], "role": w["role"], "logo_url": w["logo_url"]} for w in mine],
             "workspace": own_view(accounts.public_workspace(g.ws, g.role)) if g.ws else None,
             "announcement": announcement(),
-            "session_seconds_left": max(0, int(session.get("exp", 0) - time.time())) if g.user else None,
+            "session_seconds_left": max(0, int(g.session["expires"] - time.time())) if g.user else None,
+            "access_seconds_left": max(0, int(g.session["access_expires"] - time.time())) if g.user else None,
             "support": {"until": g.impersonating["until"], "reason": g.impersonating["reason"], "mode": g.impersonating["mode"]}
             if g.impersonating else None,
         }
@@ -173,7 +169,7 @@ def blueprint(cfg):
         mine = accounts.memberships(user["id"])
         g.ws, g.role = (mine[0], mine[0]["role"]) if mine else (None, None)
         if g.ws:
-            session["ws"] = g.ws["id"]
+            sessions.update(ws=g.ws["id"])
         return jsonify(me_payload())
 
     @bp.get("/auth/providers")
@@ -309,7 +305,7 @@ def blueprint(cfg):
 
     # ---- two-factor sign-in for super admins ---------------------------------------------------
     def super_user():
-        user = accounts.user_by_id(session.get("uid")) if session.get("uid") else None
+        user = accounts.user_by_id(g.session["user_id"])
         if not user or not user["is_super"] or user["disabled"]:
             abort(404)
         return user
@@ -321,7 +317,7 @@ def blueprint(cfg):
         return step is not None and bool(db.q1("UPDATE users SET totp_last=? WHERE id=? AND totp_last<? RETURNING id", (step, user["id"], step)))
 
     def mfa_done(user):
-        session["mfa"] = True
+        sessions.update(mfa=True)
         g.user = accounts.user_by_id(user["id"])
         return jsonify(me_payload())
 
@@ -367,16 +363,28 @@ def blueprint(cfg):
     @login_required
     def extend_session():
         """"Stay logged in": another full session period from now."""
-        session["exp"] = time.time() + SESSION_SECONDS
-        return jsonify(session_seconds_left=SESSION_SECONDS)
+        return jsonify(session_seconds_left=sessions.extend())
+
+    @bp.post("/auth/refresh")
+    def refresh_tokens():
+        """A new access token for the old refresh token. Does not move the end of the sign-in."""
+        result = sessions.refresh()
+        if result == "ended":
+            return jsonify(error="Your session ended. Please log in again.", code="login"), 401
+        if result == "busy":
+            return jsonify(error="Already refreshed. Try again.", code="refresh_busy"), 409
+        return jsonify(access_seconds_left=sessions.ACCESS_SECONDS)
 
     @bp.post("/auth/logout")
     def logout():
+        sessions.end()
         session.clear()
         return jsonify(ok=True)
 
     @bp.get("/auth/me")
     def me():
+        if g.token_expired:
+            return signed_out()
         return jsonify(me_payload())
 
     @bp.post("/auth/forgot")
@@ -398,8 +406,7 @@ def blueprint(cfg):
         wid = int(body().get("workspace_id") or 0)
         if not accounts.role_in(g.user["id"], wid):
             abort(404)
-        session["ws"] = wid
-        session.pop("imp", None)
+        sessions.update(ws=wid, imp=None)
         return jsonify(ok=True)
 
     @bp.patch("/account/profile")
@@ -424,7 +431,7 @@ def blueprint(cfg):
     @bp.post("/account/sessions/logout-others")
     @login_required
     def logout_others():
-        session["ver"] = accounts.logout_others(g.user)
+        sessions.update(ver=accounts.logout_others(g.user))
         return jsonify(ok=True)
 
     @bp.get("/account/alert-prefs")
@@ -440,7 +447,7 @@ def blueprint(cfg):
     @bp.post("/account/password")
     @login_required
     def password():
-        session["ver"] = accounts.change_password(g.user, body().get("current"), body().get("password"))      # this browser stays signed in
+        sessions.update(ver=accounts.change_password(g.user, body().get("current"), body().get("password")))      # this browser stays signed in
         return jsonify(ok=True)
 
     # ---- invitations -------------------------------------------------------
@@ -450,6 +457,8 @@ def blueprint(cfg):
 
     @bp.post("/invites/<token>/accept")
     def invite_accept(token):
+        if g.token_expired:
+            return signed_out()
         user, ws_id = accounts.accept_invite(token, g.user, body())
         sign_in(user, ws_id)
         return jsonify(ok=True)
@@ -464,7 +473,7 @@ def blueprint(cfg):
             raise ValueError("Your account is already set up.")
         else:
             ws = accounts.create_workspace(g.user, body())
-            session["ws"] = ws["id"]
+            sessions.update(ws=ws["id"])
         return jsonify(workspace_id=ws["id"])
 
     def save_logo(ws_id):
@@ -545,7 +554,7 @@ def blueprint(cfg):
         if (body().get("confirm") or "").strip() != g.ws["name"]:
             raise ValueError("Type the workspace name exactly to confirm.")
         accounts.delete_workspace(g.ws["id"])
-        session.pop("ws", None)
+        sessions.update(ws=None)
         return jsonify(ok=True)
 
     @bp.post("/account/logo")
@@ -603,7 +612,7 @@ def blueprint(cfg):
             if g.role == "owner":
                 raise ValueError("The owner can't leave. Transfer ownership first or contact support.")
             db.exec("DELETE FROM memberships WHERE workspace_id=? AND user_id=?", (g.ws["id"], user_id))
-            session.pop("ws", None)
+            sessions.update(ws=None)
         else:
             accounts.remove_member(g.ws, g.role, user_id)
         return jsonify(ok=True)
