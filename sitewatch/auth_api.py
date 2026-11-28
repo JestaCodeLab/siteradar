@@ -557,13 +557,13 @@ def blueprint(cfg):
     # ---- team ---------------------------------------------------------------
     @bp.get("/team")
     @workspace_required
+    @need("admin")
     def team():
         return jsonify(**accounts.team(g.ws["id"]), plan=accounts.public_workspace(g.ws, g.role)["plan"],
                        usage=plans.usage(g.ws["id"]), role=g.role)
 
     @bp.post("/team/invites")
     @workspace_required
-    @need("admin")
     @need("admin")
     def team_invite():
         if limited("invite", 60, 20, key=str(g.ws["id"])):
